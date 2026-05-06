@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<title>Manutenção Comodato</title>
+<style>
+  :root {
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #16213e;
+    --bg-card: #0f3460;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0b0;
+    --border: rgba(255,255,255,0.1);
+    --accent: #e94560;
+    --accent-dark: #c73652;
+    --verde: #10b981;
+    --amarelo: #f59e0b;
+    --azul: #3b82f6;
+    --roxo: #8b5cf6;
+    --cinza: #6b7280;
+    --laranja: #f97316;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; }
+
+  /* LOADING */
+  #loading { position: fixed; inset: 0; background: var(--bg-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; }
+  .loading-logo { font-size: 48px; margin-bottom: 16px; }
+  .loading-title { font-size: 22px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+  .loading-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 32px; }
+  .loading-spinner { width: 36px; height: 36px; border: 3px solid rgba(233,69,96,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* SCREENS */
+  .screen { display: none; min-height: 100vh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* TOPBAR */
+  .topbar { background: var(--accent); padding: 16px 16px 14px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+  .topbar-title { font-size: 17px; font-weight: 700; color: white; }
+  .topbar-sub { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 1px; }
+  .back-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 34px; height: 34px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .topbar-right { margin-left: auto; background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
+
+  /* CONTENT */
+  .content { flex: 1; padding: 16px; overflow-y: auto; max-width: 480px; width: 100%; margin: 0 auto; }
+
+  /* CARDS */
+  .card { background: var(--bg-secondary); border-radius: 14px; padding: 14px; margin-bottom: 12px; border: 0.5px solid var(--border); }
+  .card-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+
+  /* INPUTS */
+  input[type="text"], input[type="number"], input[type="date"], select, textarea {
+    width: 100%; padding: 11px 14px; border-radius: 10px; border: 0.5px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.07); color: var(--text-primary); font-size: 15px;
+    font-family: inherit; outline: none; transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: #1a1a2e; }
+  textarea { resize: vertical; min-height: 70px; }
+
+  /* BUTTONS */
+  .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.2s; }
+  .btn:active { opacity: 0.8; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-secondary { background: rgba(255,255,255,0.08); color: var(--text-primary); border: 0.5px solid var(--border); }
+  .btn-verde { background: var(--verde); color: white; }
+  .btn-sm { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; }
+
+  /* HOME BUTTONS */
+  .home-btn { width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--bg-secondary); border: 0.5px solid var(--border); border-left: 3px solid var(--accent); border-radius: 14px; cursor: pointer; font-family: inherit; text-align: left; margin-bottom: 10px; }
+  .hb-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .hb-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+  .hb-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* PIN */
+  .pin-screen { background: var(--accent); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; }
+  .pin-logo { font-size: 52px; margin-bottom: 12px; }
+  .pin-title { font-size: 22px; font-weight: 700; color: white; margin-bottom: 4px; }
+  .pin-sub { font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 32px; }
+  .pin-dots { display: flex; gap: 12px; margin-bottom: 32px; }
+  .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); background: transparent; transition: background 0.15s; }
+  .pin-dot.filled { background: white; border-color: white; }
+  .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; max-width: 280px; }
+  .pin-btn { background: rgba(255,255,255,0.15); border: none; color: white; font-size: 22px; font-weight: 600; padding: 18px; border-radius: 16px; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .pin-btn:active { background: rgba(255,255,255,0.3); }
+  .pin-err { color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 12px; min-height: 20px; }
+
+  /* STATUS BADGES */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .badge-aguardando { background: rgba(107,114,128,0.2); color: var(--cinza); }
+  .badge-andamento { background: rgba(245,158,11,0.2); color: var(--amarelo); }
+  .badge-concluido { background: rgba(16,185,129,0.2); color: var(--verde); }
+  .badge-saiu { background: rgba(59,130,246,0.2); color: var(--azul); }
+
+  /* DASHBOARD METRICS */
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .metric-card { background: var(--bg-secondary); border-radius: 14px; padding: 16px; border: 0.5px solid var(--border); text-align: center; }
+  .metric-num { font-size: 32px; font-weight: 700; }
+  .metric-lbl { font-size: 11px; color: var(--text-secondary); margin-top: 4px; font-weight: 500; }
+  .metric-aguardando .metric-num { color: var(--cinza); }
+  .metric-andamento .metric-num { color: var(--amarelo); }
+  .metric-concluido .metric-num { color: var(--verde); }
+  .metric-saiu .metric-num { color: var(--azul); }
+
+  /* EQUIPMENT ITEMS */
+  .equip-item { background: var(--bg-secondary); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; border: 0.5px solid var(--border); border-left: 4px solid var(--cinza); cursor: pointer; transition: opacity 0.15s; }
+  .equip-item:active { opacity: 0.8; }
+  .equip-item.andamento { border-left-color: var(--amarelo); }
+  .equip-item.concluido { border-left-color: var(--verde); }
+  .equip-item.saiu { border-left-color: var(--azul); }
+  .equip-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .equip-nome { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+  .equip-patrimonio { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
+  .equip-data { font-size: 11px; color: var(--text-secondary); margin-top: 6px; }
+
+  /* CHECKLIST */
+  .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .check-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.04); border-radius: 10px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+  .check-item.checked { background: rgba(233,69,96,0.12); border-color: var(--accent); }
+  .check-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .check-label { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+
+  /* SECTION DIVIDER */
+  .section-div { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin: 16px 0 8px; padding-left: 2px; }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 40px 20px; color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+
+  /* SEARCH */
+  .search-wrap { position: relative; margin-bottom: 12px; }
+  .search-wrap input { padding-left: 40px; }
+  .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 16px; pointer-events: none; }
+
+  /* DETAIL ROWS */
+  .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { font-size: 13px; color: var(--text-secondary); }
+  .detail-val { font-size: 13px; font-weight: 600; color: var(--text-primary); text-align: right; max-width: 60%; }
+
+  /* NF TAG */
+  .nf-tag { display: inline-flex; align-items: center; gap: 6px; background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: var(--azul); padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; margin-top: 6px; }
+
+  /* SCROLL */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="loading-logo">🔧</div>
+  <div class="loading-title">Manutenção Comodato</div>
+  <div class="loading-sub">Conectando ao servidor...</div>
+  <div class="loading-spinner"></div>
+</div>
+
+<!-- PIN -->
+<div class="screen" id="s-pin">
+  <div class="pin-screen">
+    <div class="pin-logo">🔧</div>
+    <div class="pin-title">Manutenção</div>
+    <div class="pin-sub">Comodato</div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-grid">
+      <button class="pin-btn" onclick="pinDigit('1')">1</button>
+      <button class="pin-btn" onclick="pinDigit('2')">2</button>
+      <button class="pin-btn" onclick="pinDigit('3')">3</button>
+      <button class="pin-btn" onclick="pinDigit('4')">4</button>
+      <button class="pin-btn" onclick="pinDigit('5')">5</button>
+      <button class="pin-btn" onclick="pinDigit('6')">6</button>
+      <button class="pin-btn" onclick="pinDigit('7')">7</button>
+      <button class="pin-btn" onclick="pinDigit('8')">8</button>
+      <button class="pin-btn" onclick="pinDigit('9')">9</button>
+      <button class="pin-btn" onclick="pinDigit('0')" style="grid-column:2;">0</button>
+      <button class="pin-btn" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="pin-err" id="pin-err"></div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="screen" id="s-home">
+  <div class="topbar">
+    <div style="flex:1;"><div class="topbar-title">🔧 Manutenção Comodato</div><div class="topbar-sub" id="home-sub">Painel de controle</div></div>
+    <button class="topbar-right" onclick="goTo('s-pin')">Sair</button>
+  </div>
+  <div class="content">
+    <!-- METRICS -->
+    <div class="metric-grid">
+      <div class="metric-card metric-aguardando">
+        <div class="metric-num" id="m-aguardando">0</div>
+        <div class="metric-lbl">⏳ Aguardando</div>
+      </div>
+      <div class="metric-card metric-andamento">
+        <div class="metric-num" id="m-andamento">0</div>
+        <div class="metric-lbl">🔧 Em Andamento</div>
+      </div>
+      <div class="metric-card metric-concluido">
+        <div class="metric-num" id="m-concluido">0</div>
+        <div class="metric-lbl">✅ Concluídos</div>
+      </div>
+      <div class="metric-card metric-saiu">
+        <div class="metric-num" id="m-saiu">0</div>
+        <div class="metric-lbl">🚚 Saíram</div>
+      </div>
+    </div>
+
+    <div class="section-div">Ações</div>
+    <button class="home-btn" onclick="goTo('s-entrada')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.15);">📥</div>
+      <div style="flex:1;"><div class="hb-title">Registrar Entrada</div><div class="hb-desc">Novo equipamento chegou</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="goTo('s-estoque')">
+      <div class="hb-icon" style="background:rgba(245,158,11,0.15);">📦</div>
+      <div style="flex:1;"><div class="hb-title">Estoque</div><div class="hb-desc">Ver e gerenciar equipamentos</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="goTo('s-base')">
+      <div class="hb-icon" style="background:rgba(139,92,246,0.15);">🗂️</div>
+      <div style="flex:1;"><div class="hb-title">Base de Equipamentos</div><div class="hb-desc">Cadastrar tipos e patrimônios</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="goTo('s-historico')">
+      <div class="hb-icon" style="background:rgba(59,130,246,0.15);">📋</div>
+      <div style="flex:1;"><div class="hb-title">Histórico</div><div class="hb-desc">Todos os equipamentos por status</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+
+    <div class="section-div" style="margin-top:14px;">Equipe</div>
+    <button class="home-btn" onclick="goTo('s-presenca-reg')">
+      <div class="hb-icon" style="background:rgba(139,92,246,0.15);">👥</div>
+      <div style="flex:1;"><div class="hb-title">Registro de Presença</div><div class="hb-desc" id="presenca-home-desc">Controle diário da equipe</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+  </div>
+</div>
+
+<!-- BASE DE EQUIPAMENTOS -->
+<div class="screen" id="s-base">
+  <div class="topbar">
+    <button class="back-btn" onclick="goTo('s-home')">‹</button>
+    <div style="flex:1;"><div class="topbar-title">Base de Equipamentos</div><div class="topbar-sub">Selecione o tipo</div></div>
+  </div>
+  <div class="content">
+    <div class="section-div">Tipos de equipamento</div>
+    <button class="home-btn" onclick="abrirBaseTipo('Forno')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🔥</div>
+      <div style="flex:1;"><div class="hb-title">Forno</div><div class="hb-desc" id="base-badge-Forno">Carregando...</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="abrirBaseTipo('Padeiro Noturno')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🌙</div>
+      <div style="flex:1;"><div class="hb-title">Padeiro Noturno</div><div class="hb-desc" id="base-badge-Padeiro-Noturno">Carregando...</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="abrirBaseTipo('Esqueleto')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🦴</div>
+      <div style="flex:1;"><div class="hb-title">Esqueleto</div><div class="hb-desc" id="base-badge-Esqueleto">Carregando...</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="abrirBaseTipo('Armário')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🚪</div>
+      <div style="flex:1;"><div class="hb-title">Armário</div><div class="hb-desc" id="base-badge-Armrio">Carregando...</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="abrirBaseTipo('Freezer')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">❄️</div>
+      <div style="flex:1;"><div class="hb-title">Freezer</div><div class="hb-desc" id="base-badge-Freezer">Carregando...</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+  </div>
+</div>
+
+<!-- BASE: MODELOS DE UM TIPO -->
+<div class="screen" id="s-base-tipo">
+  <div class="topbar">
+    <button class="back-btn" onclick="goTo('s-base')">‹</button>
+    <div style="flex:1;"><div class="topbar-title" id="base-tipo-title">Modelos</div><div class="topbar-sub" id="base-tipo-sub"></div></div>
+    <button class="topbar-right" onclick="goTo('s-base-novo')">+ Modelo</button>
+  </div>
+  <div class="content">
+    <div id="base-tipo-list"></div>
+  </div>
+</div>
+
+<!-- NOVO MODELO -->
+<div class="screen" id="s-base-novo">
+  <div class="topbar">
+    <button class="back-btn" onclick="goTo('s-base-tipo')">‹</button>
+    <div><div class="topbar-title">Novo Modelo</div><div class="topbar-sub" id="base-novo-sub"></div></div>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="card-label">Nome do modelo</div>
+      <input type="text" id="base-modelo-nome" placeholder="Ex: Forno Venâncio 4 Esteiras" />
+    </div>
+    <div class="card">
+      <div class="card-label">Observação (opcional)</div>
+      <input type="text" id="base-modelo-obs" placeholder="Ex: capacidade, tensão..." />
+    </div>
+    <button class="btn btn-primary" id="base-btn" onclick="salvarModelo()">Cadastrar modelo ✓</button>
+  </div>
+</div>
+
+<!-- REGISTRAR ENTRADA: SELECIONAR TIPO -->
+<div class="screen" id="s-entrada">
+  <div class="topbar">
+    <button class="back-btn" onclick="goTo('s-home')">‹</button>
+    <div><div class="topbar-title">Registrar Entrada</div><div class="topbar-sub">Selecione o tipo</div></div>
+  </div>
+  <div class="content">
+    <div class="section-div">Tipo de equipamento</div>
+    <button class="home-btn" onclick="selecionarTipoEntrada('Forno')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🔥</div>
+      <div style="flex:1;"><div class="hb-title">Forno</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="selecionarTipoEntrada('Padeiro Noturno')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🌙</div>
+      <div style="flex:1;"><div class="hb-title">Padeiro Noturno</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="selecionarTipoEntrada('Esqueleto')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🦴</div>
+      <div style="flex:1;"><div class="hb-title">Esqueleto</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="selecionarTipoEntrada('Armário')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🚪</div>
+      <div style="flex:1;"><div class="hb-title">Armário</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="selecionarTipoEntrada('Freezer')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">❄️</div>
+      <div style="flex:1;"><div class="hb-title">Freezer</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+  </div>
+</div>
+
+<!-- REGISTRAR ENTRADA: FORMULÁRIO -->
+<div class="screen" id="s-entrada-form">
+  <div class="topbar">
+    <button class="back-btn" onclick="goTo('s-entrada')">‹</button>
+    <div><div class="topbar-title">Registrar Entrada</div><div class="topbar-sub" id="entrada-tipo-sub"></div></div>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="card-label">Modelo</div>
+      <div id="entrada-modelos-list"></div>
+      <div id="entrada-modelo-sel" style="display:none;margin-top:8px;padding:10px;background:rgba(233,69,96,0.1);border-radius:10px;border:1px solid var(--accent);">
+        <div style="font-size:13px;font-weight:600;color:var(--accent);" id="entrada-modelo-sel-nome"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Nº de Patrimônio</div>
+      <input type="text" id="entrada-patrimonio" placeholder="Ex: 0042" />
+    </div>
+    <div class="card">
+      <div class="card-label">Data de entrada</div>
+      <input type="date" id="entrada-data" />
+    </div>
+    <div class="card">
+      <div class="card-label">Nº NF de Entrada</div>
+      <input type="text" id="entrada-nf" placeholder="Ex: 001234" />
+    </div>
+    <div class="card">
+      <div class="card-label">Problema identificado</div>
+      <textarea id="entrada-problema" placeholder="Descreva o problema ou condição do equipamento ao chegar..."></textarea>
+    </div>
+    <button class="btn btn-primary" id="entrada-btn" onclick="salvarEntrada()">Registrar entrada ✓</button>
+  </div>
+</div>
+
+<!-- ESTOQUE -->
+<div class="screen" id="s-estoque">
+  <div class="topbar">
+    <button class="back-btn" onclick="goTo('s-home')">‹</button>
+    <div style="flex:1;"><div class="topbar-title">Estoque</div><div class="topbar-sub" id="estoque-sub"></div></div>
+  </div>
+  <div class="content">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="estoque-srch" placeholder="Buscar equipamento..." oninput="renderEstoque()" />
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Status</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;">
+      <button class="btn-sm" id="filtro-todos" onclick="setFiltro('todos')" style="background:var(--accent);color:white;white-space:nowrap;">Todos</button>
+      <button class="btn-sm" id="filtro-aguardando" onclick="setFiltro('aguardando')" style="background:rgba(107,114,128,0.2);color:var(--cinza);white-space:nowrap;">⏳ Aguardando</button>
+      <button class="btn-sm" id="filtro-andamento" onclick="setFiltro('andamento')" style="background:rgba(245,158,11,0.2);color:var(--amarelo);white-space:nowrap;">🔧 Andamento</button>
+      <button class="btn-sm" id="filtro-concluido" onclick="setFiltro('concluido')" style="background:rgba(16,185,129,0.2);color:var(--verde);white-space:nowrap;">✅ Concluído</button>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Tipo</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;">
+      <button class="btn-sm" id="ftipo-todos" onclick="setFiltroTipo('todos')" style="background:var(--accent);color:white;white-space:nowrap;">Todos</button>
+      <button class="btn-sm" id="ftipo-Forno" onclick="setFiltroTipo('Forno')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🔥 Forno</button>
+      <button class="btn-sm" id="ftipo-Padeiro-Noturno" onclick="setFiltroTipo('Padeiro Noturno')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🌙 Padeiro</button>
+      <button class="btn-sm" id="ftipo-Esqueleto" onclick="setFiltroTipo('Esqueleto')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🦴 Esqueleto</button>
+      <button class="btn-sm" id="ftipo-Armario" onclick="setFiltroTipo('Armário')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🚪 Armário</button>
+      <button class="btn-sm" id="ftipo-Freezer" onclick="setFiltroTipo('Freezer')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">❄️ Freezer</button>
+    </div>
+    <div id="estoque-list"></div>
+  </div>
+</div>
+
+<!-- DETALHE EQUIPAMENTO -->
+<div class="screen" id="s-detalhe">
+  <div class="topbar">
+    <button class="back-btn" id="detalhe-back" onclick="goTo('s-estoque')">‹</button>
+    <div style="flex:1;"><div class="topbar-title" id="detalhe-title">Equipamento</div><div class="topbar-sub" id="detalhe-sub"></div></div>
+  </div>
+  <div class="content" id="detalhe-content"></div>
+</div>
+
+
+<!-- PRESENÇA REGISTROS -->
+<div class="screen" id="s-presenca-reg">
+  <div class="topbar">
+    <button class="back-btn" onclick="goTo('s-home')">‹</button>
+    <div style="flex:1;"><div class="topbar-title">Registros de Presença</div><div class="topbar-sub" id="presenca-reg-sub"></div></div>
+    <button class="topbar-right" onclick="goTo('s-presenca-form')">+ Novo</button>
+  </div>
+  <div class="content" id="presenca-reg-content"></div>
+</div>
+
+<!-- PRESENÇA FORM -->
+<div class="screen" id="s-presenca-form">
+  <div class="topbar">
+    <button class="back-btn" onclick="goTo('s-presenca-reg')">‹</button>
+    <div><div class="topbar-title">Registro de Presença</div><div class="topbar-sub" id="presenca-form-sub"></div></div>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="card-label">Data</div>
+      <input type="date" id="pres-data" />
+    </div>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <div class="card-label">Escalados</div>
+          <input type="number" id="pres-escalados" placeholder="0" min="0" inputmode="numeric" />
+        </div>
+        <div>
+          <div class="card-label">Presentes</div>
+          <input type="number" id="pres-presentes" placeholder="0" min="0" inputmode="numeric" />
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="card-label" style="margin:0;">Ocorrências (faltas / saídas)</div>
+        <button onclick="addOcorrencia()" style="background:var(--accent);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">+ Adicionar</button>
+      </div>
+      <div id="pres-ocorrencias-list"></div>
+    </div>
+    <button class="btn btn-primary" id="pres-btn" onclick="salvarPresenca()">Salvar registro ✓</button>
+  </div>
+</div>
+
+<!-- HISTÓRICO -->
+<div class="screen" id="s-historico">
+  <div class="topbar">
+    <button class="back-btn" onclick="goTo('s-home')">‹</button>
+    <div style="flex:1;"><div class="topbar-title">Histórico</div><div class="topbar-sub" id="hist-sub"></div></div>
+  </div>
+  <div class="content">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="hist-srch" placeholder="Buscar..." oninput="renderHistorico()" />
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Status</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;">
+      <button class="btn-sm" id="hf-todos" onclick="setFiltroHist('todos')" style="background:var(--accent);color:white;white-space:nowrap;">Todos</button>
+      <button class="btn-sm" id="hf-aguardando" onclick="setFiltroHist('aguardando')" style="background:rgba(107,114,128,0.2);color:var(--cinza);white-space:nowrap;">⏳ Aguardando</button>
+      <button class="btn-sm" id="hf-andamento" onclick="setFiltroHist('andamento')" style="background:rgba(245,158,11,0.2);color:var(--amarelo);white-space:nowrap;">🔧 Andamento</button>
+      <button class="btn-sm" id="hf-concluido" onclick="setFiltroHist('concluido')" style="background:rgba(16,185,129,0.2);color:var(--verde);white-space:nowrap;">✅ Concluído</button>
+      <button class="btn-sm" id="hf-saiu" onclick="setFiltroHist('saiu')" style="background:rgba(59,130,246,0.2);color:var(--azul);white-space:nowrap;">🚚 Saiu</button>
+    </div>
+    <div class="card" style="margin-bottom:12px;padding:12px;">
+      <div class="card-label">Filtrar por período (data de entrada)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">De</div>
+          <input type="date" id="hist-data-de" oninput="renderHistorico()" />
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">Até</div>
+          <input type="date" id="hist-data-ate" oninput="renderHistorico()" />
+        </div>
+      </div>
+      <button onclick="limparFiltroDataHist()" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text-secondary);border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;">Limpar período</button>
+    </div>
+    <div id="hist-list"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, deleteDoc, setDoc, onSnapshot, doc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCH_t074MvkJn-qVMvCtLfEMaQHf_e_d7M",
+  authDomain: "manutencao-comodato.firebaseapp.com",
+  projectId: "manutencao-comodato",
+  storageBucket: "manutencao-comodato.firebasestorage.app",
+  messagingSenderId: "89709396101",
+  appId: "1:89709396101:web:22ee225ffa806e07a269ec"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const PIN = '1234';
+let pinBuffer = '';
+let equipamentosBase = [];
+let equipamentosEstoque = [];
+let filtroAtivo = 'todos';
+let equipAtivo = null;
+let equipSelecionadoEntrada = null;
+
+// ===== HELPERS =====
+function hoje(){
+  const d=new Date();
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+}
+function agora(){
+  const d=new Date();
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+function fmtDate(iso){
+  if(!iso)return'';
+  const[y,m,d]=iso.split('-');
+  return d+'/'+m+'/'+y;
+}
+function isoToDisplay(iso){return fmtDate(iso);}
+
+// ===== NAVIGATION =====
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id);
+  if(el){el.classList.add('active');el.scrollTop=0;}
+  if(id==='s-home') renderHome();
+  if(id==='s-base') renderBase();
+  if(id==='s-base-tipo') renderBaseTipo();
+  if(id==='s-base-novo'){ document.getElementById('base-novo-sub').textContent=baseTipoAtivo; document.getElementById('base-modelo-nome').value=''; document.getElementById('base-modelo-obs').value=''; const b=document.getElementById('base-btn');if(b){b.textContent='Cadastrar modelo ✓';b.disabled=false;} }
+  if(id==='s-estoque') renderEstoque();
+  if(id==='s-historico') renderHistorico();
+  if(id==='s-entrada'){ entradaModeloSel=null; entradaTipoAtivo=''; }
+  if(id==='s-entrada-form'){
+    renderModelosEntrada();
+    const dEl=document.getElementById('entrada-data');
+    if(dEl&&!dEl.value)dEl.value=new Date().toISOString().slice(0,10);
+  }
+  if(id==='s-presenca-reg') renderPresencaReg();
+  if(id==='s-presenca-form'){
+    if(!_presencaEditId){
+      const dEl=document.getElementById('pres-data');
+      if(dEl)dEl.value=new Date().toISOString().slice(0,10);
+      document.getElementById('pres-escalados').value='';
+      document.getElementById('pres-presentes').value='';
+      presencaOcorrencias=[];
+      document.getElementById('presenca-form-sub').textContent='Novo registro';
+    }
+    renderOcorrencias();
+    const b=document.getElementById('pres-btn');
+    if(b){b.textContent='Salvar registro ✓';b.disabled=false;}
+  }
+  if(id==='s-pin'){ pinBuffer=''; updatePinDots(); document.getElementById('pin-err').textContent=''; }
+}
+
+// ===== PIN =====
+function pinDigit(d){
+  if(pinBuffer.length>=4)return;
+  pinBuffer+=d;
+  updatePinDots();
+  if(pinBuffer.length===4){
+    if(pinBuffer===PIN){
+      goTo('s-home');
+    } else {
+      document.getElementById('pin-err').textContent='PIN incorreto. Tente novamente.';
+      setTimeout(()=>{pinBuffer='';updatePinDots();document.getElementById('pin-err').textContent='';},1000);
+    }
+  }
+}
+function pinDel(){
+  pinBuffer=pinBuffer.slice(0,-1);
+  updatePinDots();
+}
+function updatePinDots(){
+  for(let i=0;i<4;i++){
+    document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length);
+  }
+}
+
+// ===== FIRESTORE LISTENERS =====
+onSnapshot(collection(db,'equipamentosBase'), snap=>{
+  equipamentosBase=snap.docs.map(d=>({firestoreId:d.id,...d.data()})).sort((a,b)=>a.tipo.localeCompare(b.tipo,'pt-BR'));
+  const tela=document.querySelector('.screen.active')?.id;
+  if(tela==='s-base') renderBase();
+  if(tela==='s-entrada') filtrarEntradaEquip();
+});
+
+onSnapshot(collection(db,'equipamentosEstoque'), snap=>{
+  equipamentosEstoque=snap.docs.map(d=>({firestoreId:d.id,...d.data()})).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+  const tela=document.querySelector('.screen.active')?.id;
+  if(tela==='s-home') renderHome();
+  if(tela==='s-estoque') renderEstoque();
+  if(tela==='s-historico') renderHistorico();
+  if(tela==='s-detalhe'&&equipAtivo) renderDetalhe();
+  renderHome();
+});
+
+// ===== HOME =====
+function renderHome(){
+  const counts={aguardando:0,andamento:0,concluido:0,saiu:0};
+  equipamentosEstoque.forEach(e=>{counts[e.status]=(counts[e.status]||0)+1;});
+  document.getElementById('m-aguardando').textContent=counts.aguardando||0;
+  document.getElementById('m-andamento').textContent=counts.andamento||0;
+  document.getElementById('m-concluido').textContent=counts.concluido||0;
+  document.getElementById('m-saiu').textContent=counts.saiu||0;
+  document.getElementById('home-sub').textContent='Total: '+equipamentosEstoque.filter(e=>e.status!=='saiu').length+' no estoque';
+}
+
+// ===== BASE =====
+let baseTipoAtivo = '';
+
+function normalizeId(s){ return s.replace(/ /g,'-').replace(/[^a-zA-Z0-9-]/g,''); }
+
+function renderBase(){
+  const TIPOS=['Forno','Padeiro Noturno','Esqueleto','Armário','Freezer'];
+  TIPOS.forEach(function(t){
+    const safeId=t.replace(/ /g,'-').replace(/[áàãâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i').replace(/[óòõôö]/g,'o').replace(/[úùûü]/g,'u');
+    const el=document.getElementById('base-badge-'+safeId);
+    if(!el)return;
+    const count=equipamentosBase.filter(function(m){return m.tipo===t;}).length;
+    el.textContent=count+' modelo(s) cadastrado(s)';
+  });
+}
+
+function abrirBaseTipo(tipo){
+  baseTipoAtivo=tipo;
+  document.getElementById('base-tipo-title').textContent=tipo;
+  document.getElementById('base-novo-sub').textContent=tipo;
+  renderBaseTipo();
+  goTo('s-base-tipo');
+}
+
+function renderBaseTipo(){
+  const el=document.getElementById('base-tipo-list');
+  if(!el)return;
+  const modelos=equipamentosBase.filter(function(m){return m.tipo===baseTipoAtivo;});
+  document.getElementById('base-tipo-sub').textContent=modelos.length+' modelo(s)';
+  if(!modelos.length){
+    el.innerHTML='<div class="empty">Nenhum modelo cadastrado ainda.<br>Use o botão + Modelo no topo para adicionar.</div>';
+    return;
+  }
+  el.innerHTML=modelos.map(function(m){
+    return '<div style="background:var(--bg-secondary);border-radius:12px;padding:12px 14px;margin-bottom:8px;border:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'+
+      '<div><div style="font-size:14px;font-weight:600;color:var(--text-primary);">'+m.nome+'</div>'+
+      (m.obs?'<div style="font-size:12px;color:var(--text-secondary);">'+m.obs+'</div>':'')+
+      '</div>'+
+      '<button data-fid="'+m.firestoreId+'" onclick="excluirModelo(this.dataset.fid)" style="background:none;border:1px solid rgba(233,69,96,0.4);color:var(--accent);font-size:12px;padding:5px 10px;border-radius:8px;cursor:pointer;font-family:inherit;">🗑</button>'+
+      '</div>';
+  }).join('');
+}
+
+async function salvarModelo(){
+  const nome=document.getElementById('base-modelo-nome').value.trim();
+  const obs=document.getElementById('base-modelo-obs').value.trim();
+  if(!nome){alert('Informe o nome do modelo.');return;}
+  const dup=equipamentosBase.find(function(m){return m.tipo===baseTipoAtivo&&m.nome.toLowerCase()===nome.toLowerCase();});
+  if(dup){alert('Modelo "'+nome+'" já cadastrado para '+baseTipoAtivo+'.');return;}
+  const btn=document.getElementById('base-btn');
+  btn.textContent='Salvando...';btn.disabled=true;
+  try{
+    await addDoc(collection(db,'equipamentosBase'),{tipo:baseTipoAtivo,nome:nome,obs:obs,timestamp:Date.now()});
+    document.getElementById('base-modelo-nome').value='';
+    document.getElementById('base-modelo-obs').value='';
+    btn.textContent='Cadastrar modelo ✓';btn.disabled=false;
+    goTo('s-base-tipo');
+  }catch(e){alert('Erro: '+e.message);btn.textContent='Cadastrar modelo ✓';btn.disabled=false;}
+}
+
+async function excluirModelo(fid){
+  if(!confirm('Excluir este modelo?'))return;
+  try{await deleteDoc(doc(db,'equipamentosBase',fid));}catch(e){alert('Erro: '+e.message);}
+}
+
+// ===== ENTRADA =====
+let entradaTipoAtivo = '';
+let entradaModeloSel = null;
+
+function selecionarTipoEntrada(tipo){
+  entradaTipoAtivo=tipo;
+  entradaModeloSel=null;
+  document.getElementById('entrada-tipo-sub').textContent=tipo;
+  document.getElementById('entrada-modelo-sel').style.display='none';
+  document.getElementById('entrada-patrimonio').value='';
+  document.getElementById('entrada-data').value='';
+  document.getElementById('entrada-nf').value='';
+  document.getElementById('entrada-problema').value='';
+  const btn=document.getElementById('entrada-btn');
+  if(btn){btn.textContent='Registrar entrada ✓';btn.disabled=false;}
+  renderModelosEntrada();
+  goTo('s-entrada-form');
+}
+
+function renderModelosEntrada(){
+  const el=document.getElementById('entrada-modelos-list');
+  if(!el)return;
+  const modelos=equipamentosBase.filter(function(m){return m.tipo===entradaTipoAtivo;});
+  if(!modelos.length){
+    el.innerHTML='<div style="font-size:13px;color:var(--text-secondary);padding:8px 0;">Nenhum modelo cadastrado para '+entradaTipoAtivo+'. Cadastre primeiro na Base de Equipamentos.</div>';
+    return;
+  }
+  el.innerHTML=modelos.map(function(m){
+    const sel=entradaModeloSel&&entradaModeloSel.firestoreId===m.firestoreId;
+    return '<div data-fid="'+m.firestoreId+'" onclick="selecionarModeloEntrada(this.dataset.fid)" style="padding:10px 12px;border-radius:10px;border:1px solid '+(sel?'var(--accent)':'var(--border)')+';background:'+(sel?'rgba(233,69,96,0.1)':'rgba(255,255,255,0.03)')+';margin-bottom:6px;cursor:pointer;">'+
+      '<div style="font-size:14px;font-weight:600;color:'+(sel?'var(--accent)':'var(--text-primary)')+';">'+m.nome+'</div>'+
+      (m.obs?'<div style="font-size:12px;color:var(--text-secondary);">'+m.obs+'</div>':'')+
+      '</div>';
+  }).join('');
+}
+
+function selecionarModeloEntrada(fid){
+  entradaModeloSel=equipamentosBase.find(function(m){return m.firestoreId===fid;});
+  renderModelosEntrada();
+  if(entradaModeloSel){
+    document.getElementById('entrada-modelo-sel').style.display='block';
+    document.getElementById('entrada-modelo-sel-nome').textContent='✓ '+entradaModeloSel.nome;
+  }
+}
+
+async function salvarEntrada(){
+  if(!entradaModeloSel){alert('Selecione um modelo.');return;}
+  const patrimonio=document.getElementById('entrada-patrimonio').value.trim();
+  const dataRaw=document.getElementById('entrada-data').value;
+  const nf=document.getElementById('entrada-nf').value.trim();
+  const problema=document.getElementById('entrada-problema').value.trim();
+  if(!patrimonio){alert('Informe o número de patrimônio.');return;}
+  if(!dataRaw){alert('Informe a data de entrada.');return;}
+  if(!nf){alert('Informe o número da NF de entrada.');return;}
+  if(!problema){alert('Descreva o problema identificado.');return;}
+  const btn=document.getElementById('entrada-btn');
+  btn.textContent='Salvando...';btn.disabled=true;
+  try{
+    await addDoc(collection(db,'equipamentosEstoque'),{
+      tipo:entradaTipoAtivo,
+      modelo:entradaModeloSel.nome,
+      patrimonio:patrimonio,
+      dataEntrada:isoToDisplay(dataRaw),
+      nfEntrada:nf,
+      problema:problema,
+      status:'aguardando',
+      servicos:[],
+      obsServico:'',
+      dataConclusao:null,
+      dataSaida:null,
+      nfSaida:null,
+      historico:[{acao:'Entrada registrada',data:isoToDisplay(dataRaw),hora:agora(),obs:'NF: '+nf+' · Patrimônio: '+patrimonio}],
+      timestamp:Date.now(),
+      hora:agora()
+    });
+    goTo('s-estoque');
+  }catch(e){alert('Erro: '+e.message);btn.textContent='Registrar entrada ✓';btn.disabled=false;}
+}
+
+// ===== ESTOQUE =====
+function setFiltro(f){
+  filtroAtivo=f;
+  ['todos','aguardando','andamento','concluido'].forEach(x=>{
+    const btn=document.getElementById('filtro-'+x);
+    if(!btn)return;
+    const cores={todos:'var(--accent)',aguardando:'rgba(107,114,128,0.8)',andamento:'rgba(245,158,11,0.8)',concluido:'rgba(16,185,129,0.8)'};
+    const bgs={todos:'rgba(233,69,96,0.15)',aguardando:'rgba(107,114,128,0.15)',andamento:'rgba(245,158,11,0.15)',concluido:'rgba(16,185,129,0.15)'};
+    if(x===f){btn.style.background=bgs[x];btn.style.color=cores[x];btn.style.border='1px solid '+cores[x];}
+    else{btn.style.background='rgba(255,255,255,0.05)';btn.style.color='var(--text-secondary)';btn.style.border='1px solid var(--border)';}
+  });
+  renderEstoque();
+}
+
+function renderEstoque(){
+  const el=document.getElementById('estoque-list');
+  if(!el)return;
+  const q=(document.getElementById('estoque-srch')?.value||'').toLowerCase();
+  let lista=equipamentosEstoque.filter(e=>e.status!=='saiu');
+  if(filtroAtivo!=='todos')lista=lista.filter(e=>e.status===filtroAtivo);
+  if(filtroTipoAtivo!=='todos')lista=lista.filter(e=>e.tipo===filtroTipoAtivo);
+  if(q)lista=lista.filter(e=>(e.tipo+' '+e.patrimonio+' '+(e.modelo||'')).toLowerCase().includes(q));
+  document.getElementById('estoque-sub').textContent=lista.length+' equipamento(s)';
+  if(!lista.length){el.innerHTML='<div class="empty">Nenhum equipamento encontrado.</div>';return;}
+  const corStatus={aguardando:'var(--cinza)',andamento:'var(--amarelo)',concluido:'var(--verde)'};
+  el.innerHTML=lista.map(e=>`
+    <div class="equip-item ${e.status}" onclick="abrirDetalhe('${e.firestoreId}')">
+      <div class="equip-header">
+        <div>
+          <div class="equip-nome">${e.tipo}</div>
+          <div class="equip-patrimonio">${e.modelo||''} · Patrimônio: ${e.patrimonio}</div>
+        </div>
+        <span class="badge badge-${e.status}">${e.status==='aguardando'?'⏳ Aguardando':e.status==='andamento'?'🔧 Andamento':'✅ Concluído'}</span>
+      </div>
+      <div class="equip-data">Entrada: ${e.dataEntrada} · NF: ${e.nfEntrada}</div>
+      ${e.problema?'<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+e.problema+'</div>':''}
+    </div>`).join('');
+}
+
+// ===== DETALHE =====
+function abrirDetalhe(fid){
+  equipAtivo=equipamentosEstoque.find(e=>e.firestoreId===fid);
+  if(!equipAtivo)return;
+  renderDetalhe();
+  goTo('s-detalhe');
+}
+
+const SERVICOS_LISTA=['Pintura','Chapeação','Elétrica','Mecânica','Limpeza','Soldagem','Regulagem','Revisão Geral'];
+
+function renderDetalhe(){
+  const e=equipAtivo;
+  if(!e)return;
+  const el=document.getElementById('detalhe-content');
+  document.getElementById('detalhe-title').textContent=e.tipo;
+  document.getElementById('detalhe-sub').textContent='Patrimônio '+e.patrimonio;
+  const corStatus={aguardando:'var(--cinza)',andamento:'var(--amarelo)',concluido:'var(--verde)',saiu:'var(--azul)'};
+  const servSel=e.servicos||[];
+
+  let html=`
+    <!-- STATUS BADGE -->
+    <div style="display:flex;justify-content:center;margin-bottom:16px;">
+      <span class="badge badge-${e.status}" style="padding:6px 18px;font-size:13px;">${e.status==='aguardando'?'⏳ Aguardando':e.status==='andamento'?'🔧 Em Andamento':e.status==='concluido'?'✅ Concluído':'🚚 Saiu'}</span>
+    </div>
+
+    <!-- INFO CARD -->
+    <div class="card">
+      <div class="card-label">Informações</div>
+      <div class="detail-row"><span class="detail-key">Tipo</span><span class="detail-val">${e.tipo}</span></div>
+      <div class="detail-row"><span class="detail-key">Patrimônio</span><span class="detail-val">${e.patrimonio}</span></div>
+      ${e.descricao?'<div class="detail-row"><span class="detail-key">Modelo</span><span class="detail-val">'+e.descricao+'</span></div>':''}
+      <div class="detail-row"><span class="detail-key">Data Entrada</span><span class="detail-val">${e.dataEntrada}</span></div>
+      <div class="detail-row"><span class="detail-key">NF Entrada</span><span class="detail-val">${e.nfEntrada}</span></div>
+      ${e.dataSaida?'<div class="detail-row"><span class="detail-key">Data Saída</span><span class="detail-val">'+e.dataSaida+'</span></div>':''}
+      ${e.nfSaida?'<div class="detail-row"><span class="detail-key">NF Saída</span><span class="detail-val">'+e.nfSaida+'</span></div>':''}
+    </div>
+
+    <!-- PROBLEMA -->
+    <div class="card">
+      <div class="card-label">Problema identificado na entrada</div>
+      <div style="font-size:14px;color:var(--text-primary);line-height:1.5;">${e.problema}</div>
+    </div>`;
+
+  // SERVIÇOS - always show, editable only when not saiu
+  const isSaiu=e.status==='saiu';
+  if(!isSaiu){
+    html+=`<div class="card">
+      <div class="card-label">Serviços realizados</div>
+      <div class="check-grid" style="margin-bottom:10px;">
+        ${SERVICOS_LISTA.map(s=>`
+        <div class="check-item ${servSel.includes(s)?'checked':''}" onclick="toggleServico('${s}')">
+          <input type="checkbox" ${servSel.includes(s)?'checked':''} onchange="toggleServico('${s}')" />
+          <span class="check-label">${s}</span>
+        </div>`).join('')}
+      </div>
+      <div class="card-label" style="margin-top:8px;">Outros serviços / observações</div>
+      <textarea id="obs-servico" placeholder="Descreva outros serviços realizados...">${e.obsServico||''}</textarea>
+      <button onclick="salvarServicos()" class="btn btn-secondary" style="margin-top:8px;">Salvar serviços</button>
+    </div>`;
+  } else if(servSel.length>0||e.obsServico){
+    // Saiu: read-only summary of services
+    html+=`<div class="card">
+      <div class="card-label">Serviços realizados</div>
+      ${servSel.length>0?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:${e.obsServico?'10px':'0'};">
+        ${servSel.map(s=>`<span style="background:rgba(233,69,96,0.12);border:1px solid rgba(233,69,96,0.3);color:var(--accent);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;">✓ ${s}</span>`).join('')}
+      </div>`:''}
+      ${e.obsServico?`<div style="font-size:13px;color:var(--text-primary);line-height:1.5;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px;">${e.obsServico}</div>`:''}
+    </div>`;
+  }
+
+  // STATUS ACTIONS - only when not saiu
+  if(!isSaiu){
+    html+=`<div class="section-div">Alterar status</div>`;
+    if(e.status==='aguardando'){
+      html+=`<button class="btn" style="background:rgba(245,158,11,0.15);color:var(--amarelo);border:1px solid rgba(245,158,11,0.4);margin-bottom:8px;" onclick="alterarStatus('andamento')">🔧 Iniciar manutenção</button>`;
+    }
+    if(e.status==='andamento'){
+      html+=`<button class="btn" style="background:rgba(16,185,129,0.15);color:var(--verde);border:1px solid rgba(16,185,129,0.4);margin-bottom:8px;" onclick="alterarStatus('concluido')">✅ Marcar como concluído</button>`;
+      html+=`<button class="btn" style="background:rgba(107,114,128,0.1);color:var(--cinza);border:1px solid rgba(107,114,128,0.3);margin-bottom:8px;" onclick="alterarStatus('aguardando')">⏳ Voltar para aguardando</button>`;
+    }
+    if(e.status==='concluido'){
+      html+=`<div class="card" style="border-left:3px solid var(--azul);">
+        <div class="card-label">Registrar saída</div>
+        <div style="margin-bottom:10px;">
+          <div class="card-label">Data de saída</div>
+          <input type="date" id="saida-data" />
+        </div>
+        <div style="margin-bottom:10px;">
+          <div class="card-label">NF de saída</div>
+          <input type="text" id="saida-nf" placeholder="Ex: 005678" />
+        </div>
+        <button class="btn" style="background:rgba(59,130,246,0.15);color:var(--azul);border:1px solid rgba(59,130,246,0.4);" onclick="registrarSaida()">🚚 Confirmar saída</button>
+      </div>
+      <button class="btn" style="background:rgba(245,158,11,0.1);color:var(--amarelo);border:1px solid rgba(245,158,11,0.3);margin-bottom:8px;" onclick="alterarStatus('andamento')">🔧 Voltar para andamento</button>`;
+    }
+  }
+
+  // HISTÓRICO
+  if(e.historico&&e.historico.length>0){
+    html+=`<div class="section-div">Histórico</div>
+    ${e.historico.slice().reverse().map(h=>`
+    <div style="background:var(--bg-secondary);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid var(--accent);">
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);">${h.acao}</div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">${h.data} às ${h.hora}</div>
+      ${h.obs?'<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">'+h.obs+'</div>':''}
+    </div>`).join('')}`;
+  }
+
+  // DELETE
+  html+=`<div style="margin-top:16px;">
+    <button onclick="excluirEstoque('${e.firestoreId}')" style="width:100%;padding:12px;background:rgba(233,69,96,0.08);border:1px solid rgba(233,69,96,0.3);color:var(--accent);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">🗑 Excluir registro</button>
+  </div>`;
+
+  el.innerHTML=html;
+} // end renderDetalhe
+
+async function toggleServico(servico){
+  if(!equipAtivo)return;
+  let servs=[...(equipAtivo.servicos||[])];
+  if(servs.includes(servico))servs=servs.filter(s=>s!==servico);
+  else servs.push(servico);
+  equipAtivo.servicos=servs;
+  renderDetalhe();
+}
+
+async function salvarServicos(){
+  if(!equipAtivo)return;
+  const obs=document.getElementById('obs-servico')?.value||'';
+  try{
+    await updateDoc(doc(db,'equipamentosEstoque',equipAtivo.firestoreId),{
+      servicos:equipAtivo.servicos, obsServico:obs
+    });
+    equipAtivo.obsServico=obs;
+    alert('Serviços salvos!');
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+async function alterarStatus(novoStatus){
+  if(!equipAtivo)return;
+  const msgs={andamento:'Iniciar manutenção?',concluido:'Marcar como concluído?',aguardando:'Voltar para aguardando?'};
+  if(!confirm(msgs[novoStatus]))return;
+  const historico=[...(equipAtivo.historico||[])];
+  const labels={andamento:'Manutenção iniciada',concluido:'Manutenção concluída',aguardando:'Retornado para aguardando'};
+  historico.push({acao:labels[novoStatus],data:hoje(),hora:agora(),obs:''});
+  const upd={status:novoStatus,historico};
+  if(novoStatus==='concluido')upd.dataConclusao=hoje();
+  try{
+    await updateDoc(doc(db,'equipamentosEstoque',equipAtivo.firestoreId),upd);
+    equipAtivo={...equipAtivo,...upd};
+    renderDetalhe();
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+async function registrarSaida(){
+  const dataRaw=document.getElementById('saida-data')?.value;
+  const nf=document.getElementById('saida-nf')?.value?.trim();
+  if(!dataRaw){alert('Informe a data de saída.');return;}
+  if(!nf){alert('Informe a NF de saída.');return;}
+  if(!confirm('Confirmar saída com NF '+nf+'?\nO equipamento sairá do estoque.'))return;
+  const dataSaida=isoToDisplay(dataRaw);
+  const historico=[...(equipAtivo.historico||[])];
+  historico.push({acao:'Saída registrada',data:dataSaida,hora:agora(),obs:'NF Saída: '+nf});
+  try{
+    await updateDoc(doc(db,'equipamentosEstoque',equipAtivo.firestoreId),{
+      status:'saiu', dataSaida, nfSaida:nf, historico
+    });
+    equipAtivo={...equipAtivo,status:'saiu',dataSaida,nfSaida:nf,historico};
+    renderDetalhe();
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+async function excluirEstoque(fid){
+  if(!confirm('Excluir este registro permanentemente?\nEssa ação não pode ser desfeita.'))return;
+  try{
+    await deleteDoc(doc(db,'equipamentosEstoque',fid));
+    goTo('s-estoque');
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+// ===== HISTÓRICO =====
+function renderHistorico(){
+  const el=document.getElementById('hist-list');
+  if(!el)return;
+  const q=(document.getElementById('hist-srch')?.value||'').toLowerCase();
+  let lista=[...equipamentosEstoque];
+  // Filter by status
+  if(filtroHistStatus!=='todos')lista=lista.filter(function(e){return e.status===filtroHistStatus;});
+  // Filter by date range
+  const dDe=document.getElementById('hist-data-de')?.value;
+  const dAte=document.getElementById('hist-data-ate')?.value;
+  if(dDe||dAte){
+    const tsDe=dDe?new Date(dDe).getTime():0;
+    const tsAte=dAte?new Date(dAte+'T23:59:59').getTime():Number.MAX_SAFE_INTEGER;
+    lista=lista.filter(function(e){
+      const ts=dataParaTimestamp(e.dataEntrada);
+      return ts>=tsDe&&ts<=tsAte;
+    });
+  }
+  if(q)lista=lista.filter(e=>(e.tipo+' '+e.patrimonio+' '+(e.modelo||'')+' '+(e.nfEntrada||'')+' '+(e.nfSaida||'')).toLowerCase().includes(q));
+  document.getElementById('hist-sub').textContent=lista.length+' registro(s)';
+  if(!lista.length){el.innerHTML='<div class="empty">Nenhum registro encontrado.</div>';return;}
+  const badgeMap={aguardando:'⏳ Aguardando',andamento:'🔧 Andamento',concluido:'✅ Concluído',saiu:'🚚 Saiu'};
+  el.innerHTML=lista.map(e=>`
+    <div class="equip-item ${e.status}" onclick="abrirDetalhe('${e.firestoreId}')">
+      <div class="equip-header">
+        <div>
+          <div class="equip-nome">${e.tipo}</div>
+          <div class="equip-patrimonio">${e.modelo||''} · Patrimônio: ${e.patrimonio}</div>
+        </div>
+        <span class="badge badge-${e.status}">${badgeMap[e.status]}</span>
+      </div>
+      <div class="equip-data">Entrada: ${e.dataEntrada} · NF: ${e.nfEntrada}${e.nfSaida?' | Saída NF: '+e.nfSaida:''}</div>
+      ${e.servicos&&e.servicos.length?'<div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">🔧 '+e.servicos.join(', ')+'</div>':''}
+    </div>`).join('');
+}
+
+
+// ===== FILTRO TIPO (estoque) =====
+let filtroTipoAtivo = 'todos';
+function setFiltroTipo(tipo){
+  filtroTipoAtivo=tipo;
+  const TIPOS=['todos','Forno','Padeiro Noturno','Esqueleto','Armário','Freezer'];
+  TIPOS.forEach(function(t){
+    const safeId=t.replace(/ /g,'-').replace(/[áàãâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i').replace(/[óòõôö]/g,'o').replace(/[úùûü]/g,'u');
+    const btn=document.getElementById('ftipo-'+safeId);
+    if(!btn)return;
+    if(t===tipo){
+      btn.style.background='var(--accent)';
+      btn.style.color='white';
+      btn.style.border='none';
+    } else {
+      btn.style.background='rgba(255,255,255,0.05)';
+      btn.style.color='var(--text-secondary)';
+      btn.style.border='1px solid var(--border)';
+    }
+  });
+  renderEstoque();
+}
+
+// ===== FILTRO HISTÓRICO =====
+let filtroHistStatus = 'todos';
+function setFiltroHist(s){
+  filtroHistStatus=s;
+  ['todos','aguardando','andamento','concluido','saiu'].forEach(function(x){
+    const btn=document.getElementById('hf-'+x);
+    if(!btn)return;
+    const cores={todos:'var(--accent)',aguardando:'var(--cinza)',andamento:'var(--amarelo)',concluido:'var(--verde)',saiu:'var(--azul)'};
+    const bgs={todos:'rgba(233,69,96,0.15)',aguardando:'rgba(107,114,128,0.15)',andamento:'rgba(245,158,11,0.15)',concluido:'rgba(16,185,129,0.15)',saiu:'rgba(59,130,246,0.15)'};
+    if(x===s){btn.style.background=bgs[x];btn.style.color=cores[x];btn.style.border='1px solid '+cores[x];}
+    else{btn.style.background='rgba(255,255,255,0.05)';btn.style.color='var(--text-secondary)';btn.style.border='1px solid var(--border)';}
+  });
+  renderHistorico();
+}
+
+function limparFiltroDataHist(){
+  document.getElementById('hist-data-de').value='';
+  document.getElementById('hist-data-ate').value='';
+  renderHistorico();
+}
+
+function dataParaTimestamp(dataStr){
+  // dd/mm/yyyy → timestamp
+  if(!dataStr)return 0;
+  const parts=dataStr.split('/');
+  if(parts.length!==3)return 0;
+  return new Date(parts[2]+'-'+parts[1]+'-'+parts[0]).getTime();
+}
+
+// ===== PRESENÇA =====
+let presencas = [];
+let presencaOcorrencias = [];
+let _presencaEditId = null;
+
+onSnapshot(collection(db,'presencas'), function(snap){
+  presencas=snap.docs.map(function(d){return Object.assign({firestoreId:d.id},d.data());}).sort(function(a,b){return (b.timestamp||0)-(a.timestamp||0);});
+  const tela=document.querySelector('.screen.active') ? document.querySelector('.screen.active').id : '';
+  if(tela==='s-presenca-reg') renderPresencaReg();
+  // Update home badge
+  const hojeStr=isoToDisplay(new Date().toISOString().slice(0,10));
+  const recHoje=presencas.find(function(p){return p.data===hojeStr;});
+  const desc=document.getElementById('presenca-home-desc');
+  if(desc) desc.textContent=recHoje?('Hoje: '+recHoje.presentes+'/'+recHoje.escalados+' presentes'):'Controle diário da equipe';
+});
+
+function renderPresencaReg(){
+  const el=document.getElementById('presenca-reg-content');
+  const sub=document.getElementById('presenca-reg-sub');
+  if(!el)return;
+  if(sub)sub.textContent=presencas.length+' registro(s)';
+  if(!presencas.length){
+    el.innerHTML='<div class="empty">Nenhum registro de presença ainda.<br>Use o botão + Novo no topo para adicionar.</div>';
+    return;
+  }
+  // Group by date
+  const porData={};
+  presencas.forEach(function(p){if(!porData[p.data])porData[p.data]=[];porData[p.data].push(p);});
+  const datasOrd=Object.keys(porData).sort(function(a,b){return dataParaTimestamp(b)-dataParaTimestamp(a);});
+  let html='';
+  datasOrd.forEach(function(data){
+    const regs=porData[data];
+    const dayId='pres-day-'+data.replace(/\//g,'-');
+    html+='<div style="margin-bottom:4px;">'+
+      '<button data-did="'+dayId+'" onclick="togglePresDay(this.dataset.did)" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:13px 16px;background:var(--bg-secondary);border:0.5px solid var(--border);border-left:3px solid var(--roxo);border-radius:12px;cursor:pointer;font-family:inherit;text-align:left;">'+
+      '<div><div style="font-size:14px;font-weight:600;color:var(--roxo);">'+data+'</div>'+
+      '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">'+regs.length+' registro(s)</div></div>'+
+      '<span id="'+dayId+'-arr" style="color:var(--roxo);font-size:18px;">▼</span></button>'+
+      '<div id="'+dayId+'" style="display:none;padding-left:8px;margin-top:6px;">';
+    regs.forEach(function(r){
+      const faltas=(r.ocorrencias||[]).filter(function(o){return o.status==='Faltou';}).length;
+      const saidas=(r.ocorrencias||[]).filter(function(o){return o.status==='Saiu mais cedo';}).length;
+      html+='<div style="background:var(--bg-secondary);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid var(--roxo);">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
+        '<span style="font-size:13px;color:var(--text-primary);">👥 <strong>'+r.presentes+'/'+r.escalados+'</strong> presentes</span>'+
+        '<div style="display:flex;gap:6px;">'+
+        '<button data-fid="'+r.firestoreId+'" onclick="editarPresenca(this.dataset.fid)" style="background:none;border:1px solid var(--accent);color:var(--accent);font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit;">✏️</button>'+
+        '<button data-fid="'+r.firestoreId+'" onclick="excluirPresenca(this.dataset.fid)" style="background:none;border:1px solid rgba(233,69,96,0.4);color:var(--accent);font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit;">🗑</button>'+
+        '</div></div>';
+      if(faltas>0||saidas>0){
+        html+='<div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">';
+        if(faltas>0)html+='<span style="color:#c62828;">❌ '+faltas+' falta(s)</span> ';
+        if(saidas>0)html+='<span style="color:var(--laranja);">🕐 '+saidas+' saída(s)</span>';
+        html+='</div>';
+      }
+      if(r.ocorrencias&&r.ocorrencias.length>0){
+        html+='<div style="margin-top:6px;padding-top:6px;border-top:0.5px solid var(--border);">';
+        r.ocorrencias.forEach(function(o){
+          html+='<div style="font-size:12px;color:var(--text-primary);padding:2px 0;"><strong>'+o.nome+'</strong> — '+o.status+(o.obs?' · '+o.obs:'')+'</div>';
+        });
+        html+='</div>';
+      }
+      html+='<div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Registrado às '+r.hora+'</div>'+
+        '</div>';
+    });
+    html+='</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+function togglePresDay(id){
+  const el=document.getElementById(id);
+  const arr=document.getElementById(id+'-arr');
+  if(!el)return;
+  const open=el.style.display==='none';
+  el.style.display=open?'block':'none';
+  if(arr)arr.style.transform=open?'rotate(180deg)':'rotate(0deg)';
+}
+
+function addOcorrencia(){
+  presencaOcorrencias.push({nome:'',status:'Faltou',obs:''});
+  renderOcorrencias();
+}
+
+function removerOcorrencia(idx){
+  presencaOcorrencias.splice(parseInt(idx),1);
+  renderOcorrencias();
+}
+
+function atualizarOcorrencia(idx,campo,val){
+  const i=parseInt(idx);
+  if(presencaOcorrencias[i]) presencaOcorrencias[i][campo]=val;
+}
+
+function renderOcorrencias(){
+  const el=document.getElementById('pres-ocorrencias-list');
+  if(!el)return;
+  if(!presencaOcorrencias.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--text-secondary);text-align:center;padding:8px 0;">Nenhuma ocorrência</div>';
+    return;
+  }
+  let html='';
+  presencaOcorrencias.forEach(function(o,i){
+    html+='<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;margin-bottom:8px;">';
+    html+='<div style="display:flex;gap:6px;margin-bottom:6px;">';
+    html+='<input type="text" placeholder="Nome" data-idx="'+i+'" data-campo="nome" value="'+(o.nome||'').replace(/"/g,'&quot;')+'" oninput="atualizarOcorrencia(this.dataset.idx,this.dataset.campo,this.value)" style="flex:1;padding:8px;font-size:13px;" />';
+    html+='<button data-idx="'+i+'" onclick="removerOcorrencia(this.dataset.idx)" style="background:none;border:1px solid rgba(233,69,96,0.4);color:var(--accent);font-size:12px;padding:0 10px;border-radius:8px;cursor:pointer;font-family:inherit;">×</button>';
+    html+='</div>';
+    html+='<select data-idx="'+i+'" data-campo="status" onchange="atualizarOcorrencia(this.dataset.idx,this.dataset.campo,this.value)" style="margin-bottom:6px;font-size:13px;">';
+    html+='<option '+(o.status==='Faltou'?'selected':'')+'>Faltou</option>';
+    html+='<option '+(o.status==='Saiu mais cedo'?'selected':'')+'>Saiu mais cedo</option>';
+    html+='</select>';
+    html+='<input type="text" placeholder="Observação (opcional)" data-idx="'+i+'" data-campo="obs" value="'+(o.obs||'').replace(/"/g,'&quot;')+'" oninput="atualizarOcorrencia(this.dataset.idx,this.dataset.campo,this.value)" style="font-size:13px;" />';
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+async function salvarPresenca(){
+  const dataRaw=document.getElementById('pres-data').value;
+  const escalados=parseInt(document.getElementById('pres-escalados').value)||0;
+  const presentes=parseInt(document.getElementById('pres-presentes').value)||0;
+  if(!dataRaw){alert('Informe a data.');return;}
+  if(escalados<=0){alert('Informe a quantidade de escalados.');return;}
+  // Filter empty ocorrencias
+  const ocorrencias=presencaOcorrencias.filter(function(o){return o.nome&&o.nome.trim();});
+  const data=isoToDisplay(dataRaw);
+  const btn=document.getElementById('pres-btn');
+  btn.textContent='Salvando...';btn.disabled=true;
+  try{
+    const payload={data:data,escalados:escalados,presentes:presentes,ocorrencias:ocorrencias,hora:agora(),timestamp:Date.now()};
+    if(_presencaEditId){
+      await updateDoc(doc(db,'presencas',_presencaEditId),payload);
+      _presencaEditId=null;
+    } else {
+      await addDoc(collection(db,'presencas'),payload);
+    }
+    presencaOcorrencias=[];
+    goTo('s-presenca-reg');
+  }catch(e){alert('Erro: '+e.message);btn.textContent='Salvar registro ✓';btn.disabled=false;}
+}
+
+function editarPresenca(fid){
+  const r=presencas.find(function(p){return p.firestoreId===fid;});
+  if(!r)return;
+  _presencaEditId=fid;
+  goTo('s-presenca-form');
+  // Populate after navigation
+  setTimeout(function(){
+    const parts=r.data.split('/');
+    document.getElementById('pres-data').value=parts[2]+'-'+parts[1]+'-'+parts[0];
+    document.getElementById('pres-escalados').value=r.escalados;
+    document.getElementById('pres-presentes').value=r.presentes;
+    presencaOcorrencias=JSON.parse(JSON.stringify(r.ocorrencias||[]));
+    renderOcorrencias();
+    document.getElementById('presenca-form-sub').textContent='Editando registro de '+r.data;
+  },50);
+}
+
+async function excluirPresenca(fid){
+  if(!confirm('Excluir este registro de presença?'))return;
+  try{await deleteDoc(doc(db,'presencas',fid));}catch(e){alert('Erro: '+e.message);}
+}
+
+// ===== INIT =====
+setTimeout(()=>{
+  document.getElementById('loading').style.display='none';
+  goTo('s-pin');
+},2000);
+
+// Expose globals
+window.goTo=goTo;
+window.pinDigit=pinDigit;
+window.pinDel=pinDel;
+window.renderBase=renderBase;
+window.abrirBaseTipo=abrirBaseTipo;
+window.renderBaseTipo=renderBaseTipo;
+window.salvarModelo=salvarModelo;
+window.excluirModelo=excluirModelo;
+window.selecionarTipoEntrada=selecionarTipoEntrada;
+window.renderModelosEntrada=renderModelosEntrada;
+window.selecionarModeloEntrada=selecionarModeloEntrada;
+window.salvarEntrada=salvarEntrada;
+window.setFiltro=setFiltro;
+window.renderEstoque=renderEstoque;
+window.abrirDetalhe=abrirDetalhe;
+window.toggleServico=toggleServico;
+window.salvarServicos=salvarServicos;
+window.alterarStatus=alterarStatus;
+window.registrarSaida=registrarSaida;
+window.excluirEstoque=excluirEstoque;
+window.renderHistorico=renderHistorico;
+window.setFiltroTipo=setFiltroTipo;
+window.setFiltroHist=setFiltroHist;
+window.limparFiltroDataHist=limparFiltroDataHist;
+window.renderPresencaReg=renderPresencaReg;
+window.togglePresDay=togglePresDay;
+window.addOcorrencia=addOcorrencia;
+window.removerOcorrencia=removerOcorrencia;
+window.atualizarOcorrencia=atualizarOcorrencia;
+window.renderOcorrencias=renderOcorrencias;
+window.salvarPresenca=salvarPresenca;
+window.editarPresenca=editarPresenca;
+window.excluirPresenca=excluirPresenca;
+
+</script>
+</body>
+</html>
