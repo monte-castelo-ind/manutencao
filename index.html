@@ -174,6 +174,22 @@
   .scan-btn:active { opacity: 0.8; }
   .input-with-scan { position: relative; }
   .input-with-scan input { padding-right: 50px; }
+
+  /* RESUMO CARD */
+  .resumo-card { background: var(--bg-secondary); border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; border: 0.5px solid var(--border); border-left: 3px solid var(--roxo); }
+  .resumo-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+  .resumo-title { font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+  .resumo-total { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+  .resumo-arrow { color: var(--roxo); font-size: 14px; transition: transform 0.2s; }
+  .resumo-arrow.open { transform: rotate(180deg); }
+  .resumo-body { margin-top: 10px; }
+  .resumo-section-label { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; margin: 8px 0 6px; }
+  .resumo-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .resumo-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 16px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text-primary); transition: all 0.15s; font-family: inherit; }
+  .resumo-chip:active { transform: scale(0.96); }
+  .resumo-chip.active { background: var(--accent); border-color: var(--accent); color: white; }
+  .resumo-chip-count { font-weight: 800; opacity: 0.9; }
+  .resumo-empty { font-size: 12px; color: var(--text-secondary); padding: 4px 0; }
 </style>
 </head>
 <body>
@@ -455,6 +471,20 @@
       <input type="text" id="estoque-srch" placeholder="Buscar equipamento..." oninput="renderEstoque()" />
       <button type="button" class="scan-btn" onclick="abrirScanner('estoque-srch')" title="Escanear código de barras">📷</button>
     </div>
+
+    <!-- RESUMO -->
+    <div class="resumo-card">
+      <div class="resumo-header" onclick="toggleResumo('estoque')">
+        <div class="resumo-title">📊 Resumo <span class="resumo-total" id="resumo-estoque-total"></span></div>
+        <span class="resumo-arrow open" id="resumo-estoque-arrow">▼</span>
+      </div>
+      <div class="resumo-body" id="resumo-estoque-body">
+        <div class="resumo-section-label">Por tipo</div>
+        <div class="resumo-chips" id="resumo-estoque-tipos"></div>
+        <div class="resumo-section-label">Por status</div>
+        <div class="resumo-chips" id="resumo-estoque-status"></div>
+      </div>
+    </div>
     <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Status</div>
     <div style="display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;">
       <button class="btn-sm" id="filtro-todos" onclick="setFiltro('todos')" style="background:var(--accent);color:white;white-space:nowrap;">Todos</button>
@@ -542,6 +572,20 @@
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
       <input type="text" id="hist-srch" placeholder="Buscar..." oninput="renderHistorico()" />
+    </div>
+
+    <!-- RESUMO HISTORICO -->
+    <div class="resumo-card">
+      <div class="resumo-header" onclick="toggleResumo('hist')">
+        <div class="resumo-title">📊 Resumo <span class="resumo-total" id="resumo-hist-total"></span></div>
+        <span class="resumo-arrow open" id="resumo-hist-arrow">▼</span>
+      </div>
+      <div class="resumo-body" id="resumo-hist-body">
+        <div class="resumo-section-label">Por tipo</div>
+        <div class="resumo-chips" id="resumo-hist-tipos"></div>
+        <div class="resumo-section-label">Por status</div>
+        <div class="resumo-chips" id="resumo-hist-status"></div>
+      </div>
     </div>
     <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Status</div>
     <div style="display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;">
@@ -880,6 +924,7 @@ function setFiltro(f){
 function renderEstoque(){
   const el=document.getElementById('estoque-list');
   if(!el)return;
+  renderResumoEstoque();
   const q=(document.getElementById('estoque-srch')?.value||'').toLowerCase();
   let lista=equipamentosEstoque.filter(e=>e.status!=='saiu');
   if(filtroAtivo!=='todos')lista=lista.filter(e=>e.status===filtroAtivo);
@@ -1108,6 +1153,7 @@ async function excluirEstoque(fid){
 function renderHistorico(){
   const el=document.getElementById('hist-list');
   if(!el)return;
+  renderResumoHistorico();
   const q=(document.getElementById('hist-srch')?.value||'').toLowerCase();
   let lista=[...equipamentosEstoque];
   // Filter by status
@@ -1358,6 +1404,108 @@ async function excluirPresenca(fid){
   try{await deleteDoc(doc(db,'presencas',fid));}catch(e){alert('Erro: '+e.message);}
 }
 
+// ===== RESUMO (chips clicáveis no Estoque e Histórico) =====
+const EMOJIS_TIPO = {
+  'Forno':'🔥','Padeiro Noturno':'🌙','Esqueleto':'🦴','Armário':'🚪',
+  'Freezer':'❄️','Esteira':'🎢','Lata':'🥫','Fritadeira':'🍟'
+};
+const EMOJIS_STATUS = {
+  'aguardando':'⏳','andamento':'🔧','concluido':'✅','saiu':'🚚'
+};
+const LABELS_STATUS = {
+  'aguardando':'Aguardando','andamento':'Andamento','concluido':'Concluído','saiu':'Saiu'
+};
+
+function toggleResumo(prefix){
+  const body = document.getElementById('resumo-'+prefix+'-body');
+  const arrow = document.getElementById('resumo-'+prefix+'-arrow');
+  if(!body || !arrow) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  arrow.classList.toggle('open', !open);
+}
+
+function renderResumoEstoque(){
+  // Apenas equipamentos ativos (não saídos)
+  const lista = equipamentosEstoque.filter(e => e.status !== 'saiu');
+  const totalEl = document.getElementById('resumo-estoque-total');
+  if(totalEl) totalEl.textContent = '· ' + lista.length + ' total';
+
+  // Contagens por tipo
+  const porTipo = {};
+  lista.forEach(e => { porTipo[e.tipo] = (porTipo[e.tipo]||0) + 1; });
+
+  // Contagens por status (sem 'saiu' aqui)
+  const porStatus = { aguardando:0, andamento:0, concluido:0 };
+  lista.forEach(e => { if(porStatus[e.status]!==undefined) porStatus[e.status]++; });
+
+  // Render chips por tipo
+  const tiposEl = document.getElementById('resumo-estoque-tipos');
+  if(tiposEl){
+    const tipos = Object.keys(EMOJIS_TIPO).filter(t => porTipo[t]>0);
+    if(!tipos.length){
+      tiposEl.innerHTML = '<div class="resumo-empty">Nenhum equipamento no estoque.</div>';
+    } else {
+      tiposEl.innerHTML = tipos.map(t => {
+        const ativo = filtroTipoAtivo === t;
+        return '<button class="resumo-chip '+(ativo?'active':'')+'" onclick="setFiltroTipo(\''+t.replace(/'/g,"\\'")+'\')">'+EMOJIS_TIPO[t]+' '+t+' <span class="resumo-chip-count">'+porTipo[t]+'</span></button>';
+      }).join('');
+    }
+  }
+
+  // Render chips por status
+  const statusEl = document.getElementById('resumo-estoque-status');
+  if(statusEl){
+    statusEl.innerHTML = ['aguardando','andamento','concluido'].map(s => {
+      const ativo = filtroAtivo === s;
+      return '<button class="resumo-chip '+(ativo?'active':'')+'" onclick="setFiltro(\''+s+'\')">'+EMOJIS_STATUS[s]+' '+LABELS_STATUS[s]+' <span class="resumo-chip-count">'+porStatus[s]+'</span></button>';
+    }).join('');
+  }
+}
+
+function renderResumoHistorico(){
+  // Todos os equipamentos (inclui saídos)
+  const lista = [...equipamentosEstoque];
+  const totalEl = document.getElementById('resumo-hist-total');
+  if(totalEl) totalEl.textContent = '· ' + lista.length + ' total';
+
+  const porTipo = {};
+  lista.forEach(e => { porTipo[e.tipo] = (porTipo[e.tipo]||0) + 1; });
+
+  const porStatus = { aguardando:0, andamento:0, concluido:0, saiu:0 };
+  lista.forEach(e => { if(porStatus[e.status]!==undefined) porStatus[e.status]++; });
+
+  const tiposEl = document.getElementById('resumo-hist-tipos');
+  if(tiposEl){
+    const tipos = Object.keys(EMOJIS_TIPO).filter(t => porTipo[t]>0);
+    if(!tipos.length){
+      tiposEl.innerHTML = '<div class="resumo-empty">Nenhum registro.</div>';
+    } else {
+      tiposEl.innerHTML = tipos.map(t => {
+        return '<button class="resumo-chip" onclick="filtrarHistPorTipo(\''+t.replace(/'/g,"\\'")+'\')">'+EMOJIS_TIPO[t]+' '+t+' <span class="resumo-chip-count">'+porTipo[t]+'</span></button>';
+      }).join('');
+    }
+  }
+
+  const statusEl = document.getElementById('resumo-hist-status');
+  if(statusEl){
+    statusEl.innerHTML = ['aguardando','andamento','concluido','saiu'].map(s => {
+      const ativo = filtroHistStatus === s;
+      return '<button class="resumo-chip '+(ativo?'active':'')+'" onclick="setFiltroHist(\''+s+'\')">'+EMOJIS_STATUS[s]+' '+LABELS_STATUS[s]+' <span class="resumo-chip-count">'+porStatus[s]+'</span></button>';
+    }).join('');
+  }
+}
+
+// Filtro de tipo no histórico: usa a busca, já que histórico não tem filtro de tipo dedicado
+function filtrarHistPorTipo(tipo){
+  const srch = document.getElementById('hist-srch');
+  if(srch){
+    srch.value = tipo;
+    renderHistorico();
+    renderResumoHistorico();
+  }
+}
+
 // ===== SCANNER DE CÓDIGO DE BARRAS =====
 let scannerStream = null;
 let scannerTargetInputId = null;
@@ -1558,6 +1706,8 @@ window.excluirPresenca=excluirPresenca;
 window.abrirScanner=abrirScanner;
 window.fecharScanner=fecharScanner;
 window.toggleFlash=toggleFlash;
+window.toggleResumo=toggleResumo;
+window.filtrarHistPorTipo=filtrarHistPorTipo;
 
 </script>
 </body>
