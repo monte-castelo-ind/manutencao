@@ -148,6 +148,29 @@
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  /* SCANNER */
+  .scanner-overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: none; flex-direction: column; }
+  .scanner-overlay.active { display: flex; }
+  .scanner-header { position: absolute; top: 0; left: 0; right: 0; padding: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 10001; background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%); }
+  .scanner-title { color: white; font-size: 16px; font-weight: 700; }
+  .scanner-close { background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .scanner-video { width: 100%; height: 100%; object-fit: cover; }
+  .scanner-frame { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 320px; height: 200px; border: 3px solid var(--accent); border-radius: 16px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); z-index: 10000; pointer-events: none; }
+  .scanner-laser { position: absolute; top: 50%; left: 8%; right: 8%; height: 2px; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: scan-laser 2s ease-in-out infinite; }
+  @keyframes scan-laser { 0%,100% { top: 10%; } 50% { top: 90%; } }
+  .scanner-instructions { position: absolute; bottom: 80px; left: 0; right: 0; text-align: center; color: white; font-size: 14px; z-index: 10001; padding: 0 24px; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+  .scanner-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px; display: flex; gap: 12px; justify-content: center; z-index: 10001; background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 100%); }
+  .scanner-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 10px 20px; border-radius: 24px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .scanner-btn.active { background: var(--accent); border-color: var(--accent); }
+  .scanner-error { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; padding: 24px; max-width: 320px; z-index: 10000; }
+  .scanner-error-icon { font-size: 48px; margin-bottom: 12px; }
+
+  /* SCAN ICON BUTTON */
+  .scan-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: var(--accent); border: none; color: white; width: 38px; height: 38px; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .scan-btn:active { opacity: 0.8; }
+  .input-with-scan { position: relative; }
+  .input-with-scan input { padding-right: 50px; }
 </style>
 </head>
 <body>
@@ -280,6 +303,21 @@
       <div style="flex:1;"><div class="hb-title">Freezer</div><div class="hb-desc" id="base-badge-Freezer">Carregando...</div></div>
       <span style="color:var(--text-secondary);font-size:20px;">›</span>
     </button>
+    <button class="home-btn" onclick="abrirBaseTipo('Esteira')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🎢</div>
+      <div style="flex:1;"><div class="hb-title">Esteira</div><div class="hb-desc" id="base-badge-Esteira">Carregando...</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="abrirBaseTipo('Lata')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🥫</div>
+      <div style="flex:1;"><div class="hb-title">Lata</div><div class="hb-desc" id="base-badge-Lata">Carregando...</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="abrirBaseTipo('Fritadeira')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🍟</div>
+      <div style="flex:1;"><div class="hb-title">Fritadeira</div><div class="hb-desc" id="base-badge-Fritadeira">Carregando...</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
   </div>
 </div>
 
@@ -347,6 +385,21 @@
       <div style="flex:1;"><div class="hb-title">Freezer</div></div>
       <span style="color:var(--text-secondary);font-size:20px;">›</span>
     </button>
+    <button class="home-btn" onclick="selecionarTipoEntrada('Esteira')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🎢</div>
+      <div style="flex:1;"><div class="hb-title">Esteira</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="selecionarTipoEntrada('Lata')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🥫</div>
+      <div style="flex:1;"><div class="hb-title">Lata</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="selecionarTipoEntrada('Fritadeira')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🍟</div>
+      <div style="flex:1;"><div class="hb-title">Fritadeira</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
   </div>
 </div>
 
@@ -366,7 +419,10 @@
     </div>
     <div class="card">
       <div class="card-label">Nº de Patrimônio</div>
-      <input type="text" id="entrada-patrimonio" placeholder="Ex: 0042" />
+      <div class="input-with-scan">
+        <input type="text" id="entrada-patrimonio" placeholder="Ex: 0042" />
+        <button type="button" class="scan-btn" onclick="abrirScanner('entrada-patrimonio')" title="Escanear código de barras">📷</button>
+      </div>
     </div>
     <div class="card">
       <div class="card-label">Data de entrada</div>
@@ -391,9 +447,10 @@
     <div style="flex:1;"><div class="topbar-title">Estoque</div><div class="topbar-sub" id="estoque-sub"></div></div>
   </div>
   <div class="content">
-    <div class="search-wrap">
+    <div class="search-wrap input-with-scan">
       <span class="search-icon">🔍</span>
       <input type="text" id="estoque-srch" placeholder="Buscar equipamento..." oninput="renderEstoque()" />
+      <button type="button" class="scan-btn" onclick="abrirScanner('estoque-srch')" title="Escanear código de barras">📷</button>
     </div>
     <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Status</div>
     <div style="display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;">
@@ -410,6 +467,9 @@
       <button class="btn-sm" id="ftipo-Esqueleto" onclick="setFiltroTipo('Esqueleto')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🦴 Esqueleto</button>
       <button class="btn-sm" id="ftipo-Armario" onclick="setFiltroTipo('Armário')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🚪 Armário</button>
       <button class="btn-sm" id="ftipo-Freezer" onclick="setFiltroTipo('Freezer')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">❄️ Freezer</button>
+      <button class="btn-sm" id="ftipo-Esteira" onclick="setFiltroTipo('Esteira')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🎢 Esteira</button>
+      <button class="btn-sm" id="ftipo-Lata" onclick="setFiltroTipo('Lata')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🥫 Lata</button>
+      <button class="btn-sm" id="ftipo-Fritadeira" onclick="setFiltroTipo('Fritadeira')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🍟 Fritadeira</button>
     </div>
     <div id="estoque-list"></div>
   </div>
@@ -503,6 +563,29 @@
       <button onclick="limparFiltroDataHist()" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text-secondary);border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;">Limpar período</button>
     </div>
     <div id="hist-list"></div>
+  </div>
+</div>
+
+<!-- SCANNER OVERLAY -->
+<div class="scanner-overlay" id="scanner-overlay">
+  <div class="scanner-header">
+    <div class="scanner-title">📷 Escanear código</div>
+    <button class="scanner-close" onclick="fecharScanner()">✕</button>
+  </div>
+  <video class="scanner-video" id="scanner-video" autoplay playsinline muted></video>
+  <div class="scanner-frame" id="scanner-frame">
+    <div class="scanner-laser"></div>
+  </div>
+  <div class="scanner-instructions" id="scanner-instructions">
+    Aponte para o código de barras do equipamento
+  </div>
+  <div class="scanner-footer">
+    <button class="scanner-btn" id="scanner-flash-btn" onclick="toggleFlash()">⚡ Flash</button>
+  </div>
+  <div class="scanner-error" id="scanner-error" style="display:none;">
+    <div class="scanner-error-icon">⚠️</div>
+    <div id="scanner-error-msg"></div>
+    <button class="scanner-btn" style="margin-top:16px;" onclick="fecharScanner()">Fechar</button>
   </div>
 </div>
 
@@ -639,7 +722,7 @@ let baseTipoAtivo = '';
 function normalizeId(s){ return s.replace(/ /g,'-').replace(/[^a-zA-Z0-9-]/g,''); }
 
 function renderBase(){
-  const TIPOS=['Forno','Padeiro Noturno','Esqueleto','Armário','Freezer'];
+  const TIPOS=['Forno','Padeiro Noturno','Esqueleto','Armário','Freezer','Esteira','Lata','Fritadeira'];
   TIPOS.forEach(function(t){
     const safeId=t.replace(/ /g,'-').replace(/[áàãâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i').replace(/[óòõôö]/g,'o').replace(/[úùûü]/g,'u');
     const el=document.getElementById('base-badge-'+safeId);
@@ -851,6 +934,8 @@ function renderDetalhe(){
       <div class="detail-row"><span class="detail-key">NF Entrada</span><span class="detail-val">${e.nfEntrada}</span></div>
       ${e.dataSaida?'<div class="detail-row"><span class="detail-key">Data Saída</span><span class="detail-val">'+e.dataSaida+'</span></div>':''}
       ${e.nfSaida?'<div class="detail-row"><span class="detail-key">NF Saída</span><span class="detail-val">'+e.nfSaida+'</span></div>':''}
+      ${e.tipoSaida?'<div class="detail-row"><span class="detail-key">Tipo Saída</span><span class="detail-val">'+(e.tipoSaida==='Troca'?'🔄 ':'📤 ')+e.tipoSaida+'</span></div>':''}
+      ${e.cliente?'<div class="detail-row"><span class="detail-key">Cliente</span><span class="detail-val">'+e.cliente+'</span></div>':''}
     </div>
 
     <!-- PROBLEMA -->
@@ -899,6 +984,23 @@ function renderDetalhe(){
     if(e.status==='concluido'){
       html+=`<div class="card" style="border-left:3px solid var(--azul);">
         <div class="card-label">Registrar saída</div>
+        <div style="margin-bottom:10px;">
+          <div class="card-label">Tipo de operação</div>
+          <div style="display:flex;gap:8px;">
+            <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;cursor:pointer;">
+              <input type="radio" name="saida-tipo" value="Remessa" style="accent-color:var(--azul);width:16px;height:16px;cursor:pointer;" checked />
+              <span style="font-size:13px;font-weight:600;color:var(--text-primary);">📤 Remessa</span>
+            </label>
+            <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;cursor:pointer;">
+              <input type="radio" name="saida-tipo" value="Troca" style="accent-color:var(--azul);width:16px;height:16px;cursor:pointer;" />
+              <span style="font-size:13px;font-weight:600;color:var(--text-primary);">🔄 Troca</span>
+            </label>
+          </div>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div class="card-label">Nome do cliente</div>
+          <input type="text" id="saida-cliente" placeholder="Ex: Padaria do João" />
+        </div>
         <div style="margin-bottom:10px;">
           <div class="card-label">Data de saída</div>
           <input type="date" id="saida-data" />
@@ -972,17 +1074,21 @@ async function alterarStatus(novoStatus){
 async function registrarSaida(){
   const dataRaw=document.getElementById('saida-data')?.value;
   const nf=document.getElementById('saida-nf')?.value?.trim();
+  const cliente=document.getElementById('saida-cliente')?.value?.trim();
+  const tipoEl=document.querySelector('input[name="saida-tipo"]:checked');
+  const tipoSaida=tipoEl?tipoEl.value:'Remessa';
   if(!dataRaw){alert('Informe a data de saída.');return;}
   if(!nf){alert('Informe a NF de saída.');return;}
-  if(!confirm('Confirmar saída com NF '+nf+'?\nO equipamento sairá do estoque.'))return;
+  if(!cliente){alert('Informe o nome do cliente.');return;}
+  if(!confirm('Confirmar '+tipoSaida.toLowerCase()+' para '+cliente+' com NF '+nf+'?\nO equipamento sairá do estoque.'))return;
   const dataSaida=isoToDisplay(dataRaw);
   const historico=[...(equipAtivo.historico||[])];
-  historico.push({acao:'Saída registrada',data:dataSaida,hora:agora(),obs:'NF Saída: '+nf});
+  historico.push({acao:'Saída registrada ('+tipoSaida+')',data:dataSaida,hora:agora(),obs:'Cliente: '+cliente+' · NF Saída: '+nf});
   try{
     await updateDoc(doc(db,'equipamentosEstoque',equipAtivo.firestoreId),{
-      status:'saiu', dataSaida, nfSaida:nf, historico
+      status:'saiu', dataSaida, nfSaida:nf, tipoSaida:tipoSaida, cliente:cliente, historico
     });
-    equipAtivo={...equipAtivo,status:'saiu',dataSaida,nfSaida:nf,historico};
+    equipAtivo={...equipAtivo,status:'saiu',dataSaida,nfSaida:nf,tipoSaida:tipoSaida,cliente:cliente,historico};
     renderDetalhe();
   }catch(e){alert('Erro: '+e.message);}
 }
@@ -1028,6 +1134,7 @@ function renderHistorico(){
         <span class="badge badge-${e.status}">${badgeMap[e.status]}</span>
       </div>
       <div class="equip-data">Entrada: ${e.dataEntrada} · NF: ${e.nfEntrada}${e.nfSaida?' | Saída NF: '+e.nfSaida:''}</div>
+      ${e.cliente?'<div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">'+(e.tipoSaida==='Troca'?'🔄':'📤')+' '+(e.tipoSaida||'Saída')+' → '+e.cliente+'</div>':''}
       ${e.servicos&&e.servicos.length?'<div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">🔧 '+e.servicos.join(', ')+'</div>':''}
     </div>`).join('');
 }
@@ -1037,7 +1144,7 @@ function renderHistorico(){
 let filtroTipoAtivo = 'todos';
 function setFiltroTipo(tipo){
   filtroTipoAtivo=tipo;
-  const TIPOS=['todos','Forno','Padeiro Noturno','Esqueleto','Armário','Freezer'];
+  const TIPOS=['todos','Forno','Padeiro Noturno','Esqueleto','Armário','Freezer','Esteira','Lata','Fritadeira'];
   TIPOS.forEach(function(t){
     const safeId=t.replace(/ /g,'-').replace(/[áàãâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i').replace(/[óòõôö]/g,'o').replace(/[úùûü]/g,'u');
     const btn=document.getElementById('ftipo-'+safeId);
@@ -1248,6 +1355,163 @@ async function excluirPresenca(fid){
   try{await deleteDoc(doc(db,'presencas',fid));}catch(e){alert('Erro: '+e.message);}
 }
 
+// ===== SCANNER DE CÓDIGO DE BARRAS =====
+let scannerStream = null;
+let scannerTargetInputId = null;
+let scannerDetector = null;
+let scannerActive = false;
+let scannerTrack = null;
+let scannerFlashOn = false;
+let scannerZxing = null;
+let scannerZxingControls = null;
+
+async function abrirScanner(targetInputId){
+  scannerTargetInputId = targetInputId;
+  scannerFlashOn = false;
+  document.getElementById('scanner-flash-btn').classList.remove('active');
+  document.getElementById('scanner-error').style.display = 'none';
+  document.getElementById('scanner-frame').style.display = 'block';
+  document.getElementById('scanner-instructions').textContent = 'Aponte para o código de barras do equipamento';
+  document.getElementById('scanner-overlay').classList.add('active');
+
+  try {
+    // Pedir câmera traseira preferencialmente
+    const constraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    };
+    scannerStream = await navigator.mediaDevices.getUserMedia(constraints);
+    const video = document.getElementById('scanner-video');
+    video.srcObject = scannerStream;
+    scannerTrack = scannerStream.getVideoTracks()[0];
+    await video.play();
+
+    // Estratégia 1: BarcodeDetector nativo (Chrome/Edge Android)
+    if ('BarcodeDetector' in window) {
+      try {
+        const formats = await BarcodeDetector.getSupportedFormats();
+        scannerDetector = new BarcodeDetector({ formats: formats });
+        scannerActive = true;
+        loopScannerNativo();
+        return;
+      } catch(err){ console.warn('BarcodeDetector falhou, tentando ZXing:', err); }
+    }
+
+    // Estratégia 2: ZXing-js (iOS Safari + outros)
+    iniciarZxing(video);
+
+  } catch(e) {
+    mostrarErroScanner(e);
+  }
+}
+
+async function loopScannerNativo(){
+  if(!scannerActive) return;
+  const video = document.getElementById('scanner-video');
+  try {
+    const barcodes = await scannerDetector.detect(video);
+    if (barcodes && barcodes.length > 0) {
+      const codigo = barcodes[0].rawValue;
+      capturarCodigo(codigo);
+      return;
+    }
+  } catch(e) { /* ignora frame */ }
+  requestAnimationFrame(loopScannerNativo);
+}
+
+async function iniciarZxing(video){
+  try {
+    // Importar ZXing dinamicamente do CDN
+    if (!window.ZXingBrowser) {
+      const mod = await import('https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm');
+      window.ZXingBrowser = mod;
+    }
+    const reader = new window.ZXingBrowser.BrowserMultiFormatReader();
+    scannerZxing = reader;
+    scannerActive = true;
+    scannerZxingControls = await reader.decodeFromVideoElement(video, (result, err) => {
+      if (result && scannerActive) {
+        capturarCodigo(result.getText());
+      }
+    });
+  } catch(e) {
+    mostrarErroScanner(new Error('Não foi possível inicializar o leitor. ' + e.message));
+  }
+}
+
+function capturarCodigo(codigo){
+  if(!scannerActive) return;
+  scannerActive = false;
+  // Vibrar como feedback (se suportado)
+  if (navigator.vibrate) navigator.vibrate(150);
+  // Preencher input alvo
+  const input = document.getElementById(scannerTargetInputId);
+  if(input){
+    input.value = codigo;
+    // Disparar evento input pra triggers de oninput funcionarem (ex: busca do estoque)
+    input.dispatchEvent(new Event('input', {bubbles:true}));
+  }
+  fecharScanner();
+}
+
+function fecharScanner(){
+  scannerActive = false;
+  // Parar ZXing
+  if (scannerZxingControls) {
+    try { scannerZxingControls.stop(); } catch(e){}
+    scannerZxingControls = null;
+  }
+  if (scannerZxing) {
+    try { scannerZxing.reset(); } catch(e){}
+    scannerZxing = null;
+  }
+  // Parar stream
+  if (scannerStream) {
+    scannerStream.getTracks().forEach(t => t.stop());
+    scannerStream = null;
+  }
+  scannerTrack = null;
+  scannerFlashOn = false;
+  document.getElementById('scanner-overlay').classList.remove('active');
+}
+
+async function toggleFlash(){
+  if(!scannerTrack) return;
+  try {
+    const capabilities = scannerTrack.getCapabilities ? scannerTrack.getCapabilities() : {};
+    if (!capabilities.torch) {
+      alert('Esse celular não suporta ligar o flash pelo navegador.');
+      return;
+    }
+    scannerFlashOn = !scannerFlashOn;
+    await scannerTrack.applyConstraints({ advanced: [{ torch: scannerFlashOn }] });
+    document.getElementById('scanner-flash-btn').classList.toggle('active', scannerFlashOn);
+  } catch(e){
+    console.warn('Flash error:', e);
+  }
+}
+
+function mostrarErroScanner(e){
+  let msg = 'Não foi possível acessar a câmera.';
+  if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+    msg = 'Permissão da câmera negada. Habilite o acesso nas configurações do navegador.';
+  } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+    msg = 'Nenhuma câmera encontrada neste dispositivo.';
+  } else if (e.name === 'NotReadableError') {
+    msg = 'Câmera já está em uso por outro aplicativo.';
+  } else if (e.message) {
+    msg = e.message;
+  }
+  document.getElementById('scanner-frame').style.display = 'none';
+  document.getElementById('scanner-instructions').textContent = '';
+  document.getElementById('scanner-error-msg').textContent = msg;
+  document.getElementById('scanner-error').style.display = 'block';
+}
+
 // ===== INIT =====
 setTimeout(()=>{
   document.getElementById('loading').style.display='none';
@@ -1288,6 +1552,9 @@ window.renderOcorrencias=renderOcorrencias;
 window.salvarPresenca=salvarPresenca;
 window.editarPresenca=editarPresenca;
 window.excluirPresenca=excluirPresenca;
+window.abrirScanner=abrirScanner;
+window.fecharScanner=fecharScanner;
+window.toggleFlash=toggleFlash;
 
 </script>
 </body>
