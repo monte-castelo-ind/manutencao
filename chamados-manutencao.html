@@ -89,8 +89,8 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
 .tk-meta{font-size:0.74rem;color:var(--muted);line-height:1.6;border-top:1px solid var(--line);padding-top:0.55rem}
 .tk-meta b{color:#4a5264;font-weight:600}
 .tk-tec{display:flex;align-items:center;gap:0.4rem;margin-top:0.6rem}
-.tk-tec input{flex:1;background:#FAFBFE;border:1px solid var(--line);border-radius:8px;padding:0.4rem 0.6rem;font-family:inherit;font-size:0.76rem;color:var(--ink);outline:none}
-.tk-tec input:focus{border-color:var(--navy);background:#fff}
+.tk-tec input,.tk-tec select{flex:1;background:#FAFBFE;border:1px solid var(--line);border-radius:8px;padding:0.4rem 0.6rem;font-family:inherit;font-size:0.76rem;color:var(--ink);outline:none;cursor:pointer}
+.tk-tec input:focus,.tk-tec select:focus{border-color:var(--navy);background:#fff}
 .tk-tec input::placeholder{color:#A9B1BE}
 .tk-actions{display:flex;gap:0.4rem;margin-top:0.7rem}
 .tk-btn{flex:1;background:#FAFBFE;border:1px solid var(--line);color:var(--muted);font-family:inherit;font-size:0.74rem;font-weight:600;padding:0.5rem;border-radius:8px;cursor:pointer;transition:all 0.18s}
@@ -104,6 +104,28 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
 .setup{background:var(--alta-bg);border:1px solid rgba(217,67,59,0.3);border-radius:14px;padding:1.1rem 1.2rem;margin-bottom:1.3rem;font-size:0.85rem;line-height:1.5;color:#7a2521}
 .setup b{color:var(--alta)}
 .setup code{background:#fff;padding:1px 6px;border-radius:5px;font-size:0.8rem;color:var(--navy);border:1px solid var(--line)}
+
+/* PIN PAD */
+.pin-dots{display:flex;gap:0.8rem;justify-content:center;margin:1.4rem 0}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);background:transparent;transition:all 0.15s}
+.pin-dot.filled{background:var(--navy);border-color:var(--navy)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:0.7rem;max-width:280px;margin:0 auto}
+.pin-key{background:#FAFBFE;border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:1.3rem;font-weight:600;padding:0.9rem;border-radius:12px;cursor:pointer;transition:all 0.12s}
+.pin-key:hover{background:var(--navy-soft);border-color:var(--navy)}
+.pin-key:active{transform:scale(0.95)}
+.pin-empty{background:transparent;border:none;cursor:default}
+.pin-empty:hover{background:transparent}
+.pin-err{text-align:center;color:var(--alta);font-size:0.85rem;font-weight:500;margin-top:1rem;min-height:1.2rem}
+
+/* FUNC PANEL */
+.func-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.3rem;margin-bottom:1.3rem;box-shadow:0 1px 4px rgba(20,42,77,0.04)}
+.func-hello{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:600;color:var(--navy);line-height:1.1}
+.func-hello b{color:var(--gold)}
+.func-sub{font-size:0.78rem;color:var(--muted);margin-top:2px}
+.func-sair{background:#FAFBFE;border:1px solid var(--line);color:var(--muted);font-family:inherit;font-size:0.78rem;font-weight:600;padding:0.5rem 1rem;border-radius:9px;cursor:pointer;transition:all 0.15s}
+.func-sair:hover{background:var(--alta);border-color:var(--alta);color:#fff}
+.cols-2{grid-template-columns:1fr 1fr}
+.func-done{margin-top:1.3rem;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:0.9rem;box-shadow:0 1px 4px rgba(20,42,77,0.04)}
 
 @media(max-width:760px){
   .grid2{grid-template-columns:1fr}
@@ -138,6 +160,7 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
 <div class="tabs">
   <button class="tab active" id="tab-com" onclick="switchView('com')">📋 Abrir Chamado</button>
   <button class="tab" id="tab-mnt" onclick="switchView('mnt')">🔧 Manutenção <span class="badge" id="badgeMnt" style="display:none">0</span></button>
+  <button class="tab" id="tab-func" onclick="switchView('func')">👷 Meu Painel</button>
 </div>
 
 <main>
@@ -227,6 +250,58 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
   </div>
 </section>
 
+<!-- ===== FUNCIONÁRIO (MEU PAINEL) ===== -->
+<section class="view" id="view-func">
+  <!-- LOGIN PIN -->
+  <div id="func-login" class="card" style="max-width:380px;margin:0 auto;text-align:center">
+    <h2 style="text-align:center">Meu <em>Painel</em></h2>
+    <p class="lead" style="text-align:center">Digite seu PIN para ver suas manutenções.</p>
+    <div class="pin-dots" id="func-dots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="funcPin('1')">1</button>
+      <button class="pin-key" onclick="funcPin('2')">2</button>
+      <button class="pin-key" onclick="funcPin('3')">3</button>
+      <button class="pin-key" onclick="funcPin('4')">4</button>
+      <button class="pin-key" onclick="funcPin('5')">5</button>
+      <button class="pin-key" onclick="funcPin('6')">6</button>
+      <button class="pin-key" onclick="funcPin('7')">7</button>
+      <button class="pin-key" onclick="funcPin('8')">8</button>
+      <button class="pin-key" onclick="funcPin('9')">9</button>
+      <button class="pin-key pin-empty"></button>
+      <button class="pin-key" onclick="funcPin('0')">0</button>
+      <button class="pin-key" onclick="funcPinDel()">⌫</button>
+    </div>
+    <div class="pin-err" id="func-err"></div>
+  </div>
+
+  <!-- PAINEL DO TÉCNICO -->
+  <div id="func-panel" style="display:none">
+    <div class="func-bar">
+      <div>
+        <div class="func-hello">Olá, <b id="func-nome"></b></div>
+        <div class="func-sub" id="func-resumo"></div>
+      </div>
+      <button class="func-sair" onclick="funcLogout()">Sair</button>
+    </div>
+    <div class="cols cols-2">
+      <div class="col" data-s="aberto">
+        <div class="col-head"><h3>● A fazer</h3><span class="cnt" id="fcnt-aberto">0</span></div>
+        <div id="fcol-aberto"></div>
+      </div>
+      <div class="col" data-s="andamento">
+        <div class="col-head"><h3>● Em andamento</h3><span class="cnt" id="fcnt-andamento">0</span></div>
+        <div id="fcol-andamento"></div>
+      </div>
+    </div>
+    <div class="func-done">
+      <div class="col-head" style="padding:0 0.3rem 0.6rem"><h3 style="color:#1c7a33;font-size:0.78rem;letter-spacing:0.08em;text-transform:uppercase;font-weight:700">● Concluídos por você</h3><span class="cnt" id="fcnt-concluido">0</span></div>
+      <div id="fcol-concluido"></div>
+    </div>
+  </div>
+</section>
+
 </main>
 
 <script type="module">
@@ -283,6 +358,7 @@ function escutar(){
     chamados = [];
     snap.forEach(d => chamados.push({ id:d.id, ...d.data() }));
     renderManutencao();
+    if(tecnicoLogado) renderFuncPanel();
   }, (err) => { console.error(err); setConn(false); });
 }
 
@@ -370,9 +446,109 @@ window.setFilter = function(f, el){
 window.switchView = function(v){
   document.getElementById("view-com").classList.toggle("active", v==="com");
   document.getElementById("view-mnt").classList.toggle("active", v==="mnt");
+  document.getElementById("view-func").classList.toggle("active", v==="func");
   document.getElementById("tab-com").classList.toggle("active", v==="com");
   document.getElementById("tab-mnt").classList.toggle("active", v==="mnt");
+  document.getElementById("tab-func").classList.toggle("active", v==="func");
+  if(v==="func" && tecnicoLogado) renderFuncPanel();
 };
+
+// ===== TÉCNICOS / MEU PAINEL =====
+const TECNICOS = [
+  { nome:"Dajem",  pin:"1011" },
+  { nome:"Marcos", pin:"2039" },
+  { nome:"Alex",   pin:"9392" }
+];
+
+let funcBuffer = "";
+let tecnicoLogado = null;
+
+window.funcPin = function(d){
+  if(funcBuffer.length >= 4) return;
+  funcBuffer += d;
+  updateFuncDots();
+  if(funcBuffer.length === 4){
+    const tec = TECNICOS.find(t => t.pin === funcBuffer);
+    if(tec){
+      tecnicoLogado = tec.nome;
+      document.getElementById("func-err").textContent = "";
+      document.getElementById("func-login").style.display = "none";
+      document.getElementById("func-panel").style.display = "block";
+      document.getElementById("func-nome").textContent = tec.nome;
+      renderFuncPanel();
+    } else {
+      document.getElementById("func-err").textContent = "PIN incorreto. Tente de novo.";
+      setTimeout(function(){ funcBuffer=""; updateFuncDots(); document.getElementById("func-err").textContent=""; }, 1000);
+    }
+  }
+};
+window.funcPinDel = function(){ funcBuffer = funcBuffer.slice(0,-1); updateFuncDots(); };
+function updateFuncDots(){
+  const dots = document.querySelectorAll("#func-dots .pin-dot");
+  dots.forEach(function(d,i){ d.classList.toggle("filled", i < funcBuffer.length); });
+}
+window.funcLogout = function(){
+  tecnicoLogado = null;
+  funcBuffer = "";
+  updateFuncDots();
+  document.getElementById("func-panel").style.display = "none";
+  document.getElementById("func-login").style.display = "block";
+};
+
+function renderFuncPanel(){
+  if(!tecnicoLogado) return;
+  const meus = chamados.filter(c => c.tecnico === tecnicoLogado);
+  const grupos = { aberto:[], andamento:[], concluido:[] };
+  meus.forEach(c => { (grupos[c.status]||grupos.aberto).push(c); });
+  Object.keys(grupos).forEach(k=>{
+    grupos[k].sort((a,b)=>{
+      const u = (URG_ORDER[a.urgencia]??1) - (URG_ORDER[b.urgencia]??1);
+      if(u!==0) return u;
+      return (b.criadoEm?.seconds||0) - (a.criadoEm?.seconds||0);
+    });
+  });
+  renderFuncCol("aberto", grupos.aberto);
+  renderFuncCol("andamento", grupos.andamento);
+  renderFuncCol("concluido", grupos.concluido);
+  document.getElementById("fcnt-aberto").textContent = grupos.aberto.length;
+  document.getElementById("fcnt-andamento").textContent = grupos.andamento.length;
+  document.getElementById("fcnt-concluido").textContent = grupos.concluido.length;
+  const pend = grupos.aberto.length + grupos.andamento.length;
+  document.getElementById("func-resumo").textContent = pend===0
+    ? "Nenhuma manutenção pendente 🎉"
+    : pend+" manutenção(ões) pendente(s)";
+}
+
+function renderFuncCol(status, lista){
+  const el = document.getElementById("fcol-"+status);
+  if(lista.length===0){ el.innerHTML = '<div class="empty-col">Nada aqui</div>'; return; }
+  el.innerHTML = lista.map(c => funcTicketHTML(c, status)).join("");
+}
+
+function funcTicketHTML(c, status){
+  const meta = [];
+  if(c.equipamento) meta.push('<b>Equip:</b> '+esc(c.equipamento)+(c.serie?' (sn '+esc(c.serie)+')':''));
+  if(c.local) meta.push('<b>Local:</b> '+esc(c.local));
+  if(c.telefone) meta.push('<b>Tel:</b> '+esc(c.telefone));
+  if(c.prazo) meta.push('<b>Prazo:</b> '+esc(formatDate(c.prazo)));
+
+  let actions = '';
+  if(status==="aberto"){
+    actions = '<button class="tk-btn fwd" onclick="moverStatus(\''+c.id+'\',\'andamento\')">Iniciar →</button>';
+  } else if(status==="andamento"){
+    actions = '<button class="tk-btn fwd" onclick="moverStatus(\''+c.id+'\',\'concluido\')">Concluir ✓</button>';
+  } else {
+    actions = '<button class="tk-btn back" onclick="moverStatus(\''+c.id+'\',\'andamento\')">↩ Reabrir</button>';
+  }
+
+  return '<div class="ticket" data-u="'+(c.urgencia||"media")+'">'+
+    '<div class="tk-top"><div class="tk-client">'+esc(c.cliente)+'</div>'+
+      '<span class="tk-urg '+(c.urgencia||"media")+'">'+(URG_LABEL[c.urgencia]||"Média")+'</span></div>'+
+    '<div class="tk-desc">'+esc(c.descricao)+'</div>'+
+    (meta.length?'<div class="tk-meta">'+meta.join("<br>")+'</div>':'')+
+    '<div class="tk-actions">'+actions+'</div>'+
+  '</div>';
+}
 
 const URG_ORDER = { alta:0, media:1, baixa:2 };
 const URG_LABEL = { alta:"Alta", media:"Média", baixa:"Baixa" };
@@ -437,8 +613,10 @@ function ticketHTML(c, status){
       '<span class="tk-urg '+(c.urgencia||"media")+'">'+(URG_LABEL[c.urgencia]||"Média")+'</span></div>'+
     '<div class="tk-desc">'+esc(c.descricao)+'</div>'+
     (meta.length?'<div class="tk-meta">'+meta.join("<br>")+'</div>':'')+
-    '<div class="tk-tec">🔧 <input value="'+esc(c.tecnico)+'" placeholder="Técnico responsável…" '+
-      'onblur="salvarTecnico(\''+c.id+'\',this.value)"/></div>'+
+    '<div class="tk-tec">🔧 <select onchange="salvarTecnico(\''+c.id+'\',this.value)">'+
+      '<option value="">— atribuir técnico —</option>'+
+      TECNICOS.map(function(t){return '<option value="'+esc(t.nome)+'"'+(c.tecnico===t.nome?' selected':'')+'>'+esc(t.nome)+'</option>';}).join('')+
+      '</select></div>'+
     '<div class="tk-actions">'+actions+'</div>'+
     (c.criadoEm?'<div class="tk-time">'+formatTime(c.criadoEm)+'</div>':'')+
   '</div>';
