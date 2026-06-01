@@ -201,7 +201,18 @@
   <div class="loading-sub">Conectando ao servidor...</div>
   <div class="loading-spinner"></div>
 </div>
-
+<div id="authOverlay" style="position:fixed; inset:0; z-index:99999; background:#0f0f0f; display:flex; align-items:center; justify-content:center; font-family:system-ui,sans-serif;">
+  <div style="width:300px; max-width:88vw; background:#1a1a1a; border:1px solid #333; border-radius:12px; padding:28px 24px;">
+    <div style="color:#fff; font-size:18px; font-weight:600; margin-bottom:4px;">Manutenção Comodato</div>
+    <div style="color:#888; font-size:12px; margin-bottom:20px;">Acesso restrito</div>
+    <input id="authEmail" type="email" autocomplete="username" placeholder="E-mail"
+      style="width:100%; box-sizing:border-box; background:#0f0f0f; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; font-size:14px; margin-bottom:12px;">
+    <input id="authSenha" type="password" autocomplete="current-password" placeholder="Senha"
+      style="width:100%; box-sizing:border-box; background:#0f0f0f; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; font-size:14px;">
+    <div id="authErro" style="color:#ff6b6b; font-size:12px; min-height:16px; margin-top:10px;"></div>
+    <button id="authBtn" style="width:100%; padding:12px; margin-top:8px; background:#e8862e; color:#000; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">Entrar</button>
+  </div>
+</div>
 <!-- PIN -->
 <div class="screen" id="s-pin">
   <div class="pin-screen">
@@ -235,7 +246,7 @@
 <div class="screen" id="s-home">
   <div class="topbar">
     <div style="flex:1;"><div class="topbar-title">🔧 Manutenção Comodato</div><div class="topbar-sub" id="home-sub">Painel de controle</div></div>
-    <button class="topbar-right" onclick="goTo('s-pin')">Sair</button>
+    <button class="topbar-right" onclick="sairApp()">Sair</button>
   </div>
   <div class="content">
     <!-- METRICS -->
@@ -1709,6 +1720,54 @@ window.toggleFlash=toggleFlash;
 window.toggleResumo=toggleResumo;
 window.filtrarHistPorTipo=filtrarHistPorTipo;
 
+</script>
+  <script type="module">
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const auth = getAuth(getApp());
+
+  const overlay = document.getElementById('authOverlay');
+  const emailEl = document.getElementById('authEmail');
+  const senhaEl = document.getElementById('authSenha');
+  const btn     = document.getElementById('authBtn');
+  const erro    = document.getElementById('authErro');
+
+  document.body.style.overflow = 'hidden';
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      overlay.style.display = 'none';
+      document.body.style.overflow = '';
+      if (typeof window.goTo === 'function') window.goTo('s-home'); // pula a tela de PIN
+    } else {
+      overlay.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+  });
+
+  async function entrar() {
+    const email = (emailEl.value || '').trim();
+    const senha = (senhaEl.value || '').trim();
+    erro.textContent = '';
+    if (!email || !senha) { erro.textContent = 'Preencha e-mail e senha'; return; }
+    btn.disabled = true;
+    try {
+      await signInWithEmailAndPassword(auth, email, senha);
+      location.reload();
+    } catch (e) {
+      console.log('Erro de login:', e.code, e.message);
+      erro.textContent = e.code || 'Erro ao entrar';
+      btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener('click', entrar);
+  senhaEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') entrar(); });
+  emailEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') entrar(); });
+
+  // logout de verdade pro botão "Sair"
+  window.sairApp = () => signOut(auth).then(()=>location.reload());
 </script>
 </body>
 </html>
