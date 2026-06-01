@@ -1735,11 +1735,14 @@ window.filtrarHistPorTipo=filtrarHistPorTipo;
 
   document.body.style.overflow = 'hidden';
 
-  onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, (user) => {
     if (user) {
       overlay.style.display = 'none';
       document.body.style.overflow = '';
-      if (typeof window.goTo === 'function') window.goTo('s-home'); // pula a tela de PIN
+      const irHome = () => { if (typeof window.goTo === 'function') window.goTo('s-home'); };
+      irHome();
+      setTimeout(irHome, 100);
+      setTimeout(irHome, 400);
     } else {
       overlay.style.display = 'flex';
       document.body.style.overflow = 'hidden';
