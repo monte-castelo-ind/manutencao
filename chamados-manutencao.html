@@ -4,122 +4,135 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Chamados de Manutenção — Monte Castelo</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:dark}
 :root{
-  --navy:#1B3A6B;--navy-deep:#142a4d;--navy-soft:rgba(27,58,107,0.08);
-  --gold:#C99A3F;--gold-d:#A87E2C;
-  --paper:#F4F6FB;--card:#FFFFFF;--ink:#1A2233;--muted:#6B7280;
-  --line:#E3E8F0;
-  --baixa:#2BA84A;--media:#E8B021;--alta:#D9433B;
-  --baixa-bg:#E7F6EB;--media-bg:#FCF4DE;--alta-bg:#FBE7E5;
-  --aberto:#1B3A6B;--andamento:#E8B021;--concluido:#2BA84A;
+  --display:'Archivo Black',system-ui,sans-serif;
+  --sans:'Archivo',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+
+  --bg:#0E0F13;--bg-2:#15171D;--card:#16181F;--card-2:#1B1E26;
+  --line:#272B34;--line-2:#333845;
+  --ink:#ECEEF3;--muted:#878D9A;--faint:#565C6B;
+
+  --amber:#F2911E;--amber-soft:rgba(242,145,30,0.14);
+
+  --alta:#FF5C4D;--media:#F2B23A;--baixa:#3FC07A;
+  --alta-bg:rgba(255,92,77,0.14);--media-bg:rgba(242,178,58,0.14);--baixa-bg:rgba(63,192,122,0.14);
+  --aberto:#5B8DEF;--andamento:#F2B23A;--concluido:#3FC07A;
 }
-body{font-family:'Inter Tight',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+body{
+  font-family:var(--sans);color:var(--ink);background:var(--bg);
+  background-image:
+    radial-gradient(1100px 620px at 82% -12%, rgba(242,145,30,0.07), transparent 60%),
+    radial-gradient(820px 520px at -5% 2%, rgba(91,141,239,0.05), transparent 55%);
+  background-attachment:fixed;min-height:100vh;-webkit-font-smoothing:antialiased;
+}
 
-header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);color:#fff;padding:1.3rem 1.2rem;position:sticky;top:0;z-index:40;box-shadow:0 2px 18px rgba(20,42,77,0.25)}
-.head-in{max-width:1000px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+header{position:sticky;top:0;z-index:40;background:rgba(14,15,19,0.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+header::before{content:"";display:block;height:5px;background:repeating-linear-gradient(45deg,var(--amber) 0 13px,#0E0F13 13px 26px)}
+.head-in{max-width:1040px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:1rem 1.2rem}
 .brand{display:flex;align-items:center;gap:0.85rem}
-.crest{width:40px;height:40px;flex-shrink:0}
-.brand-logo{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:600;letter-spacing:-0.01em;line-height:1.05}
-.brand-sub{font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);margin-top:1px}
+.crest{width:38px;height:38px;flex-shrink:0}
+.brand-logo{font-family:var(--display);font-size:1.12rem;letter-spacing:0.01em;line-height:1;color:var(--ink)}
+.brand-sub{font-family:var(--mono);font-size:0.58rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--amber);margin-top:5px}
 .head-right{display:flex;align-items:center;gap:0.8rem}
-.conn{display:flex;align-items:center;gap:0.45rem;font-size:0.72rem;color:rgba(255,255,255,0.75)}
-.conn .led{width:8px;height:8px;border-radius:50%;background:#888;transition:background 0.3s}
-.conn.on .led{background:#3FD168;box-shadow:0 0 8px #3FD168}
-.conn.off .led{background:#FF7A70}
-.btn-sair{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;font-family:inherit;font-size:0.74rem;font-weight:600;padding:0.45rem 0.9rem;border-radius:9px;cursor:pointer;transition:all 0.15s}
-.btn-sair:hover{background:rgba(255,255,255,0.22)}
+.conn{font-family:var(--mono);display:flex;align-items:center;gap:0.45rem;font-size:0.64rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
+.conn .led{width:8px;height:8px;border-radius:50%;background:#555;transition:.3s}
+.conn.on .led{background:var(--baixa);box-shadow:0 0 10px var(--baixa)}
+.conn.off .led{background:var(--alta);box-shadow:0 0 10px var(--alta)}
+.btn-sair{font-family:var(--mono);background:transparent;border:1px solid var(--line-2);color:var(--muted);font-size:0.64rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;padding:0.5rem 0.9rem;border-radius:8px;cursor:pointer;transition:.15s}
+.btn-sair:hover{border-color:var(--amber);color:var(--amber)}
 
-.tabs{max-width:1000px;margin:1.2rem auto 0;padding:0 1.2rem;display:flex;gap:0.5rem}
-.tab{flex:1;background:var(--card);border:1px solid var(--line);color:var(--muted);font-family:inherit;font-size:0.85rem;font-weight:600;padding:0.85rem;border-radius:12px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem;box-shadow:0 1px 3px rgba(20,42,77,0.04)}
-.tab.active{background:var(--navy);border-color:var(--navy);color:#fff}
-.tab .badge{background:var(--gold);color:#fff;font-size:0.68rem;font-weight:700;padding:1px 7px;border-radius:99px}
+.tabs{max-width:1040px;margin:1.4rem auto 0;padding:0 1.2rem;display:flex;gap:0.5rem}
+.tab{flex:1;font-family:var(--mono);background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;padding:0.85rem;border-radius:11px;cursor:pointer;transition:.18s;display:flex;align-items:center;justify-content:center;gap:0.5rem}
+.tab:hover{border-color:var(--line-2);color:var(--ink)}
+.tab.active{background:var(--amber);border-color:var(--amber);color:#1a1205}
+.tab .badge{background:var(--amber);color:#1a1205;font-size:0.62rem;font-weight:700;padding:1px 7px;border-radius:99px}
+.tab.active .badge{background:#1a1205;color:var(--amber)}
 
-main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
-.view{display:none}
-.view.active{display:block}
+main{max-width:1040px;margin:0 auto;padding:1.6rem 1.2rem 5rem}
+.view{display:none}.view.active{display:block;animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:1.6rem;box-shadow:0 1px 4px rgba(20,42,77,0.05)}
-.card h2{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:600;margin-bottom:0.25rem;color:var(--navy)}
-.card h2 em{font-style:italic;color:var(--gold);font-weight:500}
-.card .lead{font-size:0.85rem;color:var(--muted);margin-bottom:1.6rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.7rem;box-shadow:0 1px 0 rgba(255,255,255,0.02) inset,0 14px 36px -22px rgba(0,0,0,0.9)}
+.card h2{font-family:var(--display);font-size:1.65rem;line-height:1.05;margin-bottom:0.3rem;color:var(--ink);letter-spacing:-0.01em}
+.card h2 em{font-style:normal;color:var(--amber)}
+.card .lead{font-size:0.86rem;color:var(--muted);margin-bottom:1.7rem}
 .field{margin-bottom:1.1rem}
-.field label{display:block;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem;font-weight:600}
+.field label{display:block;font-family:var(--mono);font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem;font-weight:600}
 .field label .req{color:var(--alta)}
-.field input,.field textarea,.field select{width:100%;background:#FAFBFE;border:1px solid var(--line);border-radius:10px;padding:0.8rem 0.9rem;font-family:inherit;font-size:0.92rem;color:var(--ink);outline:none;transition:border-color 0.2s}
-.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--navy);background:#fff}
-.field textarea{resize:vertical;min-height:80px;line-height:1.5}
-.field input::placeholder,.field textarea::placeholder{color:#A9B1BE}
+.field input,.field textarea,.field select{width:100%;background:var(--bg-2);border:1px solid var(--line);border-radius:9px;padding:0.8rem 0.9rem;font-family:var(--sans);font-size:0.92rem;color:var(--ink);outline:none;transition:border-color .2s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--amber)}
+.field textarea{resize:vertical;min-height:84px;line-height:1.5}
+.field input::placeholder,.field textarea::placeholder{color:var(--faint)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem}
 .urg-opts{display:flex;gap:0.5rem}
-.urg-opt{flex:1;text-align:center;padding:0.7rem;border-radius:10px;border:1px solid var(--line);background:#FAFBFE;cursor:pointer;font-size:0.82rem;font-weight:600;transition:all 0.18s;color:var(--muted)}
-.urg-opt[data-u="baixa"].sel{background:var(--baixa-bg);border-color:var(--baixa);color:#1c7a33}
-.urg-opt[data-u="media"].sel{background:var(--media-bg);border-color:var(--media);color:#9c7410}
-.urg-opt[data-u="alta"].sel{background:var(--alta-bg);border-color:var(--alta);color:#b3322b}
-.submit-btn{width:100%;background:var(--navy);color:#fff;border:none;font-family:inherit;font-size:0.95rem;font-weight:600;padding:1rem;border-radius:12px;cursor:pointer;margin-top:0.6rem;transition:all 0.2s}
-.submit-btn:hover{background:var(--navy-deep)}
+.urg-opt{flex:1;text-align:center;padding:0.7rem;border-radius:9px;border:1px solid var(--line);background:var(--bg-2);cursor:pointer;font-size:0.82rem;font-weight:600;transition:.18s;color:var(--muted)}
+.urg-opt:hover{border-color:var(--line-2)}
+.urg-opt[data-u="baixa"].sel{background:var(--baixa-bg);border-color:var(--baixa);color:var(--baixa)}
+.urg-opt[data-u="media"].sel{background:var(--media-bg);border-color:var(--media);color:var(--media)}
+.urg-opt[data-u="alta"].sel{background:var(--alta-bg);border-color:var(--alta);color:var(--alta)}
+.submit-btn{width:100%;font-family:var(--mono);background:var(--amber);color:#1a1205;border:none;font-size:0.8rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;padding:1rem;border-radius:11px;cursor:pointer;margin-top:0.6rem;transition:.2s}
+.submit-btn:hover{background:#ffa233;box-shadow:0 10px 26px -12px var(--amber)}
 .submit-btn:disabled{opacity:0.5;cursor:not-allowed}
-.form-msg{text-align:center;font-size:0.85rem;margin-top:0.9rem;min-height:1.2rem;font-weight:500}
-.form-msg.ok{color:var(--concluido)}
-.form-msg.err{color:var(--alta)}
+.form-msg{text-align:center;font-size:0.84rem;margin-top:0.9rem;min-height:1.2rem;font-weight:500}
+.form-msg.ok{color:var(--baixa)}.form-msg.err{color:var(--alta)}
 
-.mnt-bar{display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;margin-bottom:1.3rem}
-.filter{background:var(--card);border:1px solid var(--line);color:var(--muted);font-family:inherit;font-size:0.78rem;font-weight:500;padding:0.5rem 0.9rem;border-radius:99px;cursor:pointer;transition:all 0.18s}
-.filter.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.mnt-bar{display:flex;gap:0.55rem;flex-wrap:wrap;align-items:center;margin-bottom:1.3rem}
+.filter{font-family:var(--mono);background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:0.66rem;letter-spacing:0.06em;text-transform:uppercase;font-weight:500;padding:0.5rem 0.9rem;border-radius:99px;cursor:pointer;transition:.18s}
+.filter:hover{border-color:var(--line-2);color:var(--ink)}
+.filter.active{background:var(--amber);border-color:var(--amber);color:#1a1205}
 .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
-.col{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:0.9rem;min-height:200px;box-shadow:0 1px 4px rgba(20,42,77,0.04)}
-.col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem;padding:0 0.3rem}
-.col-head h3{font-size:0.78rem;letter-spacing:0.08em;text-transform:uppercase;font-weight:700}
-.col-head .cnt{font-size:0.72rem;color:var(--muted);background:#FAFBFE;border:1px solid var(--line);padding:1px 8px;border-radius:99px}
+.col{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0.9rem;min-height:220px}
+.col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem;padding:0.15rem 0.3rem 0.7rem;border-bottom:1px solid var(--line)}
+.col-head h3{font-family:var(--mono);font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:700}
+.col-head .cnt{font-family:var(--mono);font-size:0.64rem;color:var(--muted);background:var(--bg-2);border:1px solid var(--line);padding:1px 8px;border-radius:99px}
 .col[data-s="aberto"] .col-head h3{color:var(--aberto)}
-.col[data-s="andamento"] .col-head h3{color:#9c7410}
-.col[data-s="concluido"] .col-head h3{color:#1c7a33}
+.col[data-s="andamento"] .col-head h3{color:var(--andamento)}
+.col[data-s="concluido"] .col-head h3{color:var(--concluido)}
 
-.ticket{background:#fff;border:1px solid var(--line);border-left-width:3px;border-radius:12px;padding:0.85rem;margin-bottom:0.7rem;animation:pop 0.25s ease;box-shadow:0 1px 3px rgba(20,42,77,0.04)}
+.ticket{background:var(--card-2);border:1px solid var(--line);border-left-width:3px;border-radius:10px;padding:0.85rem;margin-bottom:0.7rem;animation:pop .25s ease}
 .ticket[data-u="alta"]{border-left-color:var(--alta)}
 .ticket[data-u="media"]{border-left-color:var(--media)}
 .ticket[data-u="baixa"]{border-left-color:var(--baixa)}
 @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .tk-top{display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.4rem}
-.tk-client{font-weight:700;font-size:0.92rem;line-height:1.2;color:var(--navy)}
-.tk-urg{font-size:0.62rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:2px 7px;border-radius:99px;white-space:nowrap;flex-shrink:0}
-.tk-urg.alta{background:var(--alta-bg);color:#b3322b}
-.tk-urg.media{background:var(--media-bg);color:#9c7410}
-.tk-urg.baixa{background:var(--baixa-bg);color:#1c7a33}
-.tk-desc{font-size:0.82rem;color:#3a4254;line-height:1.4;margin-bottom:0.6rem}
-.tk-meta{font-size:0.74rem;color:var(--muted);line-height:1.6;border-top:1px solid var(--line);padding-top:0.55rem}
-.tk-meta b{color:#4a5264;font-weight:600}
+.tk-client{font-weight:700;font-size:0.92rem;line-height:1.25;color:var(--ink)}
+.tk-urg{font-family:var(--mono);font-size:0.56rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:3px 8px;border-radius:99px;white-space:nowrap;flex-shrink:0}
+.tk-urg.alta{background:var(--alta-bg);color:var(--alta)}
+.tk-urg.media{background:var(--media-bg);color:var(--media)}
+.tk-urg.baixa{background:var(--baixa-bg);color:var(--baixa)}
+.tk-desc{font-size:0.82rem;color:#C2C7D0;line-height:1.45;margin-bottom:0.6rem}
+.tk-meta{font-family:var(--mono);font-size:0.64rem;color:var(--muted);line-height:1.75;border-top:1px solid var(--line);padding-top:0.55rem;letter-spacing:0.02em}
+.tk-meta b{color:#AEB4C0;font-weight:600}
 .tk-tec{display:flex;align-items:center;gap:0.4rem;margin-top:0.6rem}
-.tk-tec input,.tk-tec select{flex:1;background:#FAFBFE;border:1px solid var(--line);border-radius:8px;padding:0.4rem 0.6rem;font-family:inherit;font-size:0.76rem;color:var(--ink);outline:none;cursor:pointer}
-.tk-tec input:focus,.tk-tec select:focus{border-color:var(--navy);background:#fff}
-.tk-tec input::placeholder{color:#A9B1BE}
+.tk-tec select{flex:1;background:var(--bg-2);border:1px solid var(--line);border-radius:7px;padding:0.42rem 0.6rem;font-family:var(--mono);font-size:0.72rem;color:var(--ink);outline:none;cursor:pointer}
+.tk-tec select:focus{border-color:var(--amber)}
 .tk-actions{display:flex;gap:0.4rem;margin-top:0.7rem}
-.tk-btn{flex:1;background:#FAFBFE;border:1px solid var(--line);color:var(--muted);font-family:inherit;font-size:0.74rem;font-weight:600;padding:0.5rem;border-radius:8px;cursor:pointer;transition:all 0.18s}
-.tk-btn.fwd{border-color:var(--navy);color:var(--navy)}
-.tk-btn.fwd:hover{background:var(--navy);color:#fff}
-.tk-btn.back:hover{background:#EEF1F6;color:var(--ink)}
+.tk-btn{flex:1;font-family:var(--mono);background:var(--bg-2);border:1px solid var(--line);color:var(--muted);font-size:0.64rem;letter-spacing:0.05em;text-transform:uppercase;font-weight:600;padding:0.5rem;border-radius:7px;cursor:pointer;transition:.18s}
+.tk-btn.fwd{border-color:rgba(242,145,30,0.4);color:var(--amber)}
+.tk-btn.fwd:hover{background:var(--amber);color:#1a1205;border-color:var(--amber)}
+.tk-btn.back:hover{border-color:var(--line-2);color:var(--ink)}
 .tk-btn.del:hover{background:var(--alta);border-color:var(--alta);color:#fff}
-.tk-time{font-size:0.66rem;color:#A9B1BE;margin-top:0.5rem;text-align:right}
-.empty-col{text-align:center;color:#C3CAD6;font-size:0.78rem;padding:2rem 0;font-style:italic}
+.tk-time{font-family:var(--mono);font-size:0.58rem;color:var(--faint);margin-top:0.5rem;text-align:right;letter-spacing:0.04em}
+.empty-col{text-align:center;color:var(--faint);font-size:0.72rem;padding:2rem 0;font-family:var(--mono);letter-spacing:0.05em}
 
-.setup{background:var(--alta-bg);border:1px solid rgba(217,67,59,0.3);border-radius:14px;padding:1.1rem 1.2rem;margin-bottom:1.3rem;font-size:0.85rem;line-height:1.5;color:#7a2521}
-.setup b{color:var(--alta)}
-.setup code{background:#fff;padding:1px 6px;border-radius:5px;font-size:0.8rem;color:var(--navy);border:1px solid var(--line)}
-
-/* FUNC PANEL */
-.func-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.3rem;margin-bottom:1.3rem;box-shadow:0 1px 4px rgba(20,42,77,0.04)}
-.func-hello{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:600;color:var(--navy);line-height:1.1}
-.func-hello b{color:var(--gold)}
-.func-sub{font-size:0.78rem;color:var(--muted);margin-top:2px}
+.func-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:1.1rem 1.3rem;margin-bottom:1.3rem}
+.func-hello{font-family:var(--display);font-size:1.3rem;color:var(--ink);line-height:1.05}
+.func-hello b{color:var(--amber);font-weight:inherit}
+.func-sub{font-family:var(--mono);font-size:0.66rem;color:var(--muted);margin-top:6px;letter-spacing:0.04em}
 .cols-2{grid-template-columns:1fr 1fr}
-.func-done{margin-top:1.3rem;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:0.9rem;box-shadow:0 1px 4px rgba(20,42,77,0.04)}
+.func-done{margin-top:1.3rem;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0.9rem}
 
-/* LOGIN */
-#authOverlay{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,#1B3A6B 0%,#142a4d 100%);display:flex;align-items:center;justify-content:center;padding:1.2rem}
+#authOverlay{position:fixed;inset:0;z-index:100;background:var(--bg);background-image:radial-gradient(900px 520px at 50% -12%,rgba(242,145,30,0.12),transparent 62%);display:flex;align-items:center;justify-content:center;padding:1.2rem}
+#authOverlay::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:repeating-linear-gradient(45deg,var(--amber) 0 13px,#0E0F13 13px 26px)}
 #authOverlay .card{max-width:360px;width:100%;text-align:center}
-#authOverlay .auth-crest{width:46px;height:46px;margin:0 auto 0.6rem}
+#authOverlay .auth-crest{width:46px;height:46px;margin:0 auto 0.7rem}
 
 @media(max-width:760px){
   .grid2{grid-template-columns:1fr}
@@ -134,19 +147,19 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
 <div id="authOverlay">
   <div class="card">
     <svg class="auth-crest" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="6" y="20" width="6" height="22" fill="#C99A3F"/>
-      <rect x="21" y="14" width="6" height="28" fill="#1B3A6B"/>
-      <rect x="36" y="20" width="6" height="22" fill="#C99A3F"/>
-      <path d="M9 20l3-6 3 6z" fill="#1B3A6B"/>
-      <path d="M24 14l3-7 3 7z" fill="#C99A3F"/>
-      <path d="M39 20l3-6 3 6z" fill="#1B3A6B"/>
-      <rect x="5" y="42" width="38" height="3" fill="#C99A3F"/>
+      <rect x="6" y="20" width="6" height="22" fill="#F2911E"/>
+      <rect x="21" y="14" width="6" height="28" fill="#ECEEF3"/>
+      <rect x="36" y="20" width="6" height="22" fill="#F2911E"/>
+      <path d="M9 20l3-6 3 6z" fill="#ECEEF3"/>
+      <path d="M24 14l3-7 3 7z" fill="#F2911E"/>
+      <path d="M39 20l3-6 3 6z" fill="#ECEEF3"/>
+      <rect x="5" y="42" width="38" height="3" fill="#F2911E"/>
     </svg>
     <h2>Monte <em>Castelo</em></h2>
     <p class="lead">Chamados de Manutenção · acesso restrito</p>
     <div class="field" style="text-align:left">
       <label>E-mail</label>
-      <input id="authEmail" type="email" autocomplete="username" placeholder="seu@email.com.br"/>
+      <input id="authEmail" type="email" autocomplete="username" placeholder="seu@montecastelo.ind.br"/>
     </div>
     <div class="field" style="text-align:left">
       <label>Senha</label>
@@ -161,13 +174,13 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
   <div class="head-in">
     <div class="brand">
       <svg class="crest" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="6" y="20" width="6" height="22" fill="#C99A3F"/>
-        <rect x="21" y="14" width="6" height="28" fill="#ffffff"/>
-        <rect x="36" y="20" width="6" height="22" fill="#C99A3F"/>
-        <path d="M9 20l3-6 3 6z" fill="#fff"/>
-        <path d="M24 14l3-7 3 7z" fill="#C99A3F"/>
-        <path d="M39 20l3-6 3 6z" fill="#fff"/>
-        <rect x="5" y="42" width="38" height="3" fill="#C99A3F"/>
+        <rect x="6" y="20" width="6" height="22" fill="#F2911E"/>
+        <rect x="21" y="14" width="6" height="28" fill="#ECEEF3"/>
+        <rect x="36" y="20" width="6" height="22" fill="#F2911E"/>
+        <path d="M9 20l3-6 3 6z" fill="#ECEEF3"/>
+        <path d="M24 14l3-7 3 7z" fill="#F2911E"/>
+        <path d="M39 20l3-6 3 6z" fill="#ECEEF3"/>
+        <rect x="5" y="42" width="38" height="3" fill="#F2911E"/>
       </svg>
       <div>
         <div class="brand-logo">Monte Castelo</div>
@@ -260,13 +273,13 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
   </div>
   <div class="mnt-bar" style="margin-top:-0.6rem">
     <input id="buscaInput" type="search" placeholder="🔍 Buscar cliente, equipamento, técnico…" oninput="setBusca(this.value)"
-      style="flex:1;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:0.55rem 1rem;font-family:inherit;font-size:0.82rem;color:var(--ink);outline:none"/>
-    <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.74rem;color:var(--muted);font-weight:600">Prazo de
+      style="flex:1;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:0.55rem 1rem;font-family:var(--sans);font-size:0.82rem;color:var(--ink);outline:none"/>
+    <label style="display:flex;align-items:center;gap:0.4rem;font-family:var(--mono);font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600">Prazo de
       <input id="prazoDe" type="date" onchange="setPrazoDe(this.value)"
-        style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:0.4rem 0.5rem;font-family:inherit;font-size:0.78rem;color:var(--ink)"/></label>
-    <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.74rem;color:var(--muted);font-weight:600">até
+        style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:0.4rem 0.5rem;font-family:var(--mono);font-size:0.74rem;color:var(--ink)"/></label>
+    <label style="display:flex;align-items:center;gap:0.4rem;font-family:var(--mono);font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600">até
       <input id="prazoAte" type="date" onchange="setPrazoAte(this.value)"
-        style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:0.4rem 0.5rem;font-family:inherit;font-size:0.78rem;color:var(--ink)"/></label>
+        style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:0.4rem 0.5rem;font-family:var(--mono);font-size:0.74rem;color:var(--ink)"/></label>
     <button class="filter" onclick="limparFiltros()">Limpar</button>
   </div>
   <div class="cols">
@@ -293,7 +306,7 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
         <div class="func-hello">Olá, <b id="func-nome"></b></div>
         <div class="func-sub" id="func-resumo"></div>
       </div>
-      <button class="btn-sair" style="background:#FAFBFE;border:1px solid var(--line);color:var(--muted)" onclick="sairApp()">Sair</button>
+      <button class="btn-sair" onclick="sairApp()">Sair</button>
     </div>
     <div class="cols cols-2">
       <div class="col" data-s="aberto">
@@ -306,7 +319,7 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
       </div>
     </div>
     <div class="func-done">
-      <div class="col-head" style="padding:0 0.3rem 0.6rem"><h3 style="color:#1c7a33;font-size:0.78rem;letter-spacing:0.08em;text-transform:uppercase;font-weight:700">● Concluídos por você</h3><span class="cnt" id="fcnt-concluido">0</span></div>
+      <div class="col-head" style="padding:0.15rem 0.3rem 0.7rem"><h3 style="color:var(--concluido)">● Concluídos por você</h3><span class="cnt" id="fcnt-concluido">0</span></div>
       <div id="fcol-concluido"></div>
     </div>
   </div>
@@ -332,7 +345,7 @@ const firebaseConfig = {
 
 /* ┌──────────────────────────────────────────────────────────────┐
    │  USUÁRIOS E PAPÉIS                                              │
-   │  A CHAVE é o e-mail (precisa ser IGUAL ao criado no Firebase    │
+   │  A CHAVE é o e-mail (IGUAL ao criado no Firebase                │
    │  Authentication → Users). Papéis: 'comercial', 'supervisor',    │
    │  'tecnico'. Para técnico, o 'nome' precisa bater EXATAMENTE     │
    │  com o nome usado na atribuição do quadro (lista TECNICOS).     │
@@ -406,7 +419,6 @@ function iniciarAuth(){
     btn.disabled = true; btn.textContent = "Entrando…";
     try{
       await signInWithEmailAndPassword(auth, email, senha);
-      // onAuthStateChanged cuida do resto
     }catch(e){
       console.log("login:", e.code);
       erro.textContent = (e.code === "auth/invalid-credential")
@@ -533,6 +545,7 @@ document.getElementById("urgOpts").addEventListener("click", (e)=>{
   window._urg = opt.dataset.u;
 });
 
+/* ===== FILTROS DO QUADRO ===== */
 let filtroUrg = "todas";
 window.setFilter = function(f, el){
   filtroUrg = f;
