@@ -24,10 +24,13 @@ header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);c
 .crest{width:40px;height:40px;flex-shrink:0}
 .brand-logo{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:600;letter-spacing:-0.01em;line-height:1.05}
 .brand-sub{font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);margin-top:1px}
+.head-right{display:flex;align-items:center;gap:0.8rem}
 .conn{display:flex;align-items:center;gap:0.45rem;font-size:0.72rem;color:rgba(255,255,255,0.75)}
 .conn .led{width:8px;height:8px;border-radius:50%;background:#888;transition:background 0.3s}
 .conn.on .led{background:#3FD168;box-shadow:0 0 8px #3FD168}
 .conn.off .led{background:#FF7A70}
+.btn-sair{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;font-family:inherit;font-size:0.74rem;font-weight:600;padding:0.45rem 0.9rem;border-radius:9px;cursor:pointer;transition:all 0.15s}
+.btn-sair:hover{background:rgba(255,255,255,0.22)}
 
 .tabs{max-width:1000px;margin:1.2rem auto 0;padding:0 1.2rem;display:flex;gap:0.5rem}
 .tab{flex:1;background:var(--card);border:1px solid var(--line);color:var(--muted);font-family:inherit;font-size:0.85rem;font-weight:600;padding:0.85rem;border-radius:12px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem;box-shadow:0 1px 3px rgba(20,42,77,0.04)}
@@ -105,27 +108,18 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
 .setup b{color:var(--alta)}
 .setup code{background:#fff;padding:1px 6px;border-radius:5px;font-size:0.8rem;color:var(--navy);border:1px solid var(--line)}
 
-/* PIN PAD */
-.pin-dots{display:flex;gap:0.8rem;justify-content:center;margin:1.4rem 0}
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);background:transparent;transition:all 0.15s}
-.pin-dot.filled{background:var(--navy);border-color:var(--navy)}
-.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:0.7rem;max-width:280px;margin:0 auto}
-.pin-key{background:#FAFBFE;border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:1.3rem;font-weight:600;padding:0.9rem;border-radius:12px;cursor:pointer;transition:all 0.12s}
-.pin-key:hover{background:var(--navy-soft);border-color:var(--navy)}
-.pin-key:active{transform:scale(0.95)}
-.pin-empty{background:transparent;border:none;cursor:default}
-.pin-empty:hover{background:transparent}
-.pin-err{text-align:center;color:var(--alta);font-size:0.85rem;font-weight:500;margin-top:1rem;min-height:1.2rem}
-
 /* FUNC PANEL */
 .func-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.3rem;margin-bottom:1.3rem;box-shadow:0 1px 4px rgba(20,42,77,0.04)}
 .func-hello{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:600;color:var(--navy);line-height:1.1}
 .func-hello b{color:var(--gold)}
 .func-sub{font-size:0.78rem;color:var(--muted);margin-top:2px}
-.func-sair{background:#FAFBFE;border:1px solid var(--line);color:var(--muted);font-family:inherit;font-size:0.78rem;font-weight:600;padding:0.5rem 1rem;border-radius:9px;cursor:pointer;transition:all 0.15s}
-.func-sair:hover{background:var(--alta);border-color:var(--alta);color:#fff}
 .cols-2{grid-template-columns:1fr 1fr}
 .func-done{margin-top:1.3rem;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:0.9rem;box-shadow:0 1px 4px rgba(20,42,77,0.04)}
+
+/* LOGIN */
+#authOverlay{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,#1B3A6B 0%,#142a4d 100%);display:flex;align-items:center;justify-content:center;padding:1.2rem}
+#authOverlay .card{max-width:360px;width:100%;text-align:center}
+#authOverlay .auth-crest{width:46px;height:46px;margin:0 auto 0.6rem}
 
 @media(max-width:760px){
   .grid2{grid-template-columns:1fr}
@@ -135,6 +129,33 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
 </style>
 </head>
 <body>
+
+<!-- ===== LOGIN (E-MAIL / SENHA) ===== -->
+<div id="authOverlay">
+  <div class="card">
+    <svg class="auth-crest" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="6" y="20" width="6" height="22" fill="#C99A3F"/>
+      <rect x="21" y="14" width="6" height="28" fill="#1B3A6B"/>
+      <rect x="36" y="20" width="6" height="22" fill="#C99A3F"/>
+      <path d="M9 20l3-6 3 6z" fill="#1B3A6B"/>
+      <path d="M24 14l3-7 3 7z" fill="#C99A3F"/>
+      <path d="M39 20l3-6 3 6z" fill="#1B3A6B"/>
+      <rect x="5" y="42" width="38" height="3" fill="#C99A3F"/>
+    </svg>
+    <h2>Monte <em>Castelo</em></h2>
+    <p class="lead">Chamados de Manutenção · acesso restrito</p>
+    <div class="field" style="text-align:left">
+      <label>E-mail</label>
+      <input id="authEmail" type="email" autocomplete="username" placeholder="seu@email.com.br"/>
+    </div>
+    <div class="field" style="text-align:left">
+      <label>Senha</label>
+      <input id="authSenha" type="password" autocomplete="current-password" placeholder="sua senha"/>
+    </div>
+    <div class="form-msg err" id="authErro"></div>
+    <button class="submit-btn" id="authBtn">Entrar</button>
+  </div>
+</div>
 
 <header>
   <div class="head-in">
@@ -153,7 +174,10 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
         <div class="brand-sub">Chamados de Manutenção</div>
       </div>
     </div>
-    <div class="conn off" id="conn"><span class="led"></span><span id="connTxt">Conectando…</span></div>
+    <div class="head-right">
+      <div class="conn off" id="conn"><span class="led"></span><span id="connTxt">Conectando…</span></div>
+      <button class="btn-sair" id="btnSair" onclick="sairApp()" style="display:none">Sair</button>
+    </div>
   </div>
 </header>
 
@@ -252,38 +276,13 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
 
 <!-- ===== FUNCIONÁRIO (MEU PAINEL) ===== -->
 <section class="view" id="view-func">
-  <!-- LOGIN PIN -->
-  <div id="func-login" class="card" style="max-width:380px;margin:0 auto;text-align:center">
-    <h2 style="text-align:center">Meu <em>Painel</em></h2>
-    <p class="lead" style="text-align:center">Digite seu PIN para ver suas manutenções.</p>
-    <div class="pin-dots" id="func-dots">
-      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
-    </div>
-    <div class="pin-pad">
-      <button class="pin-key" onclick="funcPin('1')">1</button>
-      <button class="pin-key" onclick="funcPin('2')">2</button>
-      <button class="pin-key" onclick="funcPin('3')">3</button>
-      <button class="pin-key" onclick="funcPin('4')">4</button>
-      <button class="pin-key" onclick="funcPin('5')">5</button>
-      <button class="pin-key" onclick="funcPin('6')">6</button>
-      <button class="pin-key" onclick="funcPin('7')">7</button>
-      <button class="pin-key" onclick="funcPin('8')">8</button>
-      <button class="pin-key" onclick="funcPin('9')">9</button>
-      <button class="pin-key pin-empty"></button>
-      <button class="pin-key" onclick="funcPin('0')">0</button>
-      <button class="pin-key" onclick="funcPinDel()">⌫</button>
-    </div>
-    <div class="pin-err" id="func-err"></div>
-  </div>
-
-  <!-- PAINEL DO TÉCNICO -->
-  <div id="func-panel" style="display:none">
+  <div id="func-panel">
     <div class="func-bar">
       <div>
         <div class="func-hello">Olá, <b id="func-nome"></b></div>
         <div class="func-sub" id="func-resumo"></div>
       </div>
-      <button class="func-sair" onclick="funcLogout()">Sair</button>
+      <button class="btn-sair" style="background:#FAFBFE;border:1px solid var(--line);color:var(--muted)" onclick="sairApp()">Sair</button>
     </div>
     <div class="cols cols-2">
       <div class="col" data-s="aberto">
@@ -308,11 +307,9 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-/* ┌──────────────────────────────────────────────────────────────┐
-   │  COLE AQUI AS CHAVES DO FIREBASE DA MONTE CASTELO              │
-   │  (Console Firebase → Configurações do projeto → Seus apps)     │
-   └──────────────────────────────────────────────────────────────┘ */
 const firebaseConfig = {
   apiKey: "AIzaSyCH_t074MvkJn-qVMvCtLfEMaQHf_e_d7M",
   authDomain: "manutencao-comodato.firebaseapp.com",
@@ -322,20 +319,35 @@ const firebaseConfig = {
   appId: "1:89709396101:web:22ee225ffa806e07a269ec"
 };
 
-let db, chamadosCol;
+/* ┌──────────────────────────────────────────────────────────────┐
+   │  USUÁRIOS E PAPÉIS                                              │
+   │  A CHAVE é o e-mail (precisa ser IGUAL ao criado no Firebase    │
+   │  Authentication → Users). Papéis: 'comercial', 'supervisor',    │
+   │  'tecnico'. Para técnico, o 'nome' precisa bater EXATAMENTE     │
+   │  com o nome usado na atribuição do quadro (lista TECNICOS).     │
+   └──────────────────────────────────────────────────────────────┘ */
+const USERS = {
+  "jeferson@montecastelo.com.br": { role:"comercial",  nome:"Jeferson" },
+  "anderson@montecastelo.com.br": { role:"supervisor", nome:"Anderson" },
+  "dajem@montecastelo.com.br":    { role:"tecnico",    nome:"Dajem"  },
+  "alex@montecastelo.com.br":     { role:"tecnico",    nome:"Alex"   },
+  "marcos@montecastelo.com.br":   { role:"tecnico",    nome:"Marcos" }
+};
+
+let db, chamadosCol, auth;
+let listening = false;
 const COLLECTION = "chamados_manutencao";
 
 try {
-  if(firebaseConfig.apiKey === "COLE_AQUI") throw new Error("sem-config");
   const app = initializeApp(firebaseConfig);
   db = getFirestore(app);
+  auth = getAuth(app);
   chamadosCol = collection(db, COLLECTION);
-  setConn(true);
-  escutar();
+  iniciarAuth();
 } catch(e) {
   setConn(false);
-  if(e.message === "sem-config"){ mostrarSetup(); }
-  else { console.error(e); document.getElementById("connTxt").textContent = "Erro de conexão"; }
+  console.error(e);
+  document.getElementById("connTxt").textContent = "Erro de conexão";
 }
 
 function setConn(on){
@@ -344,15 +356,88 @@ function setConn(on){
   document.getElementById("connTxt").textContent = on ? "Conectado" : "Offline";
 }
 
-function mostrarSetup(){
-  const banner = document.createElement("div");
-  banner.className = "setup";
-  banner.innerHTML = '<b>⚙ Falta conectar o Firebase.</b> Abra este arquivo num editor e cole as chaves do projeto Firebase da Monte Castelo no bloco <code>firebaseConfig</code> (procure por <code>COLE_AQUI</code>). Enquanto não conectar, os chamados não são salvos nem compartilhados.';
-  document.querySelector("main").prepend(banner);
+/* ===== LOGIN / PAPÉIS ===== */
+function iniciarAuth(){
+  const overlay = document.getElementById("authOverlay");
+  const emailEl = document.getElementById("authEmail");
+  const senhaEl = document.getElementById("authSenha");
+  const btn = document.getElementById("authBtn");
+  const erro = document.getElementById("authErro");
+
+  onAuthStateChanged(auth, (user) => {
+    if(user){
+      const conta = USERS[(user.email||"").toLowerCase()];
+      if(!conta){
+        erro.textContent = "Este e-mail não tem acesso liberado.";
+        overlay.style.display = "flex";
+        document.getElementById("btnSair").style.display = "none";
+        signOut(auth);
+        return;
+      }
+      overlay.style.display = "none";
+      document.getElementById("btnSair").style.display = "";
+      setConn(true);
+      escutar();
+      aplicarPapel(conta.role, conta.nome);
+    } else {
+      overlay.style.display = "flex";
+      document.getElementById("btnSair").style.display = "none";
+    }
+  });
+
+  async function entrar(){
+    const email = (emailEl.value||"").trim();
+    const senha = (senhaEl.value||"").trim();
+    erro.textContent = "";
+    if(!email || !senha){ erro.textContent = "Preencha e-mail e senha."; return; }
+    btn.disabled = true; btn.textContent = "Entrando…";
+    try{
+      await signInWithEmailAndPassword(auth, email, senha);
+      // onAuthStateChanged cuida do resto
+    }catch(e){
+      console.log("login:", e.code);
+      erro.textContent = (e.code === "auth/invalid-credential")
+        ? "E-mail ou senha incorretos."
+        : (e.code || "Erro ao entrar.");
+      btn.disabled = false; btn.textContent = "Entrar";
+    }
+  }
+  btn.addEventListener("click", entrar);
+  senhaEl.addEventListener("keydown", e=>{ if(e.key==="Enter") entrar(); });
+  emailEl.addEventListener("keydown", e=>{ if(e.key==="Enter") entrar(); });
 }
 
+window.sairApp = function(){ signOut(auth).then(()=>location.reload()); };
+
+function aplicarPapel(role, nome){
+  const tabCom  = document.getElementById("tab-com");
+  const tabMnt  = document.getElementById("tab-mnt");
+  const tabFunc = document.getElementById("tab-func");
+  tabCom.style.display = "none";
+  tabMnt.style.display = "none";
+  tabFunc.style.display = "none";
+
+  if(role === "comercial"){
+    tabCom.style.display = "";
+    switchView("com");
+  } else if(role === "supervisor"){
+    tabCom.style.display = "";
+    tabMnt.style.display = "";
+    switchView("mnt");
+  } else if(role === "tecnico"){
+    tabFunc.style.display = "";
+    tecnicoLogado = nome;
+    document.getElementById("func-nome").textContent = nome;
+    switchView("func");
+    renderFuncPanel();
+  }
+}
+
+/* ===== DADOS ===== */
 let chamados = [];
 function escutar(){
+  if(listening) return;
+  listening = true;
   const q = query(chamadosCol, orderBy("criadoEm", "desc"));
   onSnapshot(q, (snap) => {
     chamados = [];
@@ -373,7 +458,7 @@ window.abrirChamado = async function(){
   }
   if(!db){
     msg.className = "form-msg err";
-    msg.textContent = "Firebase não conectado — configure as chaves primeiro.";
+    msg.textContent = "Firebase não conectado.";
     return;
   }
   const btn = document.getElementById("submitBtn");
@@ -453,47 +538,14 @@ window.switchView = function(v){
   if(v==="func" && tecnicoLogado) renderFuncPanel();
 };
 
-// ===== TÉCNICOS / MEU PAINEL =====
+// ===== TÉCNICOS (usado na atribuição do quadro) =====
 const TECNICOS = [
-  { nome:"Dajem",  pin:"1011" },
-  { nome:"Marcos", pin:"2039" },
-  { nome:"Alex",   pin:"9392" }
+  { nome:"Dajem"  },
+  { nome:"Alex"   },
+  { nome:"Marcos" }
 ];
 
-let funcBuffer = "";
 let tecnicoLogado = null;
-
-window.funcPin = function(d){
-  if(funcBuffer.length >= 4) return;
-  funcBuffer += d;
-  updateFuncDots();
-  if(funcBuffer.length === 4){
-    const tec = TECNICOS.find(t => t.pin === funcBuffer);
-    if(tec){
-      tecnicoLogado = tec.nome;
-      document.getElementById("func-err").textContent = "";
-      document.getElementById("func-login").style.display = "none";
-      document.getElementById("func-panel").style.display = "block";
-      document.getElementById("func-nome").textContent = tec.nome;
-      renderFuncPanel();
-    } else {
-      document.getElementById("func-err").textContent = "PIN incorreto. Tente de novo.";
-      setTimeout(function(){ funcBuffer=""; updateFuncDots(); document.getElementById("func-err").textContent=""; }, 1000);
-    }
-  }
-};
-window.funcPinDel = function(){ funcBuffer = funcBuffer.slice(0,-1); updateFuncDots(); };
-function updateFuncDots(){
-  const dots = document.querySelectorAll("#func-dots .pin-dot");
-  dots.forEach(function(d,i){ d.classList.toggle("filled", i < funcBuffer.length); });
-}
-window.funcLogout = function(){
-  tecnicoLogado = null;
-  funcBuffer = "";
-  updateFuncDots();
-  document.getElementById("func-panel").style.display = "none";
-  document.getElementById("func-login").style.display = "block";
-};
 
 function renderFuncPanel(){
   if(!tecnicoLogado) return;
