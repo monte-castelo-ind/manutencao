@@ -258,6 +258,17 @@ main{max-width:1000px;margin:0 auto;padding:1.5rem 1.2rem 5rem}
     <button class="filter" data-f="media" onclick="setFilter('media',this)">🟡 Média</button>
     <button class="filter" data-f="baixa" onclick="setFilter('baixa',this)">🟢 Baixa</button>
   </div>
+  <div class="mnt-bar" style="margin-top:-0.6rem">
+    <input id="buscaInput" type="search" placeholder="🔍 Buscar cliente, equipamento, técnico…" oninput="setBusca(this.value)"
+      style="flex:1;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:0.55rem 1rem;font-family:inherit;font-size:0.82rem;color:var(--ink);outline:none"/>
+    <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.74rem;color:var(--muted);font-weight:600">Prazo de
+      <input id="prazoDe" type="date" onchange="setPrazoDe(this.value)"
+        style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:0.4rem 0.5rem;font-family:inherit;font-size:0.78rem;color:var(--ink)"/></label>
+    <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.74rem;color:var(--muted);font-weight:600">até
+      <input id="prazoAte" type="date" onchange="setPrazoAte(this.value)"
+        style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:0.4rem 0.5rem;font-family:inherit;font-size:0.78rem;color:var(--ink)"/></label>
+    <button class="filter" onclick="limparFiltros()">Limpar</button>
+  </div>
   <div class="cols">
     <div class="col" data-s="aberto">
       <div class="col-head"><h3>● Aberto</h3><span class="cnt" id="cnt-aberto">0</span></div>
@@ -525,10 +536,35 @@ document.getElementById("urgOpts").addEventListener("click", (e)=>{
 let filtroUrg = "todas";
 window.setFilter = function(f, el){
   filtroUrg = f;
-  document.querySelectorAll(".filter").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".mnt-bar .filter[data-f]").forEach(b=>b.classList.remove("active"));
   el.classList.add("active");
   renderManutencao();
 };
+
+let busca = "", prazoDe = "", prazoAte = "";
+window.setBusca = function(v){ busca = (v||"").trim().toLowerCase(); renderManutencao(); };
+window.setPrazoDe = function(v){ prazoDe = v||""; renderManutencao(); };
+window.setPrazoAte = function(v){ prazoAte = v||""; renderManutencao(); };
+window.limparFiltros = function(){
+  busca = ""; prazoDe = ""; prazoAte = "";
+  const b = document.getElementById("buscaInput"); if(b) b.value = "";
+  const d1 = document.getElementById("prazoDe"); if(d1) d1.value = "";
+  const d2 = document.getElementById("prazoAte"); if(d2) d2.value = "";
+  renderManutencao();
+};
+function casaBusca(c){
+  if(!busca) return true;
+  return [c.cliente,c.descricao,c.equipamento,c.local,c.autor,c.tecnico,c.serie,c.telefone]
+    .some(v => (v||"").toLowerCase().includes(busca));
+}
+function casaPrazo(c){
+  if(!prazoDe && !prazoAte) return true;
+  const p = c.prazo || "";
+  if(!p) return false;
+  if(prazoDe && p < prazoDe) return false;
+  if(prazoAte && p > prazoAte) return false;
+  return true;
+}
 
 window.switchView = function(v){
   document.getElementById("view-com").classList.toggle("active", v==="com");
@@ -608,7 +644,11 @@ const URG_ORDER = { alta:0, media:1, baixa:2 };
 const URG_LABEL = { alta:"Alta", media:"Média", baixa:"Baixa" };
 
 function renderManutencao(){
-  const filt = filtroUrg==="todas" ? chamados : chamados.filter(c=>c.urgencia===filtroUrg);
+  const filt = chamados.filter(c =>
+    (filtroUrg==="todas" || c.urgencia===filtroUrg) &&
+    casaBusca(c) &&
+    casaPrazo(c)
+  );
   const grupos = { aberto:[], andamento:[], concluido:[] };
   filt.forEach(c => { (grupos[c.status]||grupos.aberto).push(c); });
 
