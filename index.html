@@ -269,6 +269,7 @@
       </div>
     </div>
 
+    <div id="grp-ops">
     <div class="section-div">Ações</div>
     <button class="home-btn" onclick="goTo('s-entrada')">
       <div class="hb-icon" style="background:rgba(233,69,96,0.15);">📥</div>
@@ -285,18 +286,59 @@
       <div style="flex:1;"><div class="hb-title">Base de Equipamentos</div><div class="hb-desc">Cadastrar tipos e patrimônios</div></div>
       <span style="color:var(--text-secondary);font-size:20px;">›</span>
     </button>
-    <button class="home-btn" onclick="goTo('s-historico')">
+    </div><!-- /grp-ops -->
+    <button class="home-btn" id="btn-historico" onclick="goTo('s-historico')">
       <div class="hb-icon" style="background:rgba(59,130,246,0.15);">📋</div>
       <div style="flex:1;"><div class="hb-title">Histórico</div><div class="hb-desc">Todos os equipamentos por status</div></div>
       <span style="color:var(--text-secondary);font-size:20px;">›</span>
     </button>
 
+    <div id="grp-equipe">
     <div class="section-div" style="margin-top:14px;">Equipe</div>
     <button class="home-btn" onclick="goTo('s-presenca-reg')">
       <div class="hb-icon" style="background:rgba(139,92,246,0.15);">👥</div>
       <div style="flex:1;"><div class="hb-title">Registro de Presença</div><div class="hb-desc" id="presenca-home-desc">Controle diário da equipe</div></div>
       <span style="color:var(--text-secondary);font-size:20px;">›</span>
     </button>
+    </div><!-- /grp-equipe -->
+    <div id="grp-admin" style="display:none;">
+    <div class="section-div" style="margin-top:14px;">Administração</div>
+    <button class="home-btn" onclick="goTo('s-usuarios')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.15);">👤</div>
+      <div style="flex:1;"><div class="hb-title">Usuários</div><div class="hb-desc">Gerenciar acessos e permissões</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    </div><!-- /grp-admin -->
+  </div>
+</div>
+
+<!-- USUÁRIOS (admin) -->
+<div class="screen" id="s-usuarios">
+  <div class="topbar">
+    <button class="back-btn" onclick="goTo('s-home')">‹</button>
+    <div style="flex:1;"><div class="topbar-title">👤 Usuários</div><div class="topbar-sub">Acessos e permissões</div></div>
+  </div>
+  <div class="content">
+    <div class="section-div">Usuários cadastrados</div>
+    <div id="usuarios-list"><div class="empty">Carregando...</div></div>
+    <div class="card" style="margin-top:16px;">
+      <div class="card-label">Como adicionar um novo usuário</div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;">
+        <b>1.</b> No <b>Firebase Console → Authentication</b>, crie a conta (e-mail + senha).<br>
+        <b>2.</b> Peça para a pessoa fazer login uma vez aqui no app.<br>
+        <b>3.</b> Ela aparece nesta lista como <b style="color:var(--amarelo);">PENDENTE</b>. Escolha o papel e toque em <b>Ativar</b>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACESSO NEGADO / PENDENTE -->
+<div class="screen" id="s-negado">
+  <div class="content" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding:32px;">
+    <div style="font-size:52px;">🔒</div>
+    <div style="font-size:20px;font-weight:700;color:var(--text-primary);">Acesso pendente</div>
+    <div id="negado-msg" style="font-size:14px;color:var(--text-secondary);max-width:300px;line-height:1.5;">Sua conta ainda não foi liberada por um administrador.</div>
+    <button class="btn" style="max-width:220px;background:rgba(233,69,96,0.12);color:var(--accent);border:1px solid rgba(233,69,96,0.3);" onclick="sairApp()">Sair</button>
   </div>
 </div>
 
@@ -671,6 +713,124 @@ let filtroAtivo = 'todos';
 let equipAtivo = null;
 let equipSelecionadoEntrada = null;
 
+// ===== SANITIZE =====
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function escAttr(s){ return esc(s); }
+
+// ===== PERMISSÕES / SESSÃO =====
+var sessaoUid = null;
+var sessaoEmail = null;
+var currentRole = null;
+var currentAtivo = false;
+var usuarios = [];
+var _unsubUsuarios = null;
+function podeEscrever(){ return currentRole==='admin' || currentRole==='operador'; }
+function ehLeitura(){ return currentRole==='leitura'; }
+function ehAdmin(){ return currentRole==='admin'; }
+
+function iniciarSessao(user){
+  sessaoUid = user.uid;
+  sessaoEmail = user.email || '';
+  onSnapshot(doc(db,'usuarios',user.uid), function(snap){
+    if(!snap.exists()){
+      // auto-provisiona doc pendente (sem acesso, papel leitura)
+      setDoc(doc(db,'usuarios',user.uid),{
+        email: sessaoEmail,
+        nome: sessaoEmail,
+        role: 'leitura',
+        ativo: false,
+        criadoEm: Date.now()
+      }).catch(function(err){ console.error('Erro ao criar usuário pendente:', err); });
+      return; // o próprio listener re-dispara com o doc já criado
+    }
+    var d = snap.data();
+    currentRole = d.role || 'leitura';
+    currentAtivo = d.ativo === true;
+    aplicarPermissoes();
+  }, function(err){
+    console.error('Erro ao ler permissões:', err);
+    var m = document.getElementById('negado-msg');
+    if(m) m.textContent = 'Não foi possível carregar suas permissões. Tente novamente mais tarde.';
+    goTo('s-negado');
+  });
+}
+
+function aplicarPermissoes(){
+  if(!currentAtivo){
+    var m = document.getElementById('negado-msg');
+    if(m) m.textContent = 'Sua conta ('+(sessaoEmail||'')+') ainda não foi liberada por um administrador.';
+    goTo('s-negado');
+    return;
+  }
+  var leitura = ehLeitura();
+  var opsEl = document.getElementById('grp-ops');
+  var equipeEl = document.getElementById('grp-equipe');
+  var adminEl = document.getElementById('grp-admin');
+  if(opsEl) opsEl.style.display = leitura ? 'none' : '';
+  if(equipeEl) equipeEl.style.display = leitura ? 'none' : '';
+  if(adminEl) adminEl.style.display = ehAdmin() ? '' : 'none';
+  var atual = document.querySelector('.screen.active');
+  if(!atual || atual.id==='s-negado' || atual.id==='s-pin'){ goTo('s-home'); }
+  else { renderHome(); }
+}
+
+function renderUsuarios(){
+  if(!ehAdmin()) return;
+  if(_unsubUsuarios) { pintarUsuarios(); return; }
+  _unsubUsuarios = onSnapshot(collection(db,'usuarios'), function(snap){
+    usuarios = snap.docs.map(function(d){ return Object.assign({uid:d.id}, d.data()); })
+      .sort(function(a,b){
+        if((a.ativo===true)!==(b.ativo===true)) return (a.ativo===true)?1:-1; // pendentes no topo
+        return String(a.email||'').localeCompare(String(b.email||''),'pt-BR');
+      });
+    pintarUsuarios();
+  }, function(err){ console.error('Erro ao listar usuários:', err); });
+}
+
+function pintarUsuarios(){
+  var el = document.getElementById('usuarios-list');
+  if(!el) return;
+  if(!usuarios.length){ el.innerHTML='<div class="empty">Nenhum usuário ainda.</div>'; return; }
+  el.innerHTML = usuarios.map(function(u){
+    var pend = u.ativo!==true;
+    var eu = u.uid===sessaoUid;
+    return '<div style="background:var(--bg-secondary);border-radius:12px;padding:12px 14px;margin-bottom:10px;border:0.5px solid var(--border);'+(pend?'border-left:3px solid var(--amarelo);':'')+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
+        '<div style="min-width:0;">'+
+          '<div style="font-size:14px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;">'+esc(u.nome||u.email||u.uid)+(eu?' <span style="color:var(--text-secondary);font-weight:400;">(você)</span>':'')+'</div>'+
+          '<div style="font-size:12px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;">'+esc(u.email||'')+'</div>'+
+        '</div>'+
+        (pend?'<span style="font-size:11px;color:var(--amarelo);font-weight:700;white-space:nowrap;">PENDENTE</span>':'<span style="font-size:11px;color:var(--verde);font-weight:700;white-space:nowrap;">ATIVO</span>')+
+      '</div>'+
+      '<div style="display:flex;gap:8px;margin-top:10px;align-items:center;">'+
+        '<select data-uid="'+escAttr(u.uid)+'" onchange="mudarRole(this.dataset.uid,this.value)" '+(eu?'disabled':'')+' style="flex:1;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:8px;font-family:inherit;font-size:13px;'+(eu?'opacity:0.6;':'')+'">'+
+          '<option value="leitura"'+(u.role==='leitura'?' selected':'')+'>Leitura (só Histórico)</option>'+
+          '<option value="operador"'+(u.role==='operador'?' selected':'')+'>Operador</option>'+
+          '<option value="admin"'+(u.role==='admin'?' selected':'')+'>Admin</option>'+
+        '</select>'+
+        '<button data-uid="'+escAttr(u.uid)+'" data-ativo="'+(u.ativo===true?'1':'0')+'" onclick="toggleAtivo(this.dataset.uid,this.dataset.ativo)" '+(eu?'disabled':'')+' style="white-space:nowrap;background:'+(u.ativo===true?'rgba(107,114,128,0.15)':'rgba(16,185,129,0.15)')+';color:'+(u.ativo===true?'var(--cinza)':'var(--verde)')+';border:1px solid '+(u.ativo===true?'rgba(107,114,128,0.3)':'rgba(16,185,129,0.4)')+';border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;'+(eu?'opacity:0.6;':'')+'">'+(u.ativo===true?'Desativar':'Ativar')+'</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function mudarRole(uid, role){
+  if(!ehAdmin()) return;
+  if(uid===sessaoUid){ alert('Você não pode alterar seu próprio papel.'); return; }
+  updateDoc(doc(db,'usuarios',uid),{role:role}).catch(function(err){
+    console.error('Erro ao mudar papel:', err); alert('Erro ao alterar papel: '+err.message);
+  });
+}
+
+function toggleAtivo(uid, ativoStr){
+  if(!ehAdmin()) return;
+  if(uid===sessaoUid){ alert('Você não pode desativar a si mesmo.'); return; }
+  var novo = ativoStr!=='1';
+  updateDoc(doc(db,'usuarios',uid),{ativo:novo}).catch(function(err){
+    console.error('Erro ao alterar acesso:', err); alert('Erro ao alterar acesso: '+err.message);
+  });
+}
+
 // ===== HELPERS =====
 function hoje(){
   const d=new Date();
@@ -689,6 +849,8 @@ function isoToDisplay(iso){return fmtDate(iso);}
 
 // ===== NAVIGATION =====
 function goTo(id){
+  if(typeof ehLeitura==='function' && ehLeitura() && ['s-home','s-historico','s-detalhe','s-negado'].indexOf(id)===-1){ id='s-home'; }
+  if(id==='s-usuarios' && !(typeof ehAdmin==='function' && ehAdmin())){ id='s-home'; }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const el=document.getElementById(id);
   if(el){el.classList.add('active');el.scrollTop=0;}
@@ -698,6 +860,7 @@ function goTo(id){
   if(id==='s-base-novo'){ document.getElementById('base-novo-sub').textContent=baseTipoAtivo; document.getElementById('base-modelo-nome').value=''; document.getElementById('base-modelo-obs').value=''; const b=document.getElementById('base-btn');if(b){b.textContent='Cadastrar modelo ✓';b.disabled=false;} }
   if(id==='s-estoque') renderEstoque();
   if(id==='s-historico') renderHistorico();
+  if(id==='s-usuarios') renderUsuarios();
   if(id==='s-entrada'){ entradaModeloSel=null; entradaTipoAtivo=''; }
   if(id==='s-entrada-form'){
     renderModelosEntrada();
@@ -1005,7 +1168,7 @@ function renderDetalhe(){
 
   // SERVIÇOS - always show, editable only when not saiu
   const isSaiu=e.status==='saiu';
-  if(!isSaiu){
+  if(!isSaiu && !ehLeitura()){
     html+=`<div class="card">
       <div class="card-label">Serviços realizados</div>
       <div class="check-grid" style="margin-bottom:10px;">
@@ -1031,7 +1194,7 @@ function renderDetalhe(){
   }
 
   // STATUS ACTIONS - only when not saiu
-  if(!isSaiu){
+  if(!isSaiu && !ehLeitura()){
     html+=`<div class="section-div">Alterar status</div>`;
     if(e.status==='aguardando'){
       html+=`<button class="btn" style="background:rgba(245,158,11,0.15);color:var(--amarelo);border:1px solid rgba(245,158,11,0.4);margin-bottom:8px;" onclick="alterarStatus('andamento')">🔧 Iniciar manutenção</button>`;
@@ -1086,9 +1249,11 @@ function renderDetalhe(){
   }
 
   // DELETE
+  if(!ehLeitura()){
   html+=`<div style="margin-top:16px;">
     <button onclick="excluirEstoque('${e.firestoreId}')" style="width:100%;padding:12px;background:rgba(233,69,96,0.08);border:1px solid rgba(233,69,96,0.3);color:var(--accent);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">🗑 Excluir registro</button>
   </div>`;
+  }
 
   el.innerHTML=html;
 } // end renderDetalhe
@@ -1103,6 +1268,7 @@ async function toggleServico(servico){
 }
 
 async function salvarServicos(){
+  if(!podeEscrever()){alert('Você não tem permissão para esta ação.');return;}
   if(!equipAtivo)return;
   const obs=document.getElementById('obs-servico')?.value||'';
   try{
@@ -1115,6 +1281,7 @@ async function salvarServicos(){
 }
 
 async function alterarStatus(novoStatus){
+  if(!podeEscrever()){alert('Você não tem permissão para esta ação.');return;}
   if(!equipAtivo)return;
   const msgs={andamento:'Iniciar manutenção?',concluido:'Marcar como concluído?',aguardando:'Voltar para aguardando?'};
   if(!confirm(msgs[novoStatus]))return;
@@ -1131,6 +1298,7 @@ async function alterarStatus(novoStatus){
 }
 
 async function registrarSaida(){
+  if(!podeEscrever()){alert('Você não tem permissão para esta ação.');return;}
   const dataRaw=document.getElementById('saida-data')?.value;
   const nf=document.getElementById('saida-nf')?.value?.trim();
   const cliente=document.getElementById('saida-cliente')?.value?.trim();
@@ -1153,6 +1321,7 @@ async function registrarSaida(){
 }
 
 async function excluirEstoque(fid){
+  if(!podeEscrever()){alert('Você não tem permissão para esta ação.');return;}
   if(!confirm('Excluir este registro permanentemente?\nEssa ação não pode ser desfeita.'))return;
   try{
     await deleteDoc(doc(db,'equipamentosEstoque',fid));
@@ -1677,7 +1846,6 @@ function mostrarErroScanner(e){
 // ===== INIT =====
 setTimeout(()=>{
   document.getElementById('loading').style.display='none';
-  goTo('s-home');
 },2000);
 
 // Expose globals
@@ -1719,6 +1887,11 @@ window.fecharScanner=fecharScanner;
 window.toggleFlash=toggleFlash;
 window.toggleResumo=toggleResumo;
 window.filtrarHistPorTipo=filtrarHistPorTipo;
+window.iniciarSessao=iniciarSessao;
+window.renderUsuarios=renderUsuarios;
+window.mudarRole=mudarRole;
+window.toggleAtivo=toggleAtivo;
+window.aplicarPermissoes=aplicarPermissoes;
 
 </script>
   <script type="module">
@@ -1739,10 +1912,8 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
       overlay.style.display = 'none';
       document.body.style.overflow = '';
-      const irHome = () => { if (typeof window.goTo === 'function') window.goTo('s-home'); };
-      irHome();
-      setTimeout(irHome, 100);
-      setTimeout(irHome, 400);
+      const iniciar = () => { if (typeof window.iniciarSessao === 'function') { window.iniciarSessao(user); } else { setTimeout(iniciar, 100); } };
+      iniciar();
     } else {
       overlay.style.display = 'flex';
       document.body.style.overflow = 'hidden';
