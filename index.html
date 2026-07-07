@@ -190,6 +190,20 @@
   .resumo-chip.active { background: var(--accent); border-color: var(--accent); color: white; }
   .resumo-chip-count { font-weight: 800; opacity: 0.9; }
   .resumo-empty { font-size: 12px; color: var(--text-secondary); padding: 4px 0; }
+  /* DASHBOARD */
+  .dash-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .chip { background:var(--bg-secondary); border:1px solid var(--border); color:var(--text-secondary); font-family:inherit; font-size:13px; font-weight:600; padding:7px 14px; border-radius:20px; cursor:pointer; }
+  .chip.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .dash-custom { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .dash-custom input { flex:1; min-width:0; background:var(--bg-secondary); border:1px solid var(--border); color:var(--text-primary); border-radius:10px; padding:8px 10px; font-family:inherit; font-size:13px; }
+  .legend-row { display:flex; align-items:center; gap:8px; padding:6px 0; font-size:13px; }
+  .legend-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+  .legend-name { flex:1; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .legend-val { color:var(--text-secondary); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .bar-row { margin-bottom:10px; }
+  .bar-head { display:flex; justify-content:space-between; gap:8px; font-size:13px; margin-bottom:4px; }
+  .bar-track { height:8px; background:rgba(255,255,255,0.06); border-radius:6px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:6px; }
 </style>
 </head>
 <body>
@@ -271,6 +285,11 @@
 
     <div id="grp-ops">
     <div class="section-div">Ações</div>
+    <button class="home-btn" onclick="goTo('s-dashboard')">
+      <div class="hb-icon" style="background:rgba(16,185,129,0.15);">📊</div>
+      <div style="flex:1;"><div class="hb-title">Dashboard</div><div class="hb-desc">Reformas e indicadores por período</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
     <button class="home-btn" onclick="goTo('s-entrada')">
       <div class="hb-icon" style="background:rgba(233,69,96,0.15);">📥</div>
       <div style="flex:1;"><div class="hb-title">Registrar Entrada</div><div class="hb-desc">Novo equipamento chegou</div></div>
@@ -309,6 +328,51 @@
       <span style="color:var(--text-secondary);font-size:20px;">›</span>
     </button>
     </div><!-- /grp-admin -->
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="screen" id="s-dashboard">
+  <div class="topbar">
+    <button class="back-btn" onclick="goTo('s-home')">‹</button>
+    <div style="flex:1;"><div class="topbar-title">📊 Dashboard</div><div class="topbar-sub" id="dash-sub">Reformas por período</div></div>
+  </div>
+  <div class="content">
+    <div class="dash-chips" id="dash-chips">
+      <button class="chip" data-p="7d" onclick="setDashPeriodo('7d')">7 dias</button>
+      <button class="chip" data-p="30d" onclick="setDashPeriodo('30d')">30 dias</button>
+      <button class="chip" data-p="90d" onclick="setDashPeriodo('90d')">90 dias</button>
+      <button class="chip" data-p="mes" onclick="setDashPeriodo('mes')">Este mês</button>
+      <button class="chip" data-p="tudo" onclick="setDashPeriodo('tudo')">Tudo</button>
+    </div>
+    <div class="dash-custom">
+      <input type="date" id="dash-de" onchange="setDashPeriodo('custom')">
+      <span style="color:var(--text-secondary);font-size:12px;">até</span>
+      <input type="date" id="dash-ate" onchange="setDashPeriodo('custom')">
+    </div>
+
+    <div class="metric-grid" style="margin-top:2px;">
+      <div class="metric-card"><div class="metric-num" id="dash-prontos" style="color:var(--verde);">0</div><div class="metric-lbl">✅ Reformados</div></div>
+      <div class="metric-card"><div class="metric-num" id="dash-saidas" style="color:var(--azul);">0</div><div class="metric-lbl">🚚 Saíram</div></div>
+      <div class="metric-card"><div class="metric-num" id="dash-tempo" style="color:var(--amarelo);">–</div><div class="metric-lbl">⏱️ Tempo médio</div></div>
+      <div class="metric-card"><div class="metric-num" id="dash-top" style="color:var(--accent);font-size:15px;line-height:1.15;">–</div><div class="metric-lbl">🏆 Tipo campeão</div></div>
+    </div>
+
+    <div class="section-div">O que mais foi reformado</div>
+    <div class="card" id="dash-pizza-card">
+      <div id="dash-pizza"><div class="empty">Sem dados no período.</div></div>
+    </div>
+
+    <div class="section-div">Serviços mais realizados</div>
+    <div class="card" id="dash-servicos-card">
+      <div id="dash-servicos"><div class="empty">Sem dados no período.</div></div>
+    </div>
+
+    <div class="section-div">Situação atual (pipeline)</div>
+    <div class="metric-grid">
+      <div class="metric-card"><div class="metric-num" id="dash-now-aguardando" style="color:var(--cinza);">0</div><div class="metric-lbl">⏳ Aguardando</div></div>
+      <div class="metric-card"><div class="metric-num" id="dash-now-andamento" style="color:var(--amarelo);">0</div><div class="metric-lbl">🔧 Em andamento</div></div>
+    </div>
   </div>
 </div>
 
@@ -861,6 +925,7 @@ function goTo(id){
   if(id==='s-estoque') renderEstoque();
   if(id==='s-historico') renderHistorico();
   if(id==='s-usuarios') renderUsuarios();
+  if(id==='s-dashboard') renderDashboard();
   if(id==='s-entrada'){ entradaModeloSel=null; entradaTipoAtivo=''; }
   if(id==='s-entrada-form'){
     renderModelosEntrada();
@@ -922,6 +987,7 @@ onSnapshot(collection(db,'equipamentosEstoque'), snap=>{
   if(tela==='s-home') renderHome();
   if(tela==='s-estoque') renderEstoque();
   if(tela==='s-historico') renderHistorico();
+  if(tela==='s-dashboard') renderDashboard();
   if(tela==='s-detalhe'&&equipAtivo) renderDetalhe();
   renderHome();
 });
@@ -935,6 +1001,116 @@ function renderHome(){
   document.getElementById('m-concluido').textContent=counts.concluido||0;
   document.getElementById('m-saiu').textContent=counts.saiu||0;
   document.getElementById('home-sub').textContent='Total: '+equipamentosEstoque.filter(e=>e.status!=='saiu').length+' no estoque';
+}
+
+// ===== DASHBOARD =====
+var dashPeriodo = '30d';
+var DASH_CORES = ['#e94560','#3b82f6','#10b981','#f59e0b','#8b5cf6','#f97316','#06b6d4','#ec4899','#84cc16','#6b7280'];
+
+function parseBR(s){
+  if(!s || typeof s!=='string') return null;
+  var p=s.split('/'); if(p.length!==3) return null;
+  var d=parseInt(p[0],10), m=parseInt(p[1],10), y=parseInt(p[2],10);
+  if(!d||!m||!y) return null;
+  return new Date(y, m-1, d, 12, 0, 0); // meio-dia -> timezone-safe
+}
+
+function dataConclusaoDe(e){
+  var d=parseBR(e.dataConclusao); if(d) return d;
+  if(Array.isArray(e.historico)){
+    for(var i=e.historico.length-1;i>=0;i--){
+      if(/conclu/i.test(e.historico[i].acao||'')){
+        var hd=parseBR(e.historico[i].data); if(hd) return hd;
+      }
+    }
+  }
+  if(e.status==='saiu'){ var ds=parseBR(e.dataSaida); if(ds) return ds; }
+  return null;
+}
+
+function dashRange(){
+  var ate=new Date(); ate.setHours(23,59,59,999);
+  var de=new Date(2000,0,1);
+  if(dashPeriodo==='7d'){ de=new Date(); de.setDate(de.getDate()-6); de.setHours(0,0,0,0); }
+  else if(dashPeriodo==='30d'){ de=new Date(); de.setDate(de.getDate()-29); de.setHours(0,0,0,0); }
+  else if(dashPeriodo==='90d'){ de=new Date(); de.setDate(de.getDate()-89); de.setHours(0,0,0,0); }
+  else if(dashPeriodo==='mes'){ var n=new Date(); de=new Date(n.getFullYear(),n.getMonth(),1,0,0,0); }
+  else if(dashPeriodo==='tudo'){ de=new Date(2000,0,1); }
+  else if(dashPeriodo==='custom'){
+    var dv=(document.getElementById('dash-de')||{}).value, av=(document.getElementById('dash-ate')||{}).value;
+    if(dv){ var a=dv.split('-'); de=new Date(+a[0],+a[1]-1,+a[2],0,0,0); } else { de=new Date(2000,0,1); }
+    if(av){ var b=av.split('-'); ate=new Date(+b[0],+b[1]-1,+b[2],23,59,59); }
+  }
+  return {de:de, ate:ate};
+}
+
+function setDashPeriodo(p){ dashPeriodo=p; renderDashboard(); }
+
+function renderDashboard(){
+  var r=dashRange();
+  document.querySelectorAll('#dash-chips .chip').forEach(function(c){ c.classList.toggle('active', c.dataset.p===dashPeriodo); });
+  var noPeriodo=function(dt){ return dt && dt>=r.de && dt<=r.ate; };
+
+  var reformados=equipamentosEstoque.filter(function(e){ return noPeriodo(dataConclusaoDe(e)); });
+  var saidas=equipamentosEstoque.filter(function(e){ return e.status==='saiu' && noPeriodo(parseBR(e.dataSaida)); });
+
+  document.getElementById('dash-prontos').textContent=reformados.length;
+  document.getElementById('dash-saidas').textContent=saidas.length;
+
+  var tempos=[];
+  reformados.forEach(function(e){
+    var ent=parseBR(e.dataEntrada), con=dataConclusaoDe(e);
+    if(ent&&con){ var dias=Math.round((con-ent)/86400000); if(dias>=0) tempos.push(dias); }
+  });
+  var tEl=document.getElementById('dash-tempo');
+  if(tempos.length){ var med=tempos.reduce(function(a,b){return a+b;},0)/tempos.length; tEl.textContent=med.toFixed(1).replace('.',',')+'d'; }
+  else { tEl.textContent='–'; }
+
+  var porTipo={};
+  reformados.forEach(function(e){ var t=e.tipo||'—'; porTipo[t]=(porTipo[t]||0)+1; });
+  var tipos=Object.keys(porTipo).map(function(t){return {nome:t,val:porTipo[t]};}).sort(function(a,b){return b.val-a.val;});
+  document.getElementById('dash-top').textContent = tipos.length ? tipos[0].nome : '–';
+  document.getElementById('dash-pizza').innerHTML = donutHTML(tipos, reformados.length);
+
+  var porServ={};
+  reformados.forEach(function(e){ (e.servicos||[]).forEach(function(s){ porServ[s]=(porServ[s]||0)+1; }); });
+  var servs=Object.keys(porServ).map(function(s){return {nome:s,val:porServ[s]};}).sort(function(a,b){return b.val-a.val;});
+  document.getElementById('dash-servicos').innerHTML = barsHTML(servs);
+
+  var ag=0,an=0;
+  equipamentosEstoque.forEach(function(e){ if(e.status==='aguardando')ag++; else if(e.status==='andamento')an++; });
+  document.getElementById('dash-now-aguardando').textContent=ag;
+  document.getElementById('dash-now-andamento').textContent=an;
+
+  var fmt=function(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); };
+  document.getElementById('dash-sub').textContent = dashPeriodo==='tudo' ? 'Todo o período' : (fmt(r.de)+' – '+fmt(r.ate));
+}
+
+function donutHTML(itens, total){
+  if(!itens.length || !total){ return '<div class="empty">Sem reformas concluídas no período.</div>'; }
+  var r=52, C=2*Math.PI*r, off=0, segs='';
+  itens.forEach(function(it,i){
+    var frac=it.val/total, cor=DASH_CORES[i%DASH_CORES.length];
+    segs+='<circle cx="70" cy="70" r="'+r+'" fill="none" stroke="'+cor+'" stroke-width="20" stroke-dasharray="'+(frac*C).toFixed(2)+' '+(C-frac*C).toFixed(2)+'" stroke-dashoffset="'+(-off*C).toFixed(2)+'" transform="rotate(-90 70 70)"></circle>';
+    off+=frac;
+  });
+  var svg='<div style="display:flex;justify-content:center;margin-bottom:8px;"><svg viewBox="0 0 140 140" width="160" height="160">'+segs+
+    '<text x="70" y="66" text-anchor="middle" fill="#e0e0e0" font-size="26" font-weight="700">'+total+'</text>'+
+    '<text x="70" y="85" text-anchor="middle" fill="#a0a0b0" font-size="11">reformas</text></svg></div>';
+  var leg=itens.map(function(it,i){
+    var cor=DASH_CORES[i%DASH_CORES.length], pct=Math.round(it.val/total*100);
+    return '<div class="legend-row"><span class="legend-dot" style="background:'+cor+';"></span><span class="legend-name">'+esc(it.nome)+'</span><span class="legend-val">'+it.val+' · '+pct+'%</span></div>';
+  }).join('');
+  return svg+leg;
+}
+
+function barsHTML(itens){
+  if(!itens.length){ return '<div class="empty">Nenhum serviço registrado no período.</div>'; }
+  var max=itens[0].val||1;
+  return itens.map(function(it,i){
+    var cor=DASH_CORES[i%DASH_CORES.length], w=Math.round(it.val/max*100);
+    return '<div class="bar-row"><div class="bar-head"><span class="legend-name">'+esc(it.nome)+'</span><span class="legend-val">'+it.val+'</span></div><div class="bar-track"><div class="bar-fill" style="width:'+w+'%;background:'+cor+';"></div></div></div>';
+  }).join('');
 }
 
 // ===== BASE =====
@@ -1892,6 +2068,8 @@ window.renderUsuarios=renderUsuarios;
 window.mudarRole=mudarRole;
 window.toggleAtivo=toggleAtivo;
 window.aplicarPermissoes=aplicarPermissoes;
+window.renderDashboard=renderDashboard;
+window.setDashPeriodo=setDashPeriodo;
 
 </script>
   <script type="module">
