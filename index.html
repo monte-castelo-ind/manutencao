@@ -606,10 +606,8 @@
         <span class="resumo-arrow open" id="resumo-estoque-arrow">▼</span>
       </div>
       <div class="resumo-body" id="resumo-estoque-body">
-        <div class="resumo-section-label">Por tipo</div>
+        <div class="resumo-section-label">Prontos · por tipo</div>
         <div class="resumo-chips" id="resumo-estoque-tipos"></div>
-        <div class="resumo-section-label">Por status</div>
-        <div class="resumo-chips" id="resumo-estoque-status"></div>
       </div>
     </div>
     <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Status</div>
@@ -1794,9 +1792,9 @@ function toggleResumo(prefix){
 
 function renderResumoEstoque(){
   // Apenas equipamentos ativos (não saídos)
-  const lista = equipamentosEstoque.filter(e => e.status !== 'saiu');
+  const lista = equipamentosEstoque.filter(e => e.status === 'concluido');
   const totalEl = document.getElementById('resumo-estoque-total');
-  if(totalEl) totalEl.textContent = '· ' + lista.length + ' total';
+  if(totalEl) totalEl.textContent = '· ' + lista.length + ' pronto(s) em casa';
 
   // Contagens por tipo
   const porTipo = {};
