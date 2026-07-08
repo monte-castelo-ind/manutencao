@@ -454,6 +454,11 @@
       <div style="flex:1;"><div class="hb-title">Fritadeira</div><div class="hb-desc" id="base-badge-Fritadeira">Carregando...</div></div>
       <span style="color:var(--text-secondary);font-size:20px;">›</span>
     </button>
+    <button class="home-btn" onclick="abrirBaseTipo('Mini Câmara Fria')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🧊</div>
+      <div style="flex:1;"><div class="hb-title">Mini Câmara Fria</div><div class="hb-desc" id="base-badge-Mini-Camara-Fria">Carregando...</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
   </div>
 </div>
 
@@ -534,6 +539,11 @@
     <button class="home-btn" onclick="selecionarTipoEntrada('Fritadeira')">
       <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🍟</div>
       <div style="flex:1;"><div class="hb-title">Fritadeira</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </button>
+    <button class="home-btn" onclick="selecionarTipoEntrada('Mini Câmara Fria')">
+      <div class="hb-icon" style="background:rgba(233,69,96,0.12);">🧊</div>
+      <div style="flex:1;"><div class="hb-title">Mini Câmara Fria</div></div>
       <span style="color:var(--text-secondary);font-size:20px;">›</span>
     </button>
   </div>
@@ -620,6 +630,7 @@
       <button class="btn-sm" id="ftipo-Esteira" onclick="setFiltroTipo('Esteira')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🎢 Esteira</button>
       <button class="btn-sm" id="ftipo-Lata" onclick="setFiltroTipo('Lata')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🥫 Lata</button>
       <button class="btn-sm" id="ftipo-Fritadeira" onclick="setFiltroTipo('Fritadeira')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🍟 Fritadeira</button>
+      <button class="btn-sm" id="ftipo-Mini-Camara-Fria" onclick="setFiltroTipo('Mini Câmara Fria')" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--border);white-space:nowrap;">🧊 Mini Câmara Fria</button>
     </div>
     <div id="estoque-list"></div>
   </div>
@@ -1119,7 +1130,7 @@ let baseTipoAtivo = '';
 function normalizeId(s){ return s.replace(/ /g,'-').replace(/[^a-zA-Z0-9-]/g,''); }
 
 function renderBase(){
-  const TIPOS=['Forno','Padeiro Noturno','Esqueleto','Armário','Freezer','Esteira','Lata','Fritadeira'];
+  const TIPOS=['Forno','Padeiro Noturno','Esqueleto','Armário','Freezer','Esteira','Lata','Fritadeira','Mini Câmara Fria'];
   TIPOS.forEach(function(t){
     const safeId=t.replace(/ /g,'-').replace(/[áàãâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i').replace(/[óòõôö]/g,'o').replace(/[úùûü]/g,'u');
     const el=document.getElementById('base-badge-'+safeId);
@@ -1549,7 +1560,7 @@ function renderHistorico(){
 let filtroTipoAtivo = 'todos';
 function setFiltroTipo(tipo){
   filtroTipoAtivo=tipo;
-  const TIPOS=['todos','Forno','Padeiro Noturno','Esqueleto','Armário','Freezer','Esteira','Lata','Fritadeira'];
+  const TIPOS=['todos','Forno','Padeiro Noturno','Esqueleto','Armário','Freezer','Esteira','Lata','Fritadeira','Mini Câmara Fria'];
   TIPOS.forEach(function(t){
     const safeId=t.replace(/ /g,'-').replace(/[áàãâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i').replace(/[óòõôö]/g,'o').replace(/[úùûü]/g,'u');
     const btn=document.getElementById('ftipo-'+safeId);
@@ -1763,7 +1774,7 @@ async function excluirPresenca(fid){
 // ===== RESUMO (chips clicáveis no Estoque e Histórico) =====
 const EMOJIS_TIPO = {
   'Forno':'🔥','Padeiro Noturno':'🌙','Esqueleto':'🦴','Armário':'🚪',
-  'Freezer':'❄️','Esteira':'🎢','Lata':'🥫','Fritadeira':'🍟'
+  'Freezer':'❄️','Esteira':'🎢','Lata':'🥫','Fritadeira':'🍟','Mini Câmara Fria':'🧊'
 };
 const EMOJIS_STATUS = {
   'aguardando':'⏳','andamento':'🔧','concluido':'✅','saiu':'🚚'
