@@ -563,12 +563,16 @@
         <div style="font-size:13px;font-weight:600;color:var(--accent);" id="entrada-modelo-sel-nome"></div>
       </div>
     </div>
-    <div class="card">
+    <div class="card" id="entrada-card-patrimonio">
       <div class="card-label">Nº de Patrimônio</div>
       <div class="input-with-scan">
         <input type="text" id="entrada-patrimonio" placeholder="Ex: 0042" />
         <button type="button" class="scan-btn" onclick="abrirScanner('entrada-patrimonio')" title="Escanear código de barras">📷</button>
       </div>
+    </div>
+    <div class="card" id="entrada-card-qtd" style="display:none;">
+      <div class="card-label">Quantidade</div>
+      <input type="number" id="entrada-quantidade" min="1" step="1" value="1" placeholder="Ex: 20" />
     </div>
     <div class="card">
       <div class="card-label">Data de entrada</div>
@@ -1190,6 +1194,7 @@ async function excluirModelo(fid){
 // ===== ENTRADA =====
 let entradaTipoAtivo = '';
 let entradaModeloSel = null;
+const TIPOS_SEM_PATRIMONIO = ['Esteira'];
 
 function selecionarTipoEntrada(tipo){
   entradaTipoAtivo=tipo;
@@ -1200,6 +1205,10 @@ function selecionarTipoEntrada(tipo){
   document.getElementById('entrada-data').value='';
   document.getElementById('entrada-nf').value='';
   document.getElementById('entrada-problema').value='';
+  var _semPat=TIPOS_SEM_PATRIMONIO.indexOf(tipo)>=0;
+  document.getElementById('entrada-card-patrimonio').style.display=_semPat?'none':'';
+  document.getElementById('entrada-card-qtd').style.display=_semPat?'':'none';
+  document.getElementById('entrada-quantidade').value='1';
   const btn=document.getElementById('entrada-btn');
   if(btn){btn.textContent='Registrar entrada ✓';btn.disabled=false;}
   renderModelosEntrada();
@@ -1234,11 +1243,14 @@ function selecionarModeloEntrada(fid){
 
 async function salvarEntrada(){
   if(!entradaModeloSel){alert('Selecione um modelo.');return;}
-  const patrimonio=document.getElementById('entrada-patrimonio').value.trim();
+  const _semPat=TIPOS_SEM_PATRIMONIO.indexOf(entradaTipoAtivo)>=0;
+  const patrimonio=_semPat?'':document.getElementById('entrada-patrimonio').value.trim();
+  const quantidade=_semPat?parseInt(document.getElementById('entrada-quantidade').value,10):1;
   const dataRaw=document.getElementById('entrada-data').value;
   const nf=document.getElementById('entrada-nf').value.trim();
   const problema=document.getElementById('entrada-problema').value.trim();
-  if(!patrimonio){alert('Informe o número de patrimônio.');return;}
+  if(!_semPat && !patrimonio){alert('Informe o número de patrimônio.');return;}
+  if(_semPat && (!quantidade||quantidade<1)){alert('Informe uma quantidade válida (1 ou mais).');return;}
   if(!dataRaw){alert('Informe a data de entrada.');return;}
   if(!nf){alert('Informe o número da NF de entrada.');return;}
   if(!problema){alert('Descreva o problema identificado.');return;}
@@ -1248,7 +1260,8 @@ async function salvarEntrada(){
     await addDoc(collection(db,'equipamentosEstoque'),{
       tipo:entradaTipoAtivo,
       modelo:entradaModeloSel.nome,
-      patrimonio:patrimonio,
+      patrimonio:_semPat?null:patrimonio,
+      quantidade:quantidade,
       dataEntrada:isoToDisplay(dataRaw),
       nfEntrada:nf,
       problema:problema,
@@ -1258,7 +1271,7 @@ async function salvarEntrada(){
       dataConclusao:null,
       dataSaida:null,
       nfSaida:null,
-      historico:[{acao:'Entrada registrada',data:isoToDisplay(dataRaw),hora:agora(),obs:'NF: '+nf+' · Patrimônio: '+patrimonio}],
+      historico:[{acao:'Entrada registrada',data:isoToDisplay(dataRaw),hora:agora(),obs:'NF: '+nf+(_semPat?(' · Quantidade: '+quantidade):(' · Patrimônio: '+patrimonio))}],
       timestamp:Date.now(),
       hora:agora()
     });
@@ -1288,7 +1301,7 @@ function renderEstoque(){
   let lista=equipamentosEstoque.filter(e=>e.status!=='saiu');
   if(filtroAtivo!=='todos')lista=lista.filter(e=>e.status===filtroAtivo);
   if(filtroTipoAtivo!=='todos')lista=lista.filter(e=>e.tipo===filtroTipoAtivo);
-  if(q)lista=lista.filter(e=>(e.tipo+' '+e.patrimonio+' '+(e.modelo||'')).toLowerCase().includes(q));
+  if(q)lista=lista.filter(e=>(e.tipo+' '+(e.patrimonio||'')+' '+(e.modelo||'')).toLowerCase().includes(q));
   document.getElementById('estoque-sub').textContent=lista.length+' equipamento(s)';
   if(!lista.length){el.innerHTML='<div class="empty">Nenhum equipamento encontrado.</div>';return;}
   const corStatus={aguardando:'var(--cinza)',andamento:'var(--amarelo)',concluido:'var(--verde)'};
@@ -1297,7 +1310,7 @@ function renderEstoque(){
       <div class="equip-header">
         <div>
           <div class="equip-nome">${e.tipo}</div>
-          <div class="equip-patrimonio">${e.modelo||''} · Patrimônio: ${e.patrimonio}</div>
+          <div class="equip-patrimonio">${e.modelo||''} · ${e.patrimonio?('Patrimônio: '+e.patrimonio):('Qtd: '+(e.quantidade||1))}</div>
         </div>
         <span class="badge badge-${e.status}">${e.status==='aguardando'?'⏳ Aguardando':e.status==='andamento'?'🔧 Andamento':'✅ Concluído'}</span>
       </div>
@@ -1321,7 +1334,7 @@ function renderDetalhe(){
   if(!e)return;
   const el=document.getElementById('detalhe-content');
   document.getElementById('detalhe-title').textContent=e.tipo;
-  document.getElementById('detalhe-sub').textContent='Patrimônio '+e.patrimonio;
+  document.getElementById('detalhe-sub').textContent=e.patrimonio?('Patrimônio '+e.patrimonio):('Quantidade: '+(e.quantidade||1));
   const corStatus={aguardando:'var(--cinza)',andamento:'var(--amarelo)',concluido:'var(--verde)',saiu:'var(--azul)'};
   const servSel=e.servicos||[];
 
@@ -1335,7 +1348,7 @@ function renderDetalhe(){
     <div class="card">
       <div class="card-label">Informações</div>
       <div class="detail-row"><span class="detail-key">Tipo</span><span class="detail-val">${e.tipo}</span></div>
-      <div class="detail-row"><span class="detail-key">Patrimônio</span><span class="detail-val">${e.patrimonio}</span></div>
+      ${e.patrimonio?`<div class="detail-row"><span class="detail-key">Patrimônio</span><span class="detail-val">${e.patrimonio}</span></div>`:`<div class="detail-row"><span class="detail-key">Quantidade</span><span class="detail-val">${e.quantidade||1}</span></div>`}
       ${e.descricao?'<div class="detail-row"><span class="detail-key">Modelo</span><span class="detail-val">'+e.descricao+'</span></div>':''}
       <div class="detail-row"><span class="detail-key">Data Entrada</span><span class="detail-val">${e.dataEntrada}</span></div>
       <div class="detail-row"><span class="detail-key">NF Entrada</span><span class="detail-val">${e.nfEntrada}</span></div>
@@ -1534,7 +1547,7 @@ function renderHistorico(){
       return ts>=tsDe&&ts<=tsAte;
     });
   }
-  if(q)lista=lista.filter(e=>(e.tipo+' '+e.patrimonio+' '+(e.modelo||'')+' '+(e.nfEntrada||'')+' '+(e.nfSaida||'')).toLowerCase().includes(q));
+  if(q)lista=lista.filter(e=>(e.tipo+' '+(e.patrimonio||'')+' '+(e.modelo||'')+' '+(e.nfEntrada||'')+' '+(e.nfSaida||'')).toLowerCase().includes(q));
   document.getElementById('hist-sub').textContent=lista.length+' registro(s)';
   if(!lista.length){el.innerHTML='<div class="empty">Nenhum registro encontrado.</div>';return;}
   const badgeMap={aguardando:'⏳ Aguardando',andamento:'🔧 Andamento',concluido:'✅ Concluído',saiu:'🚚 Saiu'};
@@ -1543,7 +1556,7 @@ function renderHistorico(){
       <div class="equip-header">
         <div>
           <div class="equip-nome">${e.tipo}</div>
-          <div class="equip-patrimonio">${e.modelo||''} · Patrimônio: ${e.patrimonio}</div>
+          <div class="equip-patrimonio">${e.modelo||''} · ${e.patrimonio?('Patrimônio: '+e.patrimonio):('Qtd: '+(e.quantidade||1))}</div>
         </div>
         <span class="badge badge-${e.status}">${badgeMap[e.status]}</span>
       </div>
