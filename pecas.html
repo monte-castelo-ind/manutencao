@@ -209,6 +209,7 @@ tbody tr:hover{background:var(--card-2)}
           <option value="sempreco">Sem preço</option>
           <option value="comsaldo">Com saldo</option>
         </select>
+        <select id="es-forn" onchange="render()"><option value="">Todos os fornecedores</option></select>
         <select id="es-cat" onchange="render()"><option value="">Todas as categorias</option></select>
         <button class="btn btn-sm admin-mov" onclick="abrirPeca(null)" style="margin-left:auto">+ Nova peça</button>
       </div>
@@ -243,7 +244,7 @@ tbody tr:hover{background:var(--card-2)}
       <div class="alert a-info">◇ Cadastro das peças e importação por planilha. O saldo não é editado aqui — ele vem dos movimentos, em <strong>Estoque</strong>.</div>
       <div class="card" style="margin-bottom:13px">
         <div class="klabel">Planilha</div>
-        <div class="fhint" style="margin:6px 0 10px">Colunas aceitas: <strong>Código</strong>, <strong>Peça</strong>, Unidade, Categoria, Local, Mínimo, Preço. Código e Peça bastam para cadastrar. Coluna em branco não apaga o que já existe.</div>
+        <div class="fhint" style="margin:6px 0 10px">Colunas aceitas: <strong>Código</strong> (ou ID), <strong>Peça</strong> (ou Item), Unidade, Fornecedor, Categoria, Local, Estoque Mínimo, Preço e <strong>Estoque Atual</strong> (saldo). O cabeçalho pode estar em qualquer uma das 10 primeiras linhas. Coluna em branco não apaga o que já existe.</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <label class="btn btn-sm admin-mov" style="cursor:pointer">📥 Importar planilha<input type="file" id="cad-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarPecas(this)"></label>
           <button class="btn btn-sm btn-ghost" onclick="exportarPecas()">📤 Baixar planilha atual</button>
@@ -399,6 +400,7 @@ window.render=render;
 var COLS_EST=[
   { k:'codigo', l:'Código',            v:function(p){ return String(p.codigo||'\uffff'); } },
   { k:'nome',   l:'Peça',              v:function(p){ return norm(p.nome); } },
+  { k:'forn',   l:'Fornecedor',        v:function(p){ return norm(p.fornecedor); } },
   { k:'cat',    l:'Categoria',         v:function(p){ return norm(p.categoria); } },
   { k:'local',  l:'Local',             v:function(p){ return norm(p.local); } },
   { k:'saldo',  l:'Saldo',        r:1, v:function(p){ return num(p.saldo); } },
@@ -408,12 +410,18 @@ var COLS_EST=[
 ];
 function renderEstoque(){
   // categorias
-  var cats={}; pecas.forEach(function(p){ if(p.categoria) cats[p.categoria]=1; });
+  var cats={}, forns={};
+  pecas.forEach(function(p){ if(p.categoria) cats[p.categoria]=1; if(p.fornecedor) forns[p.fornecedor]=1; });
   var selC=document.getElementById('es-cat');
   var atual=selC.value;
   selC.innerHTML='<option value="">Todas as categorias</option>'+Object.keys(cats).sort().map(function(c){
     return '<option value="'+esc(c)+'">'+esc(c)+'</option>'; }).join('');
   if(atual) selC.value=atual;
+  var selF=document.getElementById('es-forn');
+  var atualF=selF.value;
+  selF.innerHTML='<option value="">Todos os fornecedores</option>'+Object.keys(forns).sort().map(function(c){
+    return '<option value="'+esc(c)+'">'+esc(c)+'</option>'; }).join('');
+  if(atualF) selF.value=atualF;
 
   var nAbaixo=pecas.filter(abaixoMin).length;
   var nZero=pecas.filter(function(p){ return num(p.saldo)<=0; }).length;
@@ -435,9 +443,11 @@ function renderEstoque(){
   var q=norm(document.getElementById('es-busca').value);
   var f=document.getElementById('es-filtro').value;
   var cat=document.getElementById('es-cat').value;
+  var forn=document.getElementById('es-forn').value;
   var lista=pecas.filter(function(p){
     if(q && norm(p.nome).indexOf(q)<0 && String(p.codigo||'').indexOf(q)<0) return false;
     if(cat && p.categoria!==cat) return false;
+    if(forn && p.fornecedor!==forn) return false;
     if(f==='abaixo') return abaixoMin(p);
     if(f==='zerado') return num(p.saldo)<=0;
     if(f==='sempreco') return num(p.precoUn)<=0;
@@ -447,13 +457,14 @@ function renderEstoque(){
   ordenarPor(lista,'est',COLS_EST);
 
   var html=thead('est',COLS_EST).replace('</tr></thead>','<th></th></tr></thead>')+'<tbody>';
-  if(!pecas.length) html+='<tr><td colspan="9" class="empty">Nenhuma peça cadastrada. Comece em <strong>Cadastro</strong> — dá para importar a planilha que vocês já usam.</td></tr>';
-  else if(!lista.length) html+='<tr><td colspan="9" class="empty">Nenhuma peça com esses filtros.</td></tr>';
+  if(!pecas.length) html+='<tr><td colspan="10" class="empty">Nenhuma peça cadastrada. Comece em <strong>Cadastro</strong> — dá para importar a planilha que vocês já usam.</td></tr>';
+  else if(!lista.length) html+='<tr><td colspan="10" class="empty">Nenhuma peça com esses filtros.</td></tr>';
   lista.forEach(function(p){
     var s=num(p.saldo), baixo=abaixoMin(p);
     html+='<tr>'+
       '<td class="mono" style="font-size:11.5px;color:var(--muted)">'+esc(p.codigo||'—')+'</td>'+
       '<td><div class="nm">'+esc(p.nome||'—')+'</div></td>'+
+      '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.fornecedor||'—')+'</td>'+
       '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.categoria||'—')+'</td>'+
       '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.local||'—')+'</td>'+
       '<td class="r num" style="font-weight:600;'+(s<=0?'color:var(--muted)':(baixo?'color:var(--amber)':''))+'">'+
@@ -534,6 +545,7 @@ var COLS_CAD=[
   { k:'codigo', l:'Código',      v:function(p){ return String(p.codigo||'\uffff'); } },
   { k:'nome',   l:'Peça',        v:function(p){ return norm(p.nome); } },
   { k:'unidade',l:'Unidade',     v:function(p){ return norm(p.unidade); } },
+  { k:'forn',   l:'Fornecedor',  v:function(p){ return norm(p.fornecedor); } },
   { k:'cat',    l:'Categoria',   v:function(p){ return norm(p.categoria); } },
   { k:'local',  l:'Local',       v:function(p){ return norm(p.local); } },
   { k:'minimo', l:'Mínimo', r:1, v:function(p){ return num(p.minimo)>0?num(p.minimo):null; } },
@@ -546,12 +558,13 @@ function renderCad(){
   });
   ordenarPor(lista,'cad',COLS_CAD);
   var html=thead('cad',COLS_CAD).replace('</tr></thead>','<th></th></tr></thead>')+'<tbody>';
-  if(!lista.length) html+='<tr><td colspan="8" class="empty">Nenhuma peça.</td></tr>';
+  if(!lista.length) html+='<tr><td colspan="9" class="empty">Nenhuma peça.</td></tr>';
   lista.forEach(function(p){
     html+='<tr>'+
       '<td class="mono" style="font-size:11.5px;color:var(--muted)">'+esc(p.codigo||'—')+'</td>'+
       '<td><div class="nm">'+esc(p.nome||'—')+'</div></td>'+
       '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.unidade||'un')+'</td>'+
+      '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.fornecedor||'—')+'</td>'+
       '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.categoria||'—')+'</td>'+
       '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.local||'—')+'</td>'+
       '<td class="r num">'+(num(p.minimo)>0?fmtN(p.minimo,2):'—')+'</td>'+
@@ -637,6 +650,7 @@ window.abrirPeca=function(id){
       '</div>'+
       '<div class="fld" style="margin-top:12px"><label>Nome da peça</label><input type="text" id="pc-nome" value="'+esc(p?p.nome:'')+'" placeholder="Ex: ROLAMENTO 6204 2RS" /></div>'+
       '<div class="fgrid" style="margin-top:12px">'+
+        '<div><label>Fornecedor</label><input type="text" id="pc-forn" value="'+esc(p?p.fornecedor:'')+'" placeholder="Ex: SP PARAFUSOS" /></div>'+
         '<div><label>Categoria</label><input type="text" id="pc-cat" value="'+esc(p?p.categoria:'')+'" placeholder="Ex: Rolamentos" /></div>'+
         '<div><label>Local</label><input type="text" id="pc-local" value="'+esc(p?p.local:'')+'" placeholder="Ex: Prateleira A3" /></div>'+
         '<div><label>Estoque mínimo</label><input type="number" id="pc-min" step="0.01" value="'+(p&&num(p.minimo)>0?num(p.minimo):'')+'" /></div>'+
@@ -656,6 +670,7 @@ window.abrirPeca=function(id){
         codigo:(document.getElementById('pc-cod').value||'').trim(),
         nome:nome,
         unidade:document.getElementById('pc-un').value,
+        fornecedor:(document.getElementById('pc-forn').value||'').trim(),
         categoria:(document.getElementById('pc-cat').value||'').trim(),
         local:(document.getElementById('pc-local').value||'').trim(),
         minimo:num(document.getElementById('pc-min').value),
@@ -684,7 +699,7 @@ window.verPeca=function(id){
   var hist=movs.filter(function(m){ return m.pecaId===id; }).slice(0,15);
   modal({
     titulo:esc(p.nome||''),
-    sub:'Código '+esc(p.codigo||'—')+' · '+esc(p.categoria||'sem categoria')+(p.local?' · '+esc(p.local):''),
+    sub:'Código '+esc(p.codigo||'—')+(p.fornecedor?' · '+esc(p.fornecedor):'')+(p.categoria?' · '+esc(p.categoria):'')+(p.local?' · '+esc(p.local):''),
     body:
       '<div class="fgrid">'+
         '<div class="card" style="box-shadow:none"><div class="klabel">Saldo</div><div class="kval" style="font-size:20px">'+fmtN(num(p.saldo),2)+' <span style="font-size:12px;color:var(--muted)">'+esc(p.unidade||'un')+'</span></div></div>'+
@@ -756,11 +771,11 @@ window.exportarPecas=function(){
     var rows=pecas.slice().sort(function(a,b){ return String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'); })
       .map(function(p){ return {
         'Codigo':String(p.codigo||''), 'Peca':p.nome||'', 'Unidade':p.unidade||'un',
-        'Categoria':p.categoria||'', 'Local':p.local||'',
+        'Fornecedor':p.fornecedor||'', 'Categoria':p.categoria||'', 'Local':p.local||'',
         'Minimo':(num(p.minimo)>0?num(p.minimo):''), 'Preco':(num(p.precoUn)>0?num(p.precoUn):''),
         'Saldo':num(p.saldo) }; });
-    var ws=XLSX.utils.json_to_sheet(rows,{header:['Codigo','Peca','Unidade','Categoria','Local','Minimo','Preco','Saldo']});
-    ws['!cols']=[{wch:12},{wch:42},{wch:10},{wch:20},{wch:18},{wch:10},{wch:12},{wch:10}];
+    var ws=XLSX.utils.json_to_sheet(rows,{header:['Codigo','Peca','Unidade','Fornecedor','Categoria','Local','Minimo','Preco','Saldo']});
+    ws['!cols']=[{wch:12},{wch:42},{wch:10},{wch:22},{wch:20},{wch:18},{wch:10},{wch:12},{wch:10}];
     var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'Pecas');
     XLSX.writeFile(wb,'pecas-'+new Date().toISOString().slice(0,10)+'.xlsx');
@@ -787,17 +802,36 @@ window.importarPecas=function(input){
     var rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
     if(!rows.length){ alert('Planilha vazia.'); input.value=''; return; }
     var nrm=function(s){ return normSA(s).toLowerCase().replace(/\s+/g,'_'); };
-    var head=(rows[0]||[]).map(nrm);
+    // A planilha pode ter título e linhas em branco antes do cabeçalho: procura
+    // nas 10 primeiras linhas a que tem uma coluna de peça ou de código.
+    var linhaCab=0, head=[];
+    for(var lc=0; lc<Math.min(10,rows.length); lc++){
+      var teste=(rows[lc]||[]).map(nrm);
+      var temNome=teste.some(function(c){ return c==='item'||c==='peca'||c==='nome'||c==='descricao'; });
+      var temCod =teste.some(function(c){ return c==='id'||c==='codigo'||c==='cod'; });
+      if(temNome||temCod){ linhaCab=lc; head=teste; break; }
+    }
+    if(!head.length) head=(rows[0]||[]).map(nrm);
+
+    // Cada coluna só pode servir a um campo. Sem isso, numa planilha com
+    // "Estoque" (fornecedor) e "Estoque Atual" (saldo) as duas colidiriam.
+    var usadas={};
     var acha=function(){
-      for(var a=0;a<arguments.length;a++){ for(var i=0;i<head.length;i++){ if(head[i]===arguments[a]) return i; } }
-      for(var b=0;b<arguments.length;b++){ for(var j=0;j<head.length;j++){ if(head[j].indexOf(arguments[b])>=0) return j; } }
+      var args=arguments;
+      for(var a=0;a<args.length;a++){ for(var i=0;i<head.length;i++){ if(!usadas[i] && head[i]===args[a]){ usadas[i]=1; return i; } } }
+      for(var b=0;b<args.length;b++){ for(var j=0;j<head.length;j++){ if(!usadas[j] && head[j].indexOf(args[b])>=0){ usadas[j]=1; return j; } } }
       return -1;
     };
-    var cCod=acha('codigo','cod','id'), cNome=acha('peca','peça','nome','descricao','item');
-    var cUn=acha('unidade','un','medida'), cCat=acha('categoria','grupo','tipo');
+    // ordem importa: os mais específicos primeiro
+    var cCod=acha('codigo','cod','id');
+    var cNome=acha('item','peca','peça','nome','descricao');
+    var cSal=acha('estoque_atual','saldo_atual','saldo','quantidade','qtde','qtd');
+    var cMin=acha('estoque_minimo','minimo','min');
+    var cPr=acha('preco','valor_unitario','custo','r$','valor');
+    var cUn=acha('unidade','un','medida');
+    var cForn=acha('fornecedor','loja','onde_comprar','estoque');
+    var cCat=acha('categoria','grupo','familia');
     var cLoc=acha('local','prateleira','endereco','localizacao');
-    var cMin=acha('minimo','min','estoque_minimo'), cPr=acha('preco','valor','custo','r$');
-    var cSal=acha('saldo','quantidade','qtd','estoque');
     if(cNome<0 && cCod<0){ alert('Não achei coluna de peça nem de código.\n\nA planilha precisa de ao menos uma delas.'); input.value=''; return; }
 
     var porCod={}, porNome={};
@@ -806,7 +840,7 @@ window.importarPecas=function(input){
       var nk=normSA(p.nome); if(nk && !porNome[nk]) porNome[nk]=p;
     });
     var criar=[], atualizar=[], saldos=[]; var iguais=0;
-    for(var i=1;i<rows.length;i++){
+    for(var i=linhaCab+1;i<rows.length;i++){
       var r=rows[i]; if(!r) continue;
       var cod=cCod>=0?String(r[cCod]==null?'':r[cCod]).trim():'';
       if(cod.indexOf('.')>=0 && /^\d+\.0+$/.test(cod)) cod=cod.split('.')[0];
@@ -817,8 +851,11 @@ window.importarPecas=function(input){
       if(cNome>=0 && nome) campos.nome=nome;
       if(cCod>=0 && cod) campos.codigo=cod;
       if(cUn>=0 && String(r[cUn]||'').trim()) campos.unidade=String(r[cUn]).trim();
+      if(cForn>=0 && String(r[cForn]||'').trim()) campos.fornecedor=String(r[cForn]).trim();
       if(cCat>=0 && String(r[cCat]||'').trim()) campos.categoria=String(r[cCat]).trim();
       if(cLoc>=0 && String(r[cLoc]||'').trim()) campos.local=String(r[cLoc]).trim();
+      // linha de rodapé tipo "ESTOQUE ATUALIZADO EM: 21/08/2026" não é peça
+      if(!nome && cod && !/^[0-9A-Za-z._\-\/]{1,20}$/.test(cod)) continue;
       var mn=cMin>=0?numBR(r[cMin]):null; if(mn!=null) campos.minimo=mn;
       var pr=cPr>=0?numBR(r[cPr]):null;   if(pr!=null) campos.precoUn=pr;
       var sl=cSal>=0?numBR(r[cSal]):null;
@@ -841,7 +878,17 @@ window.importarPecas=function(input){
       alert('Nada a fazer.\n\nLinhas lidas: '+(rows.length-1)+'\nJá estavam iguais: '+iguais);
       input.value=''; return;
     }
-    var msg='Confirmar?\n\n';
+    var achou=[];
+    if(cCod>=0)  achou.push('Código');
+    if(cNome>=0) achou.push('Peça');
+    if(cSal>=0)  achou.push('Saldo');
+    if(cMin>=0)  achou.push('Mínimo');
+    if(cPr>=0)   achou.push('Preço');
+    if(cUn>=0)   achou.push('Unidade');
+    if(cForn>=0) achou.push('Fornecedor');
+    if(cCat>=0)  achou.push('Categoria');
+    if(cLoc>=0)  achou.push('Local');
+    var msg='Confirmar?\n\nCabeçalho na linha '+(linhaCab+1)+'\nColunas lidas: '+achou.join(', ')+'\n\n';
     if(criar.length) msg+='CRIAR '+criar.length+' peça(s):\n'+criar.slice(0,8).map(function(c){ return '· '+c.campos.nome+(c.saldo?'  (saldo '+c.saldo+')':''); }).join('\n')+(criar.length>8?'\n...':'')+'\n\n';
     if(atualizar.length) msg+='ATUALIZAR '+atualizar.length+' peça(s)\n\n';
     if(saldos.length) msg+='AJUSTAR SALDO de '+saldos.length+' peça(s):\n'+saldos.slice(0,8).map(function(s){ return '· '+(s.p.nome||'')+': '+fmtN(num(s.p.saldo),2)+' → '+fmtN(s.novo,2); }).join('\n')+(saldos.length>8?'\n...':'')+'\n\n';
