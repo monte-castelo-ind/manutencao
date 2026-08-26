@@ -285,6 +285,11 @@
 
     <div id="grp-ops">
     <div class="section-div">Ações</div>
+    <a class="home-btn" id="btnPecas" href="pecas.html?de=comodato" style="text-decoration:none;color:inherit;">
+      <div class="hb-icon" style="background:rgba(47,174,125,0.15);">⚙</div>
+      <div style="flex:1;"><div class="hb-title">Estoque de Peças</div><div class="hb-desc" id="pecasDesc">Inventário compartilhado com o Predial</div></div>
+      <span style="color:var(--text-secondary);font-size:20px;">›</span>
+    </a>
     <button class="home-btn" onclick="goTo('s-dashboard')">
       <div class="hb-icon" style="background:rgba(16,185,129,0.15);">📊</div>
       <div style="flex:1;"><div class="hb-title">Dashboard</div><div class="hb-desc">Reformas e indicadores por período</div></div>
@@ -987,6 +992,24 @@ function updatePinDots(){
 }
 
 // ===== FIRESTORE LISTENERS =====
+// Estoque de peças: mesmo projeto, então basta ler o resumo (contagens).
+// Mostra o número de peças abaixo do mínimo no atalho da home.
+onSnapshot(doc(db,'estoquePecasResumo','app'), snap=>{
+  const el=document.getElementById('pecasDesc');
+  if(!el) return;
+  if(!snap.exists()){ el.textContent='Inventário compartilhado com o Predial'; return; }
+  const d=snap.data()||{};
+  const ab=Number(d.abaixoMinimo)||0, tot=Number(d.total)||0, neg=Number(d.negativos)||0;
+  const partes=[];
+  if(ab>0)  partes.push(ab+' abaixo do mínimo');
+  if(neg>0) partes.push(neg+' com saldo negativo');
+  el.textContent = partes.length
+    ? partes.join(' · ')+' · '+tot+' peças'
+    : tot+' peças cadastradas · estoque em ordem';
+  const btn=document.getElementById('btnPecas');
+  if(btn) btn.style.borderLeft = (ab>0||neg>0) ? '3px solid #f5b013' : '';
+}, err=>console.warn('resumo de peças:', err.code||err.message));
+
 onSnapshot(collection(db,'equipamentosBase'), snap=>{
   equipamentosBase=snap.docs.map(d=>({firestoreId:d.id,...d.data()})).sort((a,b)=>a.tipo.localeCompare(b.tipo,'pt-BR'));
   const tela=document.querySelector('.screen.active')?.id;
