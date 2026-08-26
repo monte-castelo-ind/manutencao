@@ -407,6 +407,25 @@ function pecaPorId(id){ for(var i=0;i<pecas.length;i++){ if(pecas[i].firestoreId
 function valorEstoque(p){ var s=num(p.saldo), pr=num(p.precoUn); return (s>0&&pr>0)?s*pr:0; }
 function abaixoMin(p){ var m=num(p.minimo); return m>0 && num(p.saldo)<m; }
 
+/* ===== resumo publicado: os outros apps leem só os números ===== */
+// Documento estoquePecasResumo/app com contagens, sem nome de peça nem valor.
+// Assim o painel do Predial e o app do Comodato mostram o aviso sem precisar
+// varrer a coleção inteira nem ter permissão de ver o estoque item a item.
+var _ultimoResumo='';
+function publicarResumo(){
+  if(!pecas.length) return;
+  var abaixo=pecas.filter(abaixoMin).length;
+  var neg=pecas.filter(function(p){ return num(p.saldo)<0; }).length;
+  var zer=pecas.filter(function(p){ return num(p.saldo)<=0; }).length;
+  var dados={ total:pecas.length, abaixoMinimo:abaixo, negativos:neg, zerados:zer };
+  var assinatura=JSON.stringify(dados);
+  if(assinatura===_ultimoResumo) return;      // nada mudou: não grava
+  _ultimoResumo=assinatura;
+  dados.atualizadoEm=agora();
+  setDoc(doc(dbC,'estoquePecasResumo','app'), dados, { merge:true })
+    .catch(function(e){ console.warn('publicarResumo:',e.code||e.message); });
+}
+
 /* ===== pendências: tudo que precisa de atenção, num lugar só ===== */
 function diagnosticos(){
   var out=[];
@@ -495,6 +514,7 @@ function render(){
   if(ultimaCarga) document.getElementById('freshness').textContent='Dados de '+ultimaCarga;
   document.querySelectorAll('.admin-mov').forEach(function(el){ el.style.display=podeLancar?'':'none'; });
   renderAvisos();
+  if(podeLancar) publicarResumo();
   if(pagina==='estoque') renderEstoque();
   else if(pagina==='mov') renderMov();
   else if(pagina==='cad') renderCad();
