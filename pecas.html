@@ -112,6 +112,24 @@ tbody tr:hover{background:var(--card-2)}
 .btn-in{background:var(--green);color:#062;border:none}
 .btn-out{background:transparent;color:var(--amber);border:1px solid var(--amber)}
 .alert{border-radius:10px;padding:10px 13px;font-size:12.5px;display:flex;gap:9px;margin-bottom:12px}
+
+/* indicador de pendências */
+.warnwrap{position:relative;display:none}
+.warnwrap.has{display:block}
+.warnbtn{position:relative;background:none;border:none;padding:3px 5px;line-height:1;font-size:17px;color:var(--amber);border-radius:8px;transition:background .12s}
+.warnbtn:hover{background:rgba(245,176,19,.12)}
+.warnbadge{position:absolute;top:-2px;right:-4px;background:var(--amber);color:#1a1400;font-size:9.5px;font-weight:700;min-width:14px;height:14px;line-height:14px;border-radius:8px;padding:0 3px;text-align:center;font-family:'JetBrains Mono',monospace}
+.warnbadge.hide{display:none}
+.warnpop{display:none;position:absolute;top:calc(100% + 8px);right:0;width:330px;max-width:78vw;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);z-index:90;overflow:hidden;text-align:left;cursor:default}
+.warnwrap:hover .warnpop,.warnwrap.open .warnpop{display:block}
+.warnpop-h{padding:9px 13px;border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;letter-spacing:.6px;color:var(--muted);text-transform:uppercase}
+.warnitem{display:flex;gap:9px;padding:10px 13px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.warnitem:last-child{border-bottom:none}
+.warnitem:hover{background:var(--card-2)}
+.warndot{width:6px;height:6px;border-radius:50%;flex:0 0 6px;margin-top:6px}
+.warntit{font-size:12.5px;font-weight:600;line-height:1.35}
+.warnsub{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+.warngo{font-size:11px;color:var(--primary);margin-top:3px;font-weight:600}
 .a-warn{background:rgba(245,176,19,.09);border:1px solid rgba(245,176,19,.3);color:var(--amber)}
 .a-info{background:rgba(75,123,236,.09);border:1px solid rgba(75,123,236,.3);color:var(--blue)}
 .fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:13px}
@@ -191,13 +209,16 @@ tbody tr:hover{background:var(--card-2)}
       <div><h1 id="ptitle">Estoque</h1><div class="h1sub" id="psub">—</div></div>
       <div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap">
         <a class="volta" id="linkVolta" href="#" style="display:none">‹ Voltar ao app</a>
+        <div class="warnwrap" id="warnWrap">
+          <button class="warnbtn" id="warnBtn" onclick="toggleAvisos(event)" title="Pendências">&#9888;<span class="warnbadge" id="warnBadge">0</span></button>
+          <div class="warnpop" id="warnPop"></div>
+        </div>
         <div id="freshness" style="font-size:11px;color:var(--muted)"></div>
       </div>
     </div>
 
     <!-- ESTOQUE -->
     <div class="page on" id="page-estoque">
-      <div id="est-alertas"></div>
       <div class="grid kpis" id="est-kpis"></div>
       <div class="sect">Peças em estoque</div>
       <div class="tools">
@@ -386,11 +407,94 @@ function pecaPorId(id){ for(var i=0;i<pecas.length;i++){ if(pecas[i].firestoreId
 function valorEstoque(p){ var s=num(p.saldo), pr=num(p.precoUn); return (s>0&&pr>0)?s*pr:0; }
 function abaixoMin(p){ var m=num(p.minimo); return m>0 && num(p.saldo)<m; }
 
+/* ===== pendências: tudo que precisa de atenção, num lugar só ===== */
+function diagnosticos(){
+  var out=[];
+  if(!pecas.length) return out;
+
+  var abaixo=pecas.filter(abaixoMin);
+  if(abaixo.length) out.push({
+    sev:'warn', titulo:abaixo.length+' peça'+(abaixo.length>1?'s':'')+' abaixo do mínimo',
+    sub:'Vale avisar o Predial para comprar. '+abaixo.slice(0,3).map(function(p){ return p.nome; }).join(' · ')+(abaixo.length>3?'…':''),
+    acao:'Ver no estoque', pagina:'estoque', filtro:'abaixo'
+  });
+
+  var neg=pecas.filter(function(p){ return num(p.saldo)<0; });
+  if(neg.length) out.push({
+    sev:'warn', titulo:neg.length+' peça'+(neg.length>1?'s':'')+' com saldo negativo',
+    sub:'Saiu mais do que entrou — provavelmente falta registrar uma compra.',
+    acao:'Ver no estoque', pagina:'estoque', filtro:''
+  });
+
+  var semPreco=pecas.filter(function(p){ return num(p.precoUn)<=0 && num(p.saldo)>0; });
+  if(semPreco.length) out.push({
+    sev:'info', titulo:semPreco.length+' peça'+(semPreco.length>1?'s':'')+' com saldo e sem preço',
+    sub:'O valor do estoque está subestimado. Dá para preencher em lote: exporte a planilha, adicione a coluna Preço e importe de volta.',
+    acao:'Ver no estoque', pagina:'estoque', filtro:'sempreco'
+  });
+
+  var semForn=pecas.filter(function(p){ return !p.fornecedor; });
+  if(semForn.length) out.push({
+    sev:'info', titulo:semForn.length+' peça'+(semForn.length>1?'s':'')+' sem fornecedor',
+    sub:'Sem fornecedor fica mais difícil pedir reposição.',
+    acao:'Ver no cadastro', pagina:'cad'
+  });
+
+  var zerado=pecas.filter(function(p){ return num(p.saldo)===0 && num(p.minimo)<=0; });
+  if(zerado.length) out.push({
+    sev:'info', titulo:zerado.length+' peça'+(zerado.length>1?'s':'')+' zerada'+(zerado.length>1?'s':'')+' e sem mínimo',
+    sub:'Sem estoque mínimo definido, elas nunca vão aparecer como reposição.',
+    acao:'Ver no cadastro', pagina:'cad'
+  });
+  return out;
+}
+var _avisos=[];
+function renderAvisos(){
+  var wrap=document.getElementById('warnWrap'); if(!wrap) return;
+  var lista=diagnosticos();
+  if(!lista.length){ wrap.classList.remove('has','open'); return; }
+  wrap.classList.add('has');
+  var graves=lista.filter(function(x){ return x.sev==='warn'; }).length;
+  var badge=document.getElementById('warnBadge');
+  badge.textContent=lista.length;
+  badge.style.background=graves?'var(--amber)':'var(--blue)';
+  badge.style.color=graves?'#1a1400':'#fff';
+  document.getElementById('warnBtn').style.color=graves?'var(--amber)':'var(--blue)';
+  document.getElementById('warnPop').innerHTML=
+    '<div class="warnpop-h">'+lista.length+' ponto'+(lista.length>1?'s':'')+' de atenção</div>'+
+    lista.map(function(x,i){
+      var cor=x.sev==='warn'?'var(--amber)':'var(--blue)';
+      return '<div class="warnitem" onclick="irAviso('+i+')">'+
+        '<div class="warndot" style="background:'+cor+'"></div>'+
+        '<div style="min-width:0"><div class="warntit">'+esc(x.titulo)+'</div>'+
+        '<div class="warnsub">'+esc(x.sub)+'</div>'+
+        '<div class="warngo">'+esc(x.acao)+' \u2192</div></div></div>';
+    }).join('');
+  _avisos=lista;
+}
+window.irAviso=function(i){
+  var a=_avisos[i]; if(!a) return;
+  document.getElementById('warnWrap').classList.remove('open');
+  if(a.filtro!=null && a.pagina==='estoque'){
+    var f=document.getElementById('es-filtro'); if(f) f.value=a.filtro;
+  }
+  nav(a.pagina);
+};
+window.toggleAvisos=function(e){
+  if(e) e.stopPropagation();
+  document.getElementById('warnWrap').classList.toggle('open');
+};
+document.addEventListener('click', function(e){
+  var w=document.getElementById('warnWrap');
+  if(w && !w.contains(e.target)) w.classList.remove('open');
+});
+
 /* ============ RENDER ============ */
 function render(){
   if(!currentAtivo) return;
   if(ultimaCarga) document.getElementById('freshness').textContent='Dados de '+ultimaCarga;
   document.querySelectorAll('.admin-mov').forEach(function(el){ el.style.display=podeLancar?'':'none'; });
+  renderAvisos();
   if(pagina==='estoque') renderEstoque();
   else if(pagina==='mov') renderMov();
   else if(pagina==='cad') renderCad();
@@ -425,13 +529,7 @@ function renderEstoque(){
 
   var nAbaixo=pecas.filter(abaixoMin).length;
   var nZero=pecas.filter(function(p){ return num(p.saldo)<=0; }).length;
-  var nSemPreco=pecas.filter(function(p){ return num(p.precoUn)<=0 && num(p.saldo)>0; }).length;
   var valTotal=0; pecas.forEach(function(p){ valTotal+=valorEstoque(p); });
-
-  var al='';
-  if(nAbaixo>0) al+='<div class="alert a-warn">⚠ '+nAbaixo+' peça(s) abaixo do mínimo. Vale avisar o Predial para comprar.</div>';
-  if(nSemPreco>0) al+='<div class="alert a-info">◇ '+nSemPreco+' peça(s) com saldo e sem preço — o valor do estoque está subestimado.</div>';
-  document.getElementById('est-alertas').innerHTML=al;
 
   document.getElementById('est-kpis').innerHTML=[
     '<div class="card"><div class="klabel">Peças cadastradas</div><div class="kval">'+pecas.length+'</div><div class="khint">'+nZero+' com saldo zero</div></div>',
