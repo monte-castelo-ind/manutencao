@@ -155,6 +155,42 @@ tbody tr:hover{background:var(--card-2)}
   main{padding:16px 14px 50px}
   .tscroll{max-height:none}
 }
+
+/* ---- Montar pedido ---- */
+.cp-barra{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+          background:var(--card);border:1px solid var(--border);border-left:3px solid var(--primary);
+          border-radius:11px;padding:12px 15px;margin-bottom:13px;font-size:13.5px}
+.cp-qtd{display:flex;align-items:center;gap:5px}
+.cp-qtd input{width:66px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:14px;
+              font-weight:700;padding:7px 4px;background:var(--card-2);border:1px solid var(--border);
+              color:var(--text);border-radius:7px}
+.cp-qtd input:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary)}
+.cp-b{width:30px;height:32px;flex:0 0 auto;background:var(--card-2);border:1px solid var(--border);
+      color:var(--muted);border-radius:7px;font-size:16px;line-height:1;cursor:pointer;font-family:inherit}
+.cp-b:hover{border-color:var(--primary);color:var(--primary)}
+.cp-obs{width:100%;background:none;border:none;border-bottom:1px dashed var(--border);color:var(--text);
+        font-family:inherit;font-size:12.5px;padding:4px 2px;outline:none}
+.cp-obs:focus{border-bottom-color:var(--primary);border-bottom-style:solid}
+tr.cp-grupo td{background:var(--card-2);font-weight:700;font-size:11.5px;letter-spacing:.3px;
+               color:var(--muted);padding:7px 9px}
+tr.cp-on td{background:rgba(47,174,125,.07)}
+tr.cp-baixo td:nth-child(4){color:var(--amber)}
+tr.cp-zero td:nth-child(4){color:var(--red)}
+.cp-modal{position:fixed;inset:0;background:rgba(0,0,0,.62);display:flex;align-items:center;
+          justify-content:center;z-index:9000;padding:20px}
+.cp-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;
+        width:100%;max-width:520px;max-height:88vh;overflow:auto;box-shadow:var(--shadow)}
+.cp-h{font-size:16px;font-weight:800;margin-bottom:12px}
+.cp-box textarea{width:100%;min-height:270px;background:var(--card-2);border:1px solid var(--border);
+                 color:var(--text);border-radius:9px;padding:12px;font-family:'JetBrains Mono',monospace;
+                 font-size:12px;line-height:1.6;resize:vertical}
+.cp-box textarea:focus{outline:2px solid var(--primary);outline-offset:-1px}
+.cp-zap{margin-top:13px}
+.cp-zap label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.cp-zap input{width:100%;background:var(--card-2);border:1px solid var(--border);color:var(--text);
+              border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13.5px}
+.cp-btns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
+
 </style>
 </head>
 <body>
@@ -191,6 +227,7 @@ tbody tr:hover{background:var(--card-2)}
     </div>
     <button class="navbtn on" data-p="estoque" onclick="nav('estoque')"><span class="side-ico">▤</span><span class="lbl">Estoque</span></button>
     <button class="navbtn" data-p="mov" onclick="nav('mov')"><span class="side-ico">⇅</span><span class="lbl">Movimentos</span></button>
+    <button class="navbtn" data-p="compra" onclick="nav('compra')"><span class="side-ico">🛒</span><span class="lbl">Montar pedido</span></button>
     <button class="navbtn" data-p="cad" onclick="nav('cad')"><span class="side-ico">◇</span><span class="lbl">Cadastro</span></button>
     <div class="side-foot">
       <div class="uline">
@@ -260,6 +297,25 @@ tbody tr:hover{background:var(--card-2)}
       <div class="tw"><div class="tscroll"><table id="tbl-mov"></table></div></div>
     </div>
 
+    <!-- MONTAR PEDIDO -->
+    <div class="page" id="page-compra">
+      <div class="tools">
+        <select id="cp-forn" onchange="render()" style="min-width:210px">
+          <option value="">Todos os fornecedores</option>
+        </select>
+        <select id="cp-filtro" onchange="render()">
+          <option value="">Todas as peças</option>
+          <option value="baixo">Abaixo do mínimo</option>
+          <option value="zero">Zeradas</option>
+          <option value="nopedido">Só o que está no pedido</option>
+        </select>
+        <input type="text" id="cp-busca" placeholder="Buscar peça, código ou fornecedor" oninput="render()" style="min-width:220px">
+        <button class="btn btn-sm" onclick="sugerirPedido()">Sugerir pelo mínimo</button>
+        <button class="btn btn-sm btn-ghost" onclick="limparPedido()">Limpar</button>
+      </div>
+      <div id="cp-saida"></div>
+    </div>
+
     <!-- CADASTRO -->
     <div class="page" id="page-cad">
       <div class="alert a-info">◇ Cadastro das peças e importação por planilha. O saldo não é editado aqui — ele vem dos movimentos, em <strong>Estoque</strong>.</div>
@@ -304,7 +360,8 @@ var ultimaCarga=null;
 const TITLES={
   estoque:['Estoque','Saldo, mínimo e valor das peças'],
   mov:['Movimentos','Entradas e saídas registradas'],
-  cad:['Cadastro','Peças e importação por planilha']
+  cad:['Cadastro','Peças e importação por planilha'],
+  compra:['Montar pedido','Escolha as peças e gere o texto para o fornecedor']
 };
 
 /* ============ UTIL ============ */
@@ -515,7 +572,8 @@ function render(){
   document.querySelectorAll('.admin-mov').forEach(function(el){ el.style.display=podeLancar?'':'none'; });
   renderAvisos();
   if(podeLancar) publicarResumo();
-  if(pagina==='estoque') renderEstoque();
+  if(pagina==='compra') renderCompra();
+  else if(pagina==='estoque') renderEstoque();
   else if(pagina==='mov') renderMov();
   else if(pagina==='cad') renderCad();
 }
@@ -532,6 +590,259 @@ var COLS_EST=[
   { k:'preco',  l:'Último preço', r:1, v:function(p){ return num(p.precoUn)>0?num(p.precoUn):null; } },
   { k:'valor',  l:'Valor em estoque', r:1, v:function(p){ return valorEstoque(p)||null; } }
 ];
+
+/* ============ MONTAR PEDIDO ============
+   Mesma lógica do Produlog, que a Simone já usa: escolhe as quantidades,
+   gera um texto pronto e manda pro fornecedor. A diferença é que aqui o
+   ponto de partida é o saldo em estoque, então dá para sugerir sozinho
+   o que está abaixo do mínimo. */
+var pedido = {};          /* firestoreId -> quantidade */
+var pedidoObs = {};       /* firestoreId -> observação */
+
+function pedidoItens(){
+  var out=[], k, p;
+  for(k in pedido){
+    if(!(pedido[k]>0)) continue;
+    p=pecaPorId(k);
+    if(!p) continue;
+    out.push({ p:p, qtd:pedido[k], obs:pedidoObs[k]||'' });
+  }
+  return out.sort(function(a,b){
+    return String(a.p.fornecedor||'').localeCompare(String(b.p.fornecedor||''))
+        || String(a.p.nome||'').localeCompare(String(b.p.nome||''));
+  });
+}
+
+function pedidoTotal(){
+  var t=0;
+  pedidoItens().forEach(function(x){ t += x.qtd * num(x.p.preco); });
+  return t;
+}
+
+window.setQtdPedido=function(id, v){
+  var n=parseFloat(String(v).replace(',','.'));
+  if(isFinite(n) && n>0) pedido[id]=n; else delete pedido[id];
+  atualizarResumoPedido();
+};
+
+window.passoQtd=function(id, d){
+  var atual=num(pedido[id]);
+  var novo=Math.max(0, atual+d);
+  if(novo>0) pedido[id]=novo; else delete pedido[id];
+  render();
+};
+
+window.setObsPedido=function(id, v){
+  v=String(v||'').trim();
+  if(v) pedidoObs[id]=v; else delete pedidoObs[id];
+};
+
+window.limparPedido=function(){
+  if(!Object.keys(pedido).length) return;
+  if(!confirm('Tirar todas as peças do pedido?')) return;
+  pedido={}; pedidoObs={}; render();
+};
+
+/* Sugere repor até o mínimo. Só preenche o que está faltando — não mexe
+   no que a pessoa já digitou à mão. */
+window.sugerirPedido=function(){
+  var forn=(document.getElementById('cp-forn')||{}).value||'';
+  var n=0;
+  pecas.forEach(function(p){
+    if(forn && (p.fornecedor||'')!==forn) return;
+    var min=num(p.minimo), saldo=num(p.saldo);
+    if(!(min>0) || saldo>=min) return;
+    if(pedido[p.firestoreId]>0) return;
+    pedido[p.firestoreId]=Math.ceil(min-saldo);
+    n++;
+  });
+  render();
+  if(!n) alert('Nenhuma peça abaixo do mínimo'+(forn?' para '+forn:'')+'.');
+};
+
+function renderCompra(){
+  var alvo=document.getElementById('cp-saida');
+  if(!alvo) return;
+
+  var forns={};
+  pecas.forEach(function(p){ if(p.fornecedor) forns[p.fornecedor]=1; });
+  var selF=document.getElementById('cp-forn');
+  var atualF=selF.value;
+  selF.innerHTML='<option value="">Todos os fornecedores</option>'+Object.keys(forns).sort().map(function(c){
+    return '<option value="'+esc(c)+'">'+esc(c)+'</option>'; }).join('');
+  if(atualF) selF.value=atualF;
+
+  var forn=selF.value||'';
+  var filtro=(document.getElementById('cp-filtro')||{}).value||'';
+  var termo=((document.getElementById('cp-busca')||{}).value||'').toLowerCase();
+
+  var itens=pedidoItens();
+  var total=pedidoTotal();
+  var h='';
+
+  h+='<div class="grid kpis">';
+  h+='<div class="card"><div class="klabel">No pedido</div><div class="kval">'+itens.length+'</div>'
+   + '<div class="khint">'+(itens.length===1?'peça':'peças')+'</div></div>';
+  h+='<div class="card"><div class="klabel">Valor estimado</div><div class="kval">'+(total>0?fmtR$k(total):'—')+'</div>'
+   + '<div class="khint">pelo último preço pago</div></div>';
+  var nAb=pecas.filter(abaixoMin).length;
+  h+='<div class="card"><div class="klabel">Abaixo do mínimo</div>'
+   + '<div class="kval" style="color:'+(nAb>0?'var(--amber)':'var(--green)')+'">'+nAb+'</div>'
+   + '<div class="khint">precisam reposição</div></div>';
+  h+='</div>';
+
+  if(itens.length){
+    h+='<div class="cp-barra">'
+     + '<div><b>'+itens.length+'</b> peça'+(itens.length===1?'':'s')+' no pedido'
+     + (total>0?' · <b>'+fmtR$k(total)+'</b>':'')+'</div>'
+     + '<button class="btn btn-sm" onclick="gerarTextoPedido()">📋 Gerar texto do pedido</button>'
+     + '</div>';
+  } else {
+    h+='<div class="alert a-info">🛒 Informe a quantidade nas peças abaixo para montar o pedido. '
+     + 'O botão <b>Sugerir pelo mínimo</b> preenche sozinho o que está faltando.</div>';
+  }
+
+  var lista=pecas.filter(function(p){
+    if(forn && (p.fornecedor||'')!==forn) return false;
+    if(filtro==='baixo' && !abaixoMin(p)) return false;
+    if(filtro==='zero' && num(p.saldo)>0) return false;
+    if(filtro==='nopedido' && !(pedido[p.firestoreId]>0)) return false;
+    if(termo && ((p.nome||'')+' '+(p.codigo||'')+' '+(p.fornecedor||'')).toLowerCase().indexOf(termo)<0) return false;
+    return true;
+  }).sort(function(a,b){
+    return String(a.fornecedor||'\uffff').localeCompare(String(b.fornecedor||'\uffff'))
+        || String(a.nome||'').localeCompare(String(b.nome||''));
+  });
+
+  if(!lista.length){
+    h+='<div class="alert a-info">Nenhuma peça com esse filtro.</div>';
+    alvo.innerHTML=h;
+    return;
+  }
+
+  h+='<div class="tw"><div class="tscroll"><table><thead><tr>'
+   + '<th style="width:74px">Código</th><th>Peça</th><th>Fornecedor</th>'
+   + '<th class="r" style="width:78px">Saldo</th><th class="r" style="width:68px">Mínimo</th>'
+   + '<th style="width:172px">Pedir</th><th style="width:150px">Observação</th>'
+   + '</tr></thead><tbody>';
+
+  var fAtual=null;
+  lista.forEach(function(p){
+    var id=p.firestoreId;
+    var q=num(pedido[id]);
+    var f=p.fornecedor||'(sem fornecedor)';
+    if(f!==fAtual && !forn){
+      fAtual=f;
+      h+='<tr class="cp-grupo"><td colspan="7">'+esc(f)+'</td></tr>';
+    }
+    var st=abaixoMin(p)?'cp-baixo':(num(p.saldo)<=0?'cp-zero':'');
+    h+='<tr class="'+(q>0?'cp-on ':'')+st+'">'
+     + '<td class="mono" style="color:var(--muted)">'+esc(p.codigo||'—')+'</td>'
+     + '<td><b>'+esc(p.nome||'—')+'</b></td>'
+     + '<td style="color:var(--muted);font-size:12px">'+esc(p.fornecedor||'—')+'</td>'
+     + '<td class="r mono"'+(abaixoMin(p)?' style="color:var(--amber);font-weight:700"':'')+'>'
+     +   fmtN(num(p.saldo),0)+' <span style="color:var(--muted);font-size:10px">'+esc(p.unidade||'un')+'</span></td>'
+     + '<td class="r mono" style="color:var(--muted)">'+(num(p.minimo)||'—')+'</td>'
+     + '<td><div class="cp-qtd">'
+     +   '<button class="cp-b" onclick="passoQtd(\'' + esc(id) + '\',-1)" aria-label="Menos um">−</button>'
+     +   '<input type="number" min="0" step="1" value="'+(q>0?q:'')+'" placeholder="0" '
+     +     'oninput="setQtdPedido(\'' + esc(id) + '\',this.value)" '
+     +     'onchange="render()">'
+     +   '<button class="cp-b" onclick="passoQtd(\'' + esc(id) + '\',1)" aria-label="Mais um">+</button>'
+     + '</div></td>'
+     + '<td><input type="text" class="cp-obs" placeholder="—" value="'+esc(pedidoObs[id]||'')+'" '
+     +   'oninput="setObsPedido(\'' + esc(id) + '\',this.value)"></td>'
+     + '</tr>';
+  });
+  h+='</tbody></table></div></div>';
+  alvo.innerHTML=h;
+}
+
+function atualizarResumoPedido(){
+  /* Só o topo muda enquanto digita — redesenhar a tabela inteira tiraria o
+     foco do campo a cada tecla. O render completo vem no onchange. */
+  var itens=pedidoItens(), total=pedidoTotal();
+  var b=document.querySelector('.cp-barra div');
+  if(b){
+    b.innerHTML='<b>'+itens.length+'</b> peça'+(itens.length===1?'':'s')+' no pedido'
+              + (total>0?' · <b>'+fmtR$k(total)+'</b>':'');
+  }
+}
+
+/* ---- texto para o fornecedor ---- */
+function textoPedido(){
+  var itens=pedidoItens();
+  if(!itens.length) return '';
+  var forn=(document.getElementById('cp-forn')||{}).value||'';
+  var linha='━━━━━━━━━━━━━━━━━━━━━━';
+  var t='*PEDIDO DE PEÇAS*\n*PANIFICADORA MONTE CASTELO*\n'+linha+'\n\n';
+  t+='📅 '+new Date().toLocaleDateString('pt-BR')+'\n';
+  if(forn) t+='🏢 Fornecedor: '+forn+'\n';
+  t+='\n*ITENS:*\n';
+
+  var fAtual=null, n=0;
+  itens.forEach(function(x){
+    var f=x.p.fornecedor||'(sem fornecedor)';
+    if(!forn && f!==fAtual){ fAtual=f; t+='\n▪ '+f+'\n'; }
+    n++;
+    t+=n+'. '+(x.p.nome||'')+(x.p.codigo?' (cód '+x.p.codigo+')':'')+'\n';
+    t+='   '+fmtN(x.qtd,0)+' '+(x.p.unidade||'un')+'\n';
+    if(x.obs) t+='   📝 '+x.obs+'\n';
+  });
+
+  t+='\n'+linha+'\n';
+  t+='*TOTAL: '+itens.length+' item'+(itens.length===1?'':'ns')+'*\n';
+  t+=linha+'\n';
+  t+='\n_Por favor confirmar preço, prazo e disponibilidade._';
+  return t;
+}
+
+window.gerarTextoPedido=function(){
+  var txt=textoPedido();
+  if(!txt){ alert('O pedido está vazio.'); return; }
+  var host=document.getElementById('modal-host')||document.body;
+  var d=document.createElement('div');
+  d.className='cp-modal';
+  d.innerHTML='<div class="cp-box">'
+    + '<div class="cp-h">📋 Texto do pedido</div>'
+    + '<textarea id="cp-txt" spellcheck="false">'+esc(txt)+'</textarea>'
+    + '<div class="cp-zap"><label>WhatsApp do fornecedor (opcional)</label>'
+    +   '<input type="tel" id="cp-fone" placeholder="51 99999-9999" inputmode="tel"></div>'
+    + '<div class="cp-btns">'
+    +   '<button class="btn btn-sm btn-ghost" id="cp-fechar">Fechar</button>'
+    +   '<button class="btn btn-sm btn-ghost" id="cp-zap">Abrir WhatsApp</button>'
+    +   '<button class="btn btn-sm" id="cp-copiar">Copiar texto</button>'
+    + '</div></div>';
+  host.appendChild(d);
+
+  function fechar(){ d.remove(); }
+  d.querySelector('#cp-fechar').onclick=fechar;
+  d.onclick=function(e){ if(e.target===d) fechar(); };
+
+  d.querySelector('#cp-copiar').onclick=function(){
+    var ta=d.querySelector('#cp-txt');
+    ta.select();
+    var b=this;
+    function ok(){ b.textContent='Copiado ✓'; setTimeout(function(){ b.textContent='Copiar texto'; },1800); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(ta.value).then(ok).catch(function(){
+        try{ document.execCommand('copy'); ok(); }catch(e){ alert('Selecione o texto e copie com Ctrl+C.'); }
+      });
+    } else {
+      try{ document.execCommand('copy'); ok(); }catch(e){ alert('Selecione o texto e copie com Ctrl+C.'); }
+    }
+  };
+
+  d.querySelector('#cp-zap').onclick=function(){
+    var fone=String((d.querySelector('#cp-fone')||{}).value||'').replace(/\D/g,'');
+    var ta=d.querySelector('#cp-txt');
+    var url='https://wa.me/'+(fone?('55'+fone):'')+'?text='+encodeURIComponent(ta.value);
+    window.open(url,'_blank');
+  };
+
+  setTimeout(function(){ var t=d.querySelector('#cp-txt'); if(t){ t.focus(); t.setSelectionRange(0,0); } },30);
+};
+
 function renderEstoque(){
   // categorias
   var cats={}, forns={};
