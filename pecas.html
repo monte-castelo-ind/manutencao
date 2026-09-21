@@ -304,10 +304,14 @@ button.fn-f:hover{border-color:var(--amber);color:var(--amber)}
   #au-print, #au-print *{ visibility:visible !important }
   #au-print{ display:block !important; position:absolute; left:0; top:0; width:100%;
              color:#000; background:#fff; font-family:Arial, sans-serif; font-size:11px }
-  #au-print .au-cab{ display:flex; justify-content:space-between; align-items:flex-start;
-                     border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:10px }
-  #au-print .au-tit{ font-size:17px; font-weight:bold; letter-spacing:.5px }
-  #au-print .au-emp{ text-align:right; font-size:10px; line-height:1.5 }
+  #au-print .au-cab{ display:flex; justify-content:space-between; align-items:center;
+                     border-bottom:2px solid #000; padding-bottom:9px }
+  #au-print .au-logo{ width:190px; height:50px; flex:0 0 auto;
+                      background:var(--logo-light) no-repeat left center; background-size:contain }
+  #au-print .au-tit{ text-align:center; font-size:16px; font-weight:bold; letter-spacing:1.6px;
+                     margin:14px 0 12px; padding-bottom:5px;
+                     border-bottom:1px solid #000; display:block }
+  #au-print .au-emp{ text-align:right; font-size:9.5px; line-height:1.55 }
   #au-print .au-meta{ width:100%; margin-bottom:10px; font-size:11px }
   #au-print .au-meta td{ padding:2px 0 }
   #au-print .au-meta td:last-child{ text-align:right }
@@ -570,8 +574,28 @@ function fmtR$(v,d){ if(v==null||!isFinite(v)) return '—'; var dd=(d==null?2:d
 function fmtR$k(v){ if(v==null||!isFinite(v)) return '—'; return 'R$ '+Math.round(v).toLocaleString('pt-BR'); }
 function fmtN(v,d){ if(v==null||!isFinite(v)) return '—'; return v.toLocaleString('pt-BR',{maximumFractionDigits:(d==null?2:d)}); }
 function agora(){ return new Date().toISOString(); }
-function dataBR(iso){ if(!iso) return '—'; var s=String(iso); return s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4); }
-function horaBR(iso){ if(!iso) return ''; return String(iso).slice(11,16); }
+/* agora() grava em UTC (toISOString). Cortar a string direto mostrava 3h a
+   mais e, depois das 21h, o dia seguinte. Aqui converte para o horário local
+   antes de exibir. Data pura 'AAAA-MM-DD' não tem fuso, então passa direto. */
+function _dtLocal(iso){
+  if(!iso) return null;
+  var s=String(iso);
+  if(s.length<=10) return null;
+  var d=new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+function _z(n){ return (n<10?'0':'')+n; }
+function dataBR(iso){
+  if(!iso) return '—';
+  var d=_dtLocal(iso);
+  if(!d){ var s=String(iso); return s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4); }
+  return _z(d.getDate())+'/'+_z(d.getMonth()+1)+'/'+d.getFullYear();
+}
+function horaBR(iso){
+  var d=_dtLocal(iso);
+  if(!d) return '';
+  return _z(d.getHours())+':'+_z(d.getMinutes());
+}
 function slug(s){ return normSA(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60); }
 
 /* ============ TEMA / MENU ============ */
@@ -990,8 +1014,8 @@ function blocoAssinatura(p){
   var autorizado = (p.status==='autorizado' || p.status==='parcial' || p.status==='recebido');
   var quem = p.autorizadoPor || '';
   var quando = p.autorizadoEm || '';
-  var dia = quando ? dataBR(String(quando).slice(0,10)) : '';
-  var hora = quando ? String(quando).slice(11,16) : '';
+  var dia = quando ? dataBR(quando) : '';
+  var hora = quando ? horaBR(quando) : '';
 
   if(!autorizado){
     return '<div class="au-ass">'
@@ -1039,12 +1063,14 @@ window.imprimirAutorizacao=function(id){
   var host=document.getElementById('au-print');
   host.innerHTML=
       '<div class="au-cab">'
-    +   '<div class="au-tit">AUTORIZAÇÃO DE COMPRA</div>'
+    +   '<div class="au-logo" role="img" aria-label="Monte Castelo"></div>'
     +   '<div class="au-emp"><b>PANIFICADORA MONTE CASTELO LTDA</b><br>'
-    +     'AV RODRIGUES DA FONSECA 1840<br>VILA NOVA - PORTO ALEGRE</div>'
+    +     'AV RODRIGUES DA FONSECA 1840<br>VILA NOVA - PORTO ALEGRE<br>'
+    +     'CNPJ 01.052.266/0001-40</div>'
     + '</div>'
+    + '<div class="au-tit">AUTORIZAÇÃO DE COMPRA</div>'
     + '<table class="au-meta"><tr>'
-    +   '<td><b>Data do Pedido:</b> '+esc(dataBR(String(p.criadoEm||'').slice(0,10)))+'</td>'
+    +   '<td><b>Data do Pedido:</b> '+esc(dataBR(p.criadoEm))+'</td>'
     +   '<td><b>Comprador:</b> '+esc(a.comprador||'')+'</td>'
     + '</tr></table>'
     + '<div class="au-sec">DADOS DO FORNECEDOR</div>'
@@ -1268,7 +1294,7 @@ window.receberPedido=function(id){
 
   modal({
     titulo:'Receber mercadoria',
-    sub:esc(p.fornecedor||'')+' · pedido de '+esc(dataBR((p.criadoEm||'').slice(0,10))),
+    sub:esc(p.fornecedor||'')+' · pedido de '+esc(dataBR(p.criadoEm)),
     body:'<div class="alert a-info">Confira o que chegou. O campo vem preenchido com o que falta — '
        + 'ajuste se veio diferente. Só o que você confirmar entra no estoque.</div>'
        + '<div class="tw"><div class="tscroll" style="max-height:330px"><table class="pd-tab"><thead><tr>'
@@ -1373,7 +1399,7 @@ function renderPedidos(){
      + '<div class="pd-top">'
      +   '<div><span class="pd-forn">'+esc(p.fornecedor||'—')+'</span>'
      +     '<span class="pd-st pd-st-'+st+'">'+PED_ROTULO[st]+'</span></div>'
-     +   '<div class="pd-meta">'+esc(dataBR((p.criadoEm||'').slice(0,10)))
+     +   '<div class="pd-meta">'+esc(dataBR(p.criadoEm))
      +     ' · '+esc(p.criadoPor||'')+'</div>'
      + '</div>';
 
@@ -1396,7 +1422,7 @@ function renderPedidos(){
 
     if(st==='cancelado'){
       h+='<div class="pd-canc">Cancelado por '+esc(p.canceladoPor||'')
-       + (p.canceladoEm?' em '+esc(dataBR(String(p.canceladoEm).slice(0,10))):'')
+       + (p.canceladoEm?' em '+esc(dataBR(p.canceladoEm)):'')
        + (p.motivoCancelamento?' · '+esc(p.motivoCancelamento):'')+'</div>';
     }
 
