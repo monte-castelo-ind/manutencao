@@ -262,6 +262,10 @@ tr.cp-zero td:nth-child(4){color:var(--red)}
 .pd-canc{font-size:12px;color:var(--red);background:rgba(242,106,106,.08);border-radius:8px;
          padding:7px 11px;margin-bottom:10px}
 .pd-btns{display:flex;gap:8px;flex-wrap:wrap}
+.pd-flag{display:inline-block;margin-left:8px;font-size:10.5px;font-weight:700;white-space:nowrap;
+         color:var(--blue,#4b7bec);background:rgba(75,123,236,.13);
+         border:1px solid rgba(75,123,236,.34);border-radius:20px;padding:1px 8px;vertical-align:middle}
+.cp-f4{font-size:12px;color:var(--blue,#4b7bec);border-left:1px solid var(--border);padding-left:9px}
 .pd-lista{border:1px solid var(--border);border-radius:9px;padding:10px 12px;max-height:230px;overflow:auto}
 .pd-tab td{vertical-align:middle}
 .pd-cod{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted)}
@@ -438,7 +442,7 @@ tr.pd-ok td{opacity:.5}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc, addDoc, deleteDoc, increment, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, addDoc, updateDoc, deleteDoc, increment, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 /* ============ FIREBASE ============ */
@@ -713,6 +717,24 @@ function podeReceber(){
   return currentRole==='admin' || flagRecebe===true;
 }
 
+/* Quanto de cada peça já está pedido e ainda não chegou. Sem isso, alguém
+   olha o saldo baixo e pede de novo o que já está a caminho. */
+function pendentePorPeca(){
+  var mapa={};
+  pedidosCompra.forEach(function(p){
+    var st=p.status||'aguardando';
+    if(st==='recebido' || st==='cancelado') return;
+    (p.itens||[]).forEach(function(it){
+      var falta=Math.max(0, num(it.qtd)-num(it.recebido));
+      if(!falta || !it.pecaId) return;
+      if(!mapa[it.pecaId]) mapa[it.pecaId]={ qtd:0, fornecedores:{} };
+      mapa[it.pecaId].qtd+=falta;
+      mapa[it.pecaId].fornecedores[p.fornecedor||'—']=1;
+    });
+  });
+  return mapa;
+}
+
 function statusPedido(p){
   return p.status || 'aguardando';
 }
@@ -789,7 +811,9 @@ window.cancelarPedido=function(id){
       if(!m){ alert('Informe o motivo do cancelamento.'); return false; }
       updateDoc(doc(dbC,'pecasPedidos',id), {
         status:'cancelado', canceladoPor:sessaoEmail, canceladoEm:agora(), motivoCancelamento:m
-      }).catch(function(e){
+      })
+      .then(function(){ render(); })
+      .catch(function(e){
         console.error('cancelarPedido:',e);
         alert('Não foi possível cancelar: '+(e.code||e.message));
       });
@@ -1096,8 +1120,13 @@ function renderCompra(){
 
   var nAb=pecas.filter(abaixoMin).length;
   var nForn=pedidoPorFornecedor().length;
+  var pendTot=0, pendPecas=0;
+  var _pm=pendentePorPeca();
+  Object.keys(_pm).forEach(function(k){ pendPecas++; pendTot+=_pm[k].qtd; });
+
   h+='<div class="cp-faixa">'
    + '<span class="cp-f1"><b>'+itens.length+'</b> '+(itens.length===1?'peça':'peças')+' no pedido</span>'
+   + (pendPecas?'<span class="cp-f4">📦 '+pendPecas+(pendPecas===1?' peça':' peças')+' a caminho</span>':'')
    + (nForn?'<span class="cp-f2">'+nForn+' fornecedor'+(nForn===1?'':'es')+'</span>':'')
    + (total>0?'<span class="cp-f2">'+fmtR$k(total)+'</span>':'')
    + '<span class="cp-f3">'+nAb+' abaixo do mínimo</span>'
@@ -1133,9 +1162,11 @@ function renderCompra(){
    + '<th style="width:172px">Pedir</th><th style="width:150px">Observação</th>'
    + '</tr></thead><tbody>';
 
+  var pend=pendentePorPeca();
   var fAtual=null;
   lista.forEach(function(p){
     var id=p.firestoreId;
+    var pd=pend[id];
     /* Se ainda não mexeram na linha, mostra a sugestão. Zero aparece como
        zero mesmo — a pessoa vê que o app olhou e concluiu que não precisa. */
     var mexido=Object.prototype.hasOwnProperty.call(pedido,id);
@@ -1158,7 +1189,10 @@ function renderCompra(){
     var st=abaixoMin(p)?'cp-baixo':(num(p.saldo)<=0?'cp-zero':'');
     h+='<tr class="'+(q>0?'cp-on ':'')+st+'">'
      + '<td class="mono" style="color:var(--muted)">'+esc(p.codigo||'—')+'</td>'
-     + '<td><b>'+esc(p.nome||'—')+'</b></td>'
+     + '<td><b>'+esc(p.nome||'—')+'</b>'
+     +   (pd ? '<span class="pd-flag" title="'+esc(Object.keys(pd.fornecedores).join(', '))+'">'
+              + '📦 '+fmtN(pd.qtd,0)+' a caminho</span>' : '')
+     + '</td>'
      + '<td style="color:var(--muted);font-size:12px">'+esc(p.fornecedor||'—')+'</td>'
      + '<td class="r mono"'+(abaixoMin(p)?' style="color:var(--amber);font-weight:700"':'')+'>'
      +   fmtN(num(p.saldo),0)+' <span style="color:var(--muted);font-size:10px">'+esc(p.unidade||'un')+'</span></td>'
@@ -1278,6 +1312,7 @@ window.gerarTextoFornecedor=function(nomeForn){
 };
 
 function renderEstoque(){
+  var pendEst=pendentePorPeca();
   // categorias
   var cats={}, forns={};
   pecas.forEach(function(p){ if(p.categoria) cats[p.categoria]=1; if(p.fornecedor) forns[p.fornecedor]=1; });
@@ -1299,7 +1334,8 @@ function renderEstoque(){
   document.getElementById('est-kpis').innerHTML=[
     '<div class="card"><div class="klabel">Peças cadastradas</div><div class="kval">'+pecas.length+'</div><div class="khint">'+nZero+' com saldo zero</div></div>',
     '<div class="card"><div class="klabel">Valor em estoque</div><div class="kval">'+fmtR$k(valTotal)+'</div><div class="khint">saldo × último preço</div></div>',
-    '<div class="card"><div class="klabel">Abaixo do mínimo</div><div class="kval" style="color:'+(nAbaixo>0?'var(--amber)':'var(--green)')+'">'+nAbaixo+'</div><div class="khint">precisa reposição</div></div>',
+    '<div class="card"><div class="klabel">Abaixo do mínimo</div><div class="kval" style="color:'+(nAbaixo>0?'var(--amber)':'var(--green)')+'">'+nAbaixo+'</div><div class="khint">'+
+      (function(){ var n=Object.keys(pendEst).length; return n ? n+' com pedido a caminho' : 'precisa reposição'; })()+'</div></div>',
     '<div class="card"><div class="klabel">Movimentos (30 dias)</div><div class="kval">'+movsPeriodo(30).length+'</div><div class="khint">entradas e saídas</div></div>'
   ].join('');
 
@@ -1326,7 +1362,11 @@ function renderEstoque(){
     var s=num(p.saldo), baixo=abaixoMin(p);
     html+='<tr>'+
       '<td class="mono" style="font-size:11.5px;color:var(--muted)">'+esc(p.codigo||'—')+'</td>'+
-      '<td><div class="nm">'+esc(p.nome||'—')+'</div></td>'+
+      '<td><div class="nm">'+esc(p.nome||'—')+
+        (pendEst[p.firestoreId]
+          ? '<span class="pd-flag" title="'+esc(Object.keys(pendEst[p.firestoreId].fornecedores).join(', '))+'">'
+            + '📦 '+fmtN(pendEst[p.firestoreId].qtd,0)+' a caminho</span>'
+          : '')+'</div></td>'+
       '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.fornecedor||'—')+'</td>'+
       '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.categoria||'—')+'</td>'+
       '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.local||'—')+'</td>'+
