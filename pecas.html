@@ -157,9 +157,19 @@ tbody tr:hover{background:var(--card-2)}
 }
 
 /* ---- Montar pedido ---- */
-.cp-barra{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+.cp-faixa{position:relative;display:flex;align-items:center;gap:9px;flex-wrap:wrap;
           background:var(--card);border:1px solid var(--border);border-left:3px solid var(--primary);
-          border-radius:11px;padding:12px 15px;margin-bottom:13px;font-size:13.5px}
+          border-radius:10px;padding:9px 13px;margin-bottom:11px;font-size:13px}
+.cp-f1{font-size:13.5px}
+.cp-f1 b{font-size:16px}
+.cp-f2{font-size:12px;color:var(--muted);border-left:1px solid var(--border);padding-left:9px}
+.cp-f3{font-size:12px;color:var(--amber);border-left:1px solid var(--border);padding-left:9px}
+.cp-ajuda{margin-left:auto;width:22px;height:22px;flex:0 0 auto;border-radius:50%;cursor:pointer;
+          background:none;border:1px solid var(--border);color:var(--muted);font-family:inherit;
+          font-size:12px;font-weight:700;line-height:1}
+.cp-ajuda:hover{border-color:var(--primary);color:var(--primary)}
+.cp-faixa .cp-leg{display:none}
+.cp-faixa.abre .cp-leg{display:block;flex:1 1 100%;margin:8px 0 0}
 .cp-qtd{display:flex;align-items:center;gap:5px}
 .cp-qtd input{width:66px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:14px;
               font-weight:700;padding:7px 4px;background:var(--card-2);border:1px solid var(--border);
@@ -168,12 +178,22 @@ tbody tr:hover{background:var(--card-2)}
 .cp-b{width:30px;height:32px;flex:0 0 auto;background:var(--card-2);border:1px solid var(--border);
       color:var(--muted);border-radius:7px;font-size:16px;line-height:1;cursor:pointer;font-family:inherit}
 .cp-b:hover{border-color:var(--primary);color:var(--primary)}
+.cp-glinha{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.cp-glinha .cp-ger,.cp-glinha .cp-ger-off{margin-left:auto}
+.cp-ger{background:var(--green,#1cc47e);border:none;color:#08130d;font-family:inherit;
+        font-weight:700;font-size:11.5px;padding:5px 13px;border-radius:7px;cursor:pointer;white-space:nowrap}
+.cp-ger:hover{filter:brightness(1.1)}
+.cp-ger-off{display:inline-block;font-size:11.5px;font-weight:600;color:var(--muted);
+            border:1px dashed var(--border);border-radius:7px;padding:4px 12px;white-space:nowrap;opacity:.55}
+.cp-sug{color:var(--blue,#4b7bec)!important;border-color:var(--blue,#4b7bec)!important;opacity:.9}
+.cp-leg{font-size:11.5px;color:var(--muted);line-height:1.6;padding:9px 12px;
+        background:var(--card-2);border-radius:8px}
 .cp-obs{width:100%;background:none;border:none;border-bottom:1px dashed var(--border);color:var(--text);
         font-family:inherit;font-size:12.5px;padding:4px 2px;outline:none}
 .cp-obs:focus{border-bottom-color:var(--primary);border-bottom-style:solid}
-tr.cp-grupo td{background:var(--card-2);padding:11px 12px;border-top:2px solid var(--primary);
+tr.cp-grupo td{background:var(--card-2);padding:7px 12px;border-top:2px solid var(--primary);
                border-bottom:1px solid var(--border)}
-.cp-gn{font-size:14.5px;font-weight:800;letter-spacing:-.2px;color:var(--text);margin-right:11px}
+.cp-gn{font-size:14px;font-weight:800;letter-spacing:-.2px;color:var(--text);margin-right:8px}
 .cp-gq{font-size:11px;color:var(--muted);background:var(--card);border:1px solid var(--border);
        border-radius:20px;padding:2px 9px;margin-right:6px;white-space:nowrap}
 .cp-gp{font-size:11px;font-weight:700;color:var(--primary);background:var(--primary-soft,rgba(47,174,125,.12));
@@ -209,6 +229,46 @@ tr.cp-zero td:nth-child(4){color:var(--red)}
 .cp-zap input{width:100%;background:var(--card-2);border:1px solid var(--border);color:var(--text);
               border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13.5px}
 .cp-btns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
+
+
+/* ---- Pedidos ---- */
+.cp-conf{background:var(--primary);border:none;color:#fff;font-family:inherit;font-weight:700;
+         font-size:11.5px;padding:5px 13px;border-radius:7px;cursor:pointer;white-space:nowrap;margin-left:7px}
+.cp-conf:hover{filter:brightness(1.1)}
+.pd-card{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--muted);
+         border-radius:12px;padding:15px 17px;margin-bottom:12px}
+.pd-aguardando{border-left-color:var(--amber)}
+.pd-parcial{border-left-color:var(--blue,#4b7bec)}
+.pd-recebido{border-left-color:var(--green)}
+.pd-cancelado{border-left-color:var(--red);opacity:.72}
+.pd-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:9px}
+.pd-forn{font-size:15.5px;font-weight:800;letter-spacing:-.2px;margin-right:9px}
+.pd-st{font-size:10.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;
+       border-radius:20px;padding:2px 10px;white-space:nowrap}
+.pd-st-aguardando{color:var(--amber);background:rgba(245,176,19,.13);border:1px solid rgba(245,176,19,.36)}
+.pd-st-parcial{color:var(--blue,#4b7bec);background:rgba(75,123,236,.13);border:1px solid rgba(75,123,236,.36)}
+.pd-st-recebido{color:var(--green);background:rgba(28,196,126,.13);border:1px solid rgba(28,196,126,.36)}
+.pd-st-cancelado{color:var(--red);background:rgba(242,106,106,.13);border:1px solid rgba(242,106,106,.36)}
+.pd-meta{font-size:11.5px;color:var(--muted)}
+.pd-obs{font-size:12.5px;color:var(--muted);font-style:italic;margin-bottom:9px}
+.pd-itens{border-top:1px solid var(--border);padding-top:8px;margin-bottom:10px}
+.pd-li{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0}
+.pd-li b{font-family:'JetBrains Mono',monospace;font-size:12.5px;white-space:nowrap}
+.pd-li-ok{color:var(--muted)}
+.pd-li-ok b{color:var(--green)}
+.pd-barra{height:6px;background:var(--card-2);border-radius:4px;overflow:hidden;margin-bottom:5px}
+.pd-fill{height:100%;background:var(--green);transition:width .2s}
+.pd-pct{font-size:11.5px;color:var(--muted);margin-bottom:10px}
+.pd-canc{font-size:12px;color:var(--red);background:rgba(242,106,106,.08);border-radius:8px;
+         padding:7px 11px;margin-bottom:10px}
+.pd-btns{display:flex;gap:8px;flex-wrap:wrap}
+.pd-lista{border:1px solid var(--border);border-radius:9px;padding:10px 12px;max-height:230px;overflow:auto}
+.pd-tab td{vertical-align:middle}
+.pd-cod{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted)}
+.pd-in,.pd-pr{width:100%;background:var(--card-2);border:1px solid var(--border);color:var(--text);
+              border-radius:7px;padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:13px}
+.pd-in:focus,.pd-pr:focus{outline:2px solid var(--primary);outline-offset:-1px}
+tr.pd-ok td{opacity:.5}
 
 </style>
 </head>
@@ -247,6 +307,7 @@ tr.cp-zero td:nth-child(4){color:var(--red)}
     <button class="navbtn on" data-p="estoque" onclick="nav('estoque')"><span class="side-ico">▤</span><span class="lbl">Estoque</span></button>
     <button class="navbtn" data-p="mov" onclick="nav('mov')"><span class="side-ico">⇅</span><span class="lbl">Movimentos</span></button>
     <button class="navbtn" data-p="compra" onclick="nav('compra')"><span class="side-ico">🛒</span><span class="lbl">Montar pedido</span></button>
+    <button class="navbtn" data-p="pedidos" onclick="nav('pedidos')"><span class="side-ico">📦</span><span class="lbl">Pedidos</span></button>
     <button class="navbtn" data-p="cad" onclick="nav('cad')"><span class="side-ico">◇</span><span class="lbl">Cadastro</span></button>
     <div class="side-foot">
       <div class="uline">
@@ -316,6 +377,22 @@ tr.cp-zero td:nth-child(4){color:var(--red)}
       <div class="tw"><div class="tscroll"><table id="tbl-mov"></table></div></div>
     </div>
 
+    <!-- PEDIDOS -->
+    <div class="page" id="page-pedidos">
+      <div class="tools">
+        <select id="pd-filtro" onchange="render()">
+          <option value="abertos">Em aberto</option>
+          <option value="aguardando">Aguardando</option>
+          <option value="parcial">Parcial</option>
+          <option value="recebido">Recebidos</option>
+          <option value="cancelado">Cancelados</option>
+          <option value="todos">Todos</option>
+        </select>
+        <input type="text" id="pd-busca" placeholder="Buscar fornecedor ou observação" oninput="render()" style="min-width:220px">
+      </div>
+      <div id="pd-saida"></div>
+    </div>
+
     <!-- MONTAR PEDIDO -->
     <div class="page" id="page-compra">
       <div class="tools">
@@ -329,8 +406,9 @@ tr.cp-zero td:nth-child(4){color:var(--red)}
           <option value="nopedido">Só o que está no pedido</option>
         </select>
         <input type="text" id="cp-busca" placeholder="Buscar peça, código ou fornecedor" oninput="render()" style="min-width:220px">
-        <button class="btn btn-sm" onclick="sugerirPedido()">Sugerir pelo mínimo</button>
-        <button class="btn btn-sm btn-ghost" onclick="limparPedido()">Limpar</button>
+
+        <button class="btn btn-sm btn-ghost" onclick="restaurarSugestao()">Restaurar sugestão</button>
+        <button class="btn btn-sm btn-ghost" onclick="limparPedido()">Zerar</button>
       </div>
       <div id="cp-saida"></div>
     </div>
@@ -371,6 +449,9 @@ const auth = getAuth(appC);
 
 /* ============ ESTADO ============ */
 var pagina='estoque', sessaoEmail='', currentRole=null, currentAtivo=false, podeLancar=false;
+/* pecasRecebe: dá baixa na mercadoria que chega. Separado de pecasMov de
+   propósito — quem pede não deve ser quem confirma o recebimento. */
+var flagRecebe=false;
 var pecas=[], movs=[];
 var subs={}, errosLeitura={};
 var ord={ est:{col:'nome',dir:1}, mov:{col:'em',dir:-1}, cad:{col:'codigo',dir:1} };
@@ -380,7 +461,8 @@ const TITLES={
   estoque:['Estoque','Saldo, mínimo e valor das peças'],
   mov:['Movimentos','Entradas e saídas registradas'],
   cad:['Cadastro','Peças e importação por planilha'],
-  compra:['Montar pedido','Escolha as peças e gere o texto para o fornecedor']
+  compra:['Montar pedido','Escolha as peças e gere o texto para o fornecedor'],
+  pedidos:['Pedidos','Confirmados, a caminho e recebidos']
 };
 
 /* ============ UTIL ============ */
@@ -591,7 +673,8 @@ function render(){
   document.querySelectorAll('.admin-mov').forEach(function(el){ el.style.display=podeLancar?'':'none'; });
   renderAvisos();
   if(podeLancar) publicarResumo();
-  if(pagina==='compra') renderCompra();
+  if(pagina==='pedidos') renderPedidos();
+  else if(pagina==='compra') renderCompra();
   else if(pagina==='estoque') renderEstoque();
   else if(pagina==='mov') renderMov();
   else if(pagina==='cad') renderCad();
@@ -610,6 +693,291 @@ var COLS_EST=[
   { k:'valor',  l:'Valor em estoque', r:1, v:function(p){ return valorEstoque(p)||null; } }
 ];
 
+
+/* ============ PEDIDOS DE COMPRA ============
+   Fluxo: a Simone confirma o pedido → ele fica AGUARDANDO, sem tocar no
+   estoque. Quando chega, o Anderson dá baixa item a item → aí nascem os
+   movimentos de entrada e o saldo sobe.
+
+   Os pedidos ficam em coleção própria (pecasPedidos), fora do movPecas.
+   O histórico de movimentos é o que forma o saldo — documento que "não
+   conta" ali obrigaria todo cálculo a filtrar por status, e bastaria um
+   esquecimento para o saldo mentir.
+
+   Status: aguardando · parcial · recebido · cancelado.
+   Cancelado não some: fica na lista, marcado. */
+
+var pedidosCompra=[];
+
+function podeReceber(){
+  return currentRole==='admin' || flagRecebe===true;
+}
+
+function statusPedido(p){
+  return p.status || 'aguardando';
+}
+var PED_ROTULO={ aguardando:'Aguardando', parcial:'Parcial', recebido:'Recebido', cancelado:'Cancelado' };
+
+function pedidoPendente(it){
+  return Math.max(0, num(it.qtd) - num(it.recebido));
+}
+function pedidoTemPendencia(p){
+  return (p.itens||[]).some(function(it){ return pedidoPendente(it)>0; });
+}
+
+/* ---- confirmar ---- */
+window.confirmarPedido=function(nomeForn){
+  var g=null;
+  pedidoPorFornecedor().forEach(function(x){ if(x.fornecedor===nomeForn) g=x; });
+  if(!g || !g.itens.length){ alert('Nenhuma peça deste fornecedor no pedido.'); return; }
+  if(!podeLancar){ alert('Você não tem permissão para confirmar pedidos.'); return; }
+
+  var resumo=g.itens.map(function(x){
+    return '<div class="pd-li"><span>'+esc(x.p.nome||'')+'</span>'
+         + '<b>'+fmtN(x.qtd,0)+' '+esc(x.p.unidade||'un')+'</b></div>';
+  }).join('');
+
+  modal({
+    titulo:'Confirmar pedido',
+    sub:esc(g.fornecedor)+' · '+g.itens.length+(g.itens.length===1?' item':' itens'),
+    body:'<div class="alert a-info">O pedido fica registrado como <b>aguardando</b>. '
+       + 'O estoque só muda quando a mercadoria chegar e alguém der baixa.</div>'
+       + '<div class="pd-lista">'+resumo+'</div>'
+       + '<div class="fld" style="margin-top:12px"><label>Observação do pedido</label>'
+       + '<input type="text" id="pd-obs" maxlength="140" placeholder="nº da cotação, prazo combinado…"></div>',
+    ok:'Confirmar pedido',
+    onOk:function(){
+      var obs=String((document.getElementById('pd-obs')||{}).value||'').trim();
+      var itens=g.itens.map(function(x){
+        return { pecaId:x.p.firestoreId, codigo:x.p.codigo||'', nome:x.p.nome||'',
+                 unidade:x.p.unidade||'un', qtd:x.qtd, recebido:0, obs:x.obs||'' };
+      });
+      addDoc(collection(dbC,'pecasPedidos'), {
+        fornecedor:g.fornecedor, itens:itens, status:'aguardando',
+        obs:obs, criadoPor:sessaoEmail, criadoEm:agora(),
+        valorEstimado:g.valor||0
+      })
+      .then(function(){
+        /* tira do rascunho só o que foi confirmado — o resto continua montado */
+        g.itens.forEach(function(x){ pedido[x.p.firestoreId]=0; delete pedidoObs[x.p.firestoreId]; });
+        render();
+      })
+      .catch(function(e){
+        console.error('confirmarPedido:',e);
+        alert('Não foi possível confirmar: '+(e.code||e.message));
+      });
+    }
+  });
+};
+
+/* ---- cancelar: marca, não apaga ---- */
+window.cancelarPedido=function(id){
+  var p=pedidosCompra.filter(function(x){ return x.firestoreId===id; })[0];
+  if(!p) return;
+  if(statusPedido(p)==='cancelado'){ alert('Este pedido já está cancelado.'); return; }
+  if(statusPedido(p)==='recebido'){ alert('Pedido já recebido não pode ser cancelado.'); return; }
+  modal({
+    titulo:'Cancelar pedido',
+    sub:esc(p.fornecedor||''),
+    body:'<div class="alert a-warn">▲ O pedido continua na lista, marcado como <b>cancelado</b>. '
+       + 'Nada é apagado — o registro de que foi pedido e depois cancelado fica.</div>'
+       + '<div class="fld"><label>Motivo</label>'
+       + '<input type="text" id="pd-mot" maxlength="140" placeholder="fornecedor sem estoque, preço, desistência…"></div>',
+    ok:'Cancelar pedido',
+    onOk:function(){
+      var m=String((document.getElementById('pd-mot')||{}).value||'').trim();
+      if(!m){ alert('Informe o motivo do cancelamento.'); return false; }
+      updateDoc(doc(dbC,'pecasPedidos',id), {
+        status:'cancelado', canceladoPor:sessaoEmail, canceladoEm:agora(), motivoCancelamento:m
+      }).catch(function(e){
+        console.error('cancelarPedido:',e);
+        alert('Não foi possível cancelar: '+(e.code||e.message));
+      });
+    }
+  });
+};
+
+/* ---- receber: gera os movimentos de entrada ---- */
+window.receberPedido=function(id){
+  if(!podeReceber()){ alert('Só quem recebe mercadoria pode dar baixa no pedido.'); return; }
+  var p=pedidosCompra.filter(function(x){ return x.firestoreId===id; })[0];
+  if(!p) return;
+  if(statusPedido(p)==='cancelado'){ alert('Pedido cancelado.'); return; }
+
+  var linhas=(p.itens||[]).map(function(it,i){
+    var falta=pedidoPendente(it);
+    return '<tr'+(falta?'':' class="pd-ok"')+'>'
+      + '<td>'+esc(it.nome||'')+'<div class="pd-cod">'+esc(it.codigo||'')+'</div></td>'
+      + '<td class="r">'+fmtN(num(it.qtd),0)+'</td>'
+      + '<td class="r">'+fmtN(num(it.recebido),0)+'</td>'
+      + '<td><input type="number" min="0" step="1" class="pd-in" data-i="'+i+'" '
+      +   'value="'+(falta||'')+'" placeholder="0" '+(falta?'':'disabled')+'></td>'
+      + '<td><input type="number" min="0" step="0.01" class="pd-pr" data-i="'+i+'" '
+      +   'placeholder="—" '+(falta?'':'disabled')+'></td>'
+      + '</tr>';
+  }).join('');
+
+  modal({
+    titulo:'Receber mercadoria',
+    sub:esc(p.fornecedor||'')+' · pedido de '+esc(dataBR((p.criadoEm||'').slice(0,10))),
+    body:'<div class="alert a-info">Confira o que chegou. O campo vem preenchido com o que falta — '
+       + 'ajuste se veio diferente. Só o que você confirmar entra no estoque.</div>'
+       + '<div class="tw"><div class="tscroll" style="max-height:330px"><table class="pd-tab"><thead><tr>'
+       + '<th>Peça</th><th class="r">Pedido</th><th class="r">Já veio</th>'
+       + '<th style="width:88px">Chegou</th><th style="width:92px">R$ un</th>'
+       + '</tr></thead><tbody>'+linhas+'</tbody></table></div></div>',
+    ok:'Dar baixa',
+    onOk:function(){
+      var recs=[];
+      document.querySelectorAll('.pd-in').forEach(function(inp){
+        var i=parseInt(inp.getAttribute('data-i'),10);
+        var q=parseFloat(String(inp.value).replace(',','.'));
+        if(!isFinite(q) || q<=0) return;
+        var it=p.itens[i];
+        var falta=pedidoPendente(it);
+        if(q>falta && !confirm('Chegou mais '+it.nome+' do que faltava ('+q+' contra '+falta+').\n\nEntrar assim mesmo?')) return;
+        var pr=parseFloat(String((document.querySelector('.pd-pr[data-i="'+i+'"]')||{}).value||'').replace(',','.'));
+        recs.push({ i:i, qtd:q, preco:(isFinite(pr)&&pr>0)?pr:0 });
+      });
+      if(!recs.length){ alert('Informe o que chegou em ao menos uma peça.'); return false; }
+      darBaixaPedido(p, recs);
+    }
+  });
+};
+
+function darBaixaPedido(p, recs){
+  var ts=agora();
+  var tarefas=recs.map(function(r){
+    var it=p.itens[r.i];
+    var upd={ saldo:increment(r.qtd), atualizadoEm:ts };
+    if(r.preco>0){ upd.precoUn=r.preco; upd.precoAtualizadoEm=ts; }
+    return setDoc(doc(dbC,'estoquePecas',it.pecaId), upd, { merge:true })
+      .then(function(){
+        return addDoc(collection(dbC,'movPecas'), {
+          pecaId:it.pecaId, codigo:it.codigo||'', nome:it.nome||'',
+          tipo:'entrada', qtd:r.qtd, precoUn:r.preco,
+          obs:'Pedido '+(p.fornecedor||'')+(p.obs?' · '+p.obs:''),
+          pedidoId:p.firestoreId,
+          quem:sessaoEmail, em:ts
+        });
+      });
+  });
+
+  Promise.all(tarefas).then(function(){
+    var itens=(p.itens||[]).map(function(it,i){ return Object.assign({}, it); });
+    recs.forEach(function(r){ itens[r.i].recebido=num(itens[r.i].recebido)+r.qtd; });
+    var falta=itens.some(function(it){ return pedidoPendente(it)>0; });
+    return updateDoc(doc(dbC,'pecasPedidos',p.firestoreId), {
+      itens:itens,
+      status: falta ? 'parcial' : 'recebido',
+      recebidoPor:sessaoEmail,
+      recebidoEm:ts
+    });
+  }).catch(function(e){
+    console.error('darBaixaPedido:',e);
+    alert('Erro ao dar baixa: '+(e.code||e.message)
+        + '\n\nConfira os movimentos: parte das peças pode ter entrado.');
+  });
+}
+
+/* ---- tela ---- */
+function renderPedidos(){
+  var alvo=document.getElementById('pd-saida');
+  if(!alvo) return;
+  var fil=(document.getElementById('pd-filtro')||{}).value||'abertos';
+  var termo=((document.getElementById('pd-busca')||{}).value||'').toLowerCase();
+
+  var lista=pedidosCompra.filter(function(p){
+    var st=statusPedido(p);
+    if(fil==='abertos' && (st==='recebido'||st==='cancelado')) return false;
+    if(fil && fil!=='abertos' && fil!=='todos' && st!==fil) return false;
+    if(termo && ((p.fornecedor||'')+' '+(p.obs||'')).toLowerCase().indexOf(termo)<0) return false;
+    return true;
+  });
+
+  var nAg=pedidosCompra.filter(function(p){ return statusPedido(p)==='aguardando'; }).length;
+  var nPa=pedidosCompra.filter(function(p){ return statusPedido(p)==='parcial'; }).length;
+
+  var h='<div class="cp-faixa">'
+   + '<span class="cp-f1"><b>'+nAg+'</b> aguardando</span>'
+   + (nPa?'<span class="cp-f3">'+nPa+' parcial'+(nPa===1?'':'is')+'</span>':'')
+   + '<span class="cp-f2">'+pedidosCompra.length+' no total</span>'
+   + '</div>';
+
+  if(!lista.length){
+    h+='<div class="alert a-info">Nenhum pedido aqui. Monte em <b>Montar pedido</b> e confirme no botão do fornecedor.</div>';
+    alvo.innerHTML=h;
+    return;
+  }
+
+  lista.forEach(function(p){
+    var st=statusPedido(p);
+    var itens=p.itens||[];
+    var totPed=itens.reduce(function(t,x){ return t+num(x.qtd); },0);
+    var totRec=itens.reduce(function(t,x){ return t+num(x.recebido); },0);
+    var pct=totPed>0 ? Math.round(totRec/totPed*100) : 0;
+
+    h+='<div class="pd-card pd-'+st+'">'
+     + '<div class="pd-top">'
+     +   '<div><span class="pd-forn">'+esc(p.fornecedor||'—')+'</span>'
+     +     '<span class="pd-st pd-st-'+st+'">'+PED_ROTULO[st]+'</span></div>'
+     +   '<div class="pd-meta">'+esc(dataBR((p.criadoEm||'').slice(0,10)))
+     +     ' · '+esc(p.criadoPor||'')+'</div>'
+     + '</div>';
+
+    if(p.obs) h+='<div class="pd-obs">'+esc(p.obs)+'</div>';
+
+    h+='<div class="pd-itens">';
+    itens.forEach(function(it){
+      var falta=pedidoPendente(it);
+      h+='<div class="pd-li'+(falta?'':' pd-li-ok')+'">'
+       + '<span>'+esc(it.nome||'')+'</span>'
+       + '<b>'+fmtN(num(it.recebido),0)+' / '+fmtN(num(it.qtd),0)+' '+esc(it.unidade||'un')+'</b>'
+       + '</div>';
+    });
+    h+='</div>';
+
+    if(st!=='cancelado' && totPed>0){
+      h+='<div class="pd-barra"><div class="pd-fill" style="width:'+pct+'%"></div></div>'
+       + '<div class="pd-pct">'+fmtN(totRec,0)+' de '+fmtN(totPed,0)+' recebidos ('+pct+'%)</div>';
+    }
+
+    if(st==='cancelado'){
+      h+='<div class="pd-canc">Cancelado por '+esc(p.canceladoPor||'')
+       + (p.canceladoEm?' em '+esc(dataBR(String(p.canceladoEm).slice(0,10))):'')
+       + (p.motivoCancelamento?' · '+esc(p.motivoCancelamento):'')+'</div>';
+    }
+
+    h+='<div class="pd-btns">';
+    if(st!=='recebido' && st!=='cancelado'){
+      if(podeReceber())
+        h+='<button class="cp-ger" onclick="receberPedido(\'' + esc(p.firestoreId) + '\')">Receber</button>';
+      if(podeLancar)
+        h+='<button class="btn btn-sm btn-ghost" onclick="cancelarPedido(\'' + esc(p.firestoreId) + '\')">Cancelar</button>';
+    }
+    h+='<button class="btn btn-sm btn-ghost" onclick="textoPedidoSalvo(\'' + esc(p.firestoreId) + '\')">Ver texto</button>';
+    h+='</div></div>';
+  });
+
+  alvo.innerHTML=h;
+}
+
+window.textoPedidoSalvo=function(id){
+  var p=pedidosCompra.filter(function(x){ return x.firestoreId===id; })[0];
+  if(!p) return;
+  var g={ fornecedor:p.fornecedor||'', valor:num(p.valorEstimado),
+          itens:(p.itens||[]).map(function(it){
+            return { p:{ nome:it.nome, codigo:it.codigo, unidade:it.unidade }, qtd:num(it.qtd), obs:it.obs||'' };
+          }) };
+  var txt=textoDoFornecedor(g);
+  modal({
+    titulo:'Texto do pedido',
+    sub:esc(g.fornecedor),
+    body:'<textarea class="cp-txt" id="pd-txt" spellcheck="false">'+esc(txt)+'</textarea>',
+    extra:'<button class="btn btn-sm btn-ghost" onclick="(function(){var t=document.getElementById(\'pd-txt\');t.select();try{document.execCommand(\'copy\');}catch(e){}})()">Copiar</button>'
+  });
+};
+
 /* ============ MONTAR PEDIDO ============
    Mesma lógica do Produlog, que a Simone já usa: escolhe as quantidades,
    gera um texto pronto e manda pro fornecedor. A diferença é que aqui o
@@ -619,12 +987,16 @@ var pedido = {};          /* firestoreId -> quantidade */
 var pedidoObs = {};       /* firestoreId -> observação */
 
 function pedidoItens(){
-  var out=[], k, p;
-  for(k in pedido){
-    if(!(pedido[k]>0)) continue;
-    p=pecaPorId(k);
-    if(!p) continue;
-    out.push({ p:p, qtd:pedido[k], obs:pedidoObs[k]||'' });
+  var out=[], i, p, q;
+  /* Entra no pedido o que foi digitado e também o que o app sugeriu e ninguém
+     alterou — senão a pessoa veria o número na tela e ele não iria no texto. */
+  for(i=0;i<pecas.length;i++){
+    p=pecas[i];
+    q=Object.prototype.hasOwnProperty.call(pedido,p.firestoreId)
+      ? num(pedido[p.firestoreId])
+      : sugestaoPedir(p);
+    if(!(q>0)) continue;
+    out.push({ p:p, qtd:q, obs:pedidoObs[p.firestoreId]||'' });
   }
   return out.sort(function(a,b){
     return String(a.p.fornecedor||'').localeCompare(String(b.p.fornecedor||''))
@@ -640,14 +1012,17 @@ function pedidoTotal(){
 
 window.setQtdPedido=function(id, v){
   var n=parseFloat(String(v).replace(',','.'));
-  if(isFinite(n) && n>0) pedido[id]=n; else delete pedido[id];
+  /* grava 0 em vez de apagar a chave: apagar faria a sugestão voltar sozinha */
+  pedido[id]=(isFinite(n) && n>0) ? n : 0;
   atualizarResumoPedido();
 };
 
 window.passoQtd=function(id, d){
-  var atual=num(pedido[id]);
-  var novo=Math.max(0, atual+d);
-  if(novo>0) pedido[id]=novo; else delete pedido[id];
+  var p=pecaPorId(id);
+  var atual=Object.prototype.hasOwnProperty.call(pedido,id)
+    ? num(pedido[id])
+    : (p?sugestaoPedir(p):0);
+  pedido[id]=Math.max(0, atual+d);
   render();
 };
 
@@ -657,22 +1032,42 @@ window.setObsPedido=function(id, v){
 };
 
 window.limparPedido=function(){
-  if(!Object.keys(pedido).length) return;
-  if(!confirm('Tirar todas as peças do pedido?')) return;
-  pedido={}; pedidoObs={}; render();
+  if(!pedidoItens().length) return;
+  if(!confirm('Zerar o pedido? As sugestões automáticas também saem.')) return;
+  pedido={}; pedidoObs={};
+  /* zera explicitamente, senão a sugestão volta na hora */
+  pecas.forEach(function(p){ pedido[p.firestoreId]=0; });
+  render();
 };
 
-/* Sugere repor até o mínimo. Só preenche o que está faltando — não mexe
-   no que a pessoa já digitou à mão. */
+/* volta tudo para o que o app sugere */
+window.restaurarSugestao=function(){
+  pedido={}; pedidoObs={};
+  render();
+};
+
+/* Quanto pedir, por padrão: a lacuna até o mínimo, com 50% de folga.
+   (mínimo − saldo) × 1,5, arredondado para cima.
+   Saldo igual ou acima do mínimo não precisa de nada, então dá zero — e
+   peça sem mínimo cadastrado também, porque aí não há do que calcular. */
+function sugestaoPedir(p){
+  var min=num(p.minimo), saldo=num(p.saldo);
+  if(!(min>0)) return 0;
+  var falta=min-saldo;
+  if(falta<=0) return 0;
+  return Math.ceil(falta*1.5);
+}
+
+/* Sugere repor de tudo que está faltando. Não mexe no que já foi digitado. */
 window.sugerirPedido=function(){
   var forn=(document.getElementById('cp-forn')||{}).value||'';
   var n=0;
   pecas.forEach(function(p){
     if(forn && (p.fornecedor||'')!==forn) return;
-    var min=num(p.minimo), saldo=num(p.saldo);
-    if(!(min>0) || saldo>=min) return;
     if(pedido[p.firestoreId]>0) return;
-    pedido[p.firestoreId]=Math.ceil(min-saldo);
+    var q=sugestaoPedir(p);
+    if(q<=0) return;
+    pedido[p.firestoreId]=q;
     n++;
   });
   render();
@@ -699,27 +1094,20 @@ function renderCompra(){
   var total=pedidoTotal();
   var h='';
 
-  h+='<div class="grid kpis">';
-  h+='<div class="card"><div class="klabel">No pedido</div><div class="kval">'+itens.length+'</div>'
-   + '<div class="khint">'+(itens.length===1?'peça':'peças')+'</div></div>';
-  h+='<div class="card"><div class="klabel">Valor estimado</div><div class="kval">'+(total>0?fmtR$k(total):'—')+'</div>'
-   + '<div class="khint">pelo último preço pago</div></div>';
   var nAb=pecas.filter(abaixoMin).length;
-  h+='<div class="card"><div class="klabel">Abaixo do mínimo</div>'
-   + '<div class="kval" style="color:'+(nAb>0?'var(--amber)':'var(--green)')+'">'+nAb+'</div>'
-   + '<div class="khint">precisam reposição</div></div>';
-  h+='</div>';
-
-  if(itens.length){
-    h+='<div class="cp-barra">'
-     + '<div><b>'+itens.length+'</b> peça'+(itens.length===1?'':'s')+' no pedido'
-     + (total>0?' · <b>'+fmtR$k(total)+'</b>':'')+'</div>'
-     + '<button class="btn btn-sm" onclick="gerarTextoPedido()">📋 Gerar texto do pedido</button>'
-     + '</div>';
-  } else {
-    h+='<div class="alert a-info">🛒 Informe a quantidade nas peças abaixo para montar o pedido. '
-     + 'O botão <b>Sugerir pelo mínimo</b> preenche sozinho o que está faltando.</div>';
-  }
+  var nForn=pedidoPorFornecedor().length;
+  h+='<div class="cp-faixa">'
+   + '<span class="cp-f1"><b>'+itens.length+'</b> '+(itens.length===1?'peça':'peças')+' no pedido</span>'
+   + (nForn?'<span class="cp-f2">'+nForn+' fornecedor'+(nForn===1?'':'es')+'</span>':'')
+   + (total>0?'<span class="cp-f2">'+fmtR$k(total)+'</span>':'')
+   + '<span class="cp-f3">'+nAb+' abaixo do mínimo</span>'
+   + '<button class="cp-ajuda" onclick="this.parentNode.classList.toggle(\'abre\')" '
+   +   'title="Como o número é calculado">?</button>'
+   + '<div class="cp-leg">Coluna <b>Pedir</b> pré-preenchida com (mínimo &minus; saldo) &times; 1,5, '
+   +   'arredondado para cima. Saldo igual ou acima do mínimo vira <b>0</b>. '
+   +   'Azul é sugestão; digitando por cima fica preto. '
+   +   'O texto sai por fornecedor, no botão verde de cada faixa.</div>'
+   + '</div>';
 
   var lista=pecas.filter(function(p){
     if(forn && (p.fornecedor||'')!==forn) return false;
@@ -748,17 +1136,24 @@ function renderCompra(){
   var fAtual=null;
   lista.forEach(function(p){
     var id=p.firestoreId;
-    var q=num(pedido[id]);
+    /* Se ainda não mexeram na linha, mostra a sugestão. Zero aparece como
+       zero mesmo — a pessoa vê que o app olhou e concluiu que não precisa. */
+    var mexido=Object.prototype.hasOwnProperty.call(pedido,id);
+    var q=mexido ? num(pedido[id]) : sugestaoPedir(p);
     var f=p.fornecedor||'(sem fornecedor)';
-    if(f!==fAtual && !forn){
+    if(f!==fAtual){
       fAtual=f;
       var noF=lista.filter(function(x){ return (x.fornecedor||'(sem fornecedor)')===f; });
-      var pedF=noF.filter(function(x){ return pedido[x.firestoreId]>0; }).length;
-      h+='<tr class="cp-grupo"><td colspan="7">'
+      var pedF=itens.filter(function(x){ return (x.p.fornecedor||'(sem fornecedor)')===f; }).length;
+      h+='<tr class="cp-grupo"><td colspan="7"><div class="cp-glinha">'
        + '<span class="cp-gn">'+esc(f)+'</span>'
        + '<span class="cp-gq">'+noF.length+' peça'+(noF.length===1?'':'s')+'</span>'
        + (pedF?'<span class="cp-gp">'+pedF+' no pedido</span>':'')
-       + '</td></tr>';
+       + (pedF
+          ? '<button class="cp-ger" onclick="gerarTextoFornecedor(\'' + esc(f).replace(/'/g,"\\'") + '\')">Gerar texto</button>'
+            + '<button class="cp-conf" onclick="confirmarPedido(\'' + esc(f).replace(/'/g,"\\'") + '\')">Confirmar pedido</button>'
+          : '<span class="cp-ger-off" title="Informe alguma quantidade neste fornecedor">Gerar texto</span>')
+       + '</div></td></tr>';
     }
     var st=abaixoMin(p)?'cp-baixo':(num(p.saldo)<=0?'cp-zero':'');
     h+='<tr class="'+(q>0?'cp-on ':'')+st+'">'
@@ -770,7 +1165,8 @@ function renderCompra(){
      + '<td class="r mono" style="color:var(--muted)">'+(num(p.minimo)||'—')+'</td>'
      + '<td><div class="cp-qtd">'
      +   '<button class="cp-b" onclick="passoQtd(\'' + esc(id) + '\',-1)" aria-label="Menos um">−</button>'
-     +   '<input type="number" min="0" step="1" value="'+(q>0?q:'')+'" placeholder="0" '
+     +   '<input type="number" min="0" step="1" value="'+q+'" '
+     +     (!mexido && q>0 ? 'class="cp-sug" title="Sugerido: (mínimo − saldo) × 1,5" ' : '')
      +     'oninput="setQtdPedido(\'' + esc(id) + '\',this.value)" '
      +     'onchange="render()">'
      +   '<button class="cp-b" onclick="passoQtd(\'' + esc(id) + '\',1)" aria-label="Mais um">+</button>'
@@ -786,12 +1182,9 @@ function renderCompra(){
 function atualizarResumoPedido(){
   /* Só o topo muda enquanto digita — redesenhar a tabela inteira tiraria o
      foco do campo a cada tecla. O render completo vem no onchange. */
-  var itens=pedidoItens(), total=pedidoTotal();
-  var b=document.querySelector('.cp-barra div');
-  if(b){
-    b.innerHTML='<b>'+itens.length+'</b> peça'+(itens.length===1?'':'s')+' no pedido'
-              + (total>0?' · <b>'+fmtR$k(total)+'</b>':'');
-  }
+  var itens=pedidoItens();
+  var b=document.querySelector('.cp-f1');
+  if(b) b.innerHTML='<b>'+itens.length+'</b> '+(itens.length===1?'peça':'peças')+' no pedido';
 }
 
 /* ---- texto para o fornecedor ----
@@ -831,67 +1224,57 @@ function textoDoFornecedor(g){
   return t;
 }
 
-window.gerarTextoPedido=function(){
-  var grupos=pedidoPorFornecedor();
-  if(!grupos.length){ alert('O pedido está vazio.'); return; }
+/* Uma mensagem por fornecedor: o botão fica na linha dele, e abre só com
+   as peças daquele fornecedor. Não existe "texto do pedido inteiro" porque
+   pedido inteiro não é algo que se envie para ninguém. */
+window.gerarTextoFornecedor=function(nomeForn){
+  var g=null;
+  pedidoPorFornecedor().forEach(function(x){ if(x.fornecedor===nomeForn) g=x; });
+  if(!g || !g.itens.length){ alert('Nenhuma peça deste fornecedor no pedido.'); return; }
 
+  var txt=textoDoFornecedor(g);
   var host=document.getElementById('modal-host')||document.body;
   var d=document.createElement('div');
   d.className='cp-modal';
-
-  var h='<div class="cp-box">'
-      + '<div class="cp-h">📋 Pedido por fornecedor</div>'
-      + '<div class="cp-sub">'+grupos.length+' fornecedor'+(grupos.length===1?'':'es')
-      +   ' · uma mensagem para cada um. Copie e envie separadamente.</div>';
-
-  grupos.forEach(function(g, i){
-    var txt=textoDoFornecedor(g);
-    h+='<div class="cp-forn-bloco">'
-     + '<div class="cp-forn-top">'
-     +   '<div><span class="cp-forn-n">'+esc(g.fornecedor)+'</span>'
-     +     '<span class="cp-forn-q">'+g.itens.length+(g.itens.length===1?' item':' itens')
-     +     (g.valor>0?' · '+fmtR$k(g.valor):'')+'</span></div>'
-     + '</div>'
-     + '<textarea class="cp-txt" data-i="'+i+'" spellcheck="false">'+esc(txt)+'</textarea>'
-     + '<div class="cp-linha-btn">'
-     +   '<input type="tel" class="cp-fone" data-i="'+i+'" placeholder="WhatsApp (opcional)" inputmode="tel">'
-     +   '<button class="btn btn-sm btn-ghost cp-zap" data-i="'+i+'">WhatsApp</button>'
-     +   '<button class="btn btn-sm cp-copiar" data-i="'+i+'">Copiar</button>'
-     + '</div></div>';
-  });
-
-  h+='<div class="cp-btns"><button class="btn btn-sm btn-ghost" id="cp-fechar">Fechar</button></div></div>';
-  d.innerHTML=h;
+  d.innerHTML='<div class="cp-box">'
+    + '<div class="cp-h">📋 '+esc(g.fornecedor)+'</div>'
+    + '<div class="cp-sub">'+g.itens.length+(g.itens.length===1?' item':' itens')
+    +   (g.valor>0?' · '+fmtR$k(g.valor):'')+' · copie e envie para este fornecedor</div>'
+    + '<textarea class="cp-txt" id="cp-txt-un" spellcheck="false">'+esc(txt)+'</textarea>'
+    + '<div class="cp-linha-btn">'
+    +   '<input type="tel" id="cp-fone-un" placeholder="WhatsApp (opcional)" inputmode="tel">'
+    +   '<button class="btn btn-sm btn-ghost" id="cp-zap-un">WhatsApp</button>'
+    +   '<button class="btn btn-sm" id="cp-copiar-un">Copiar</button>'
+    + '</div>'
+    + '<div class="cp-btns"><button class="btn btn-sm btn-ghost" id="cp-fechar">Fechar</button></div>'
+    + '</div>';
   host.appendChild(d);
 
   function fechar(){ d.remove(); }
   d.querySelector('#cp-fechar').onclick=fechar;
   d.onclick=function(e){ if(e.target===d) fechar(); };
 
-  d.querySelectorAll('.cp-copiar').forEach(function(b){
-    b.onclick=function(){
-      var ta=d.querySelector('.cp-txt[data-i="'+b.getAttribute('data-i')+'"]');
-      ta.select();
-      function ok(){ b.textContent='Copiado ✓'; setTimeout(function(){ b.textContent='Copiar'; },1800); }
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(ta.value).then(ok).catch(function(){
-          try{ document.execCommand('copy'); ok(); }catch(e){ alert('Selecione o texto e copie com Ctrl+C.'); }
-        });
-      } else {
+  d.querySelector('#cp-copiar-un').onclick=function(){
+    var ta=d.querySelector('#cp-txt-un');
+    ta.select();
+    var b=this;
+    function ok(){ b.textContent='Copiado ✓'; setTimeout(function(){ b.textContent='Copiar'; },1800); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(ta.value).then(ok).catch(function(){
         try{ document.execCommand('copy'); ok(); }catch(e){ alert('Selecione o texto e copie com Ctrl+C.'); }
-      }
-    };
-  });
+      });
+    } else {
+      try{ document.execCommand('copy'); ok(); }catch(e){ alert('Selecione o texto e copie com Ctrl+C.'); }
+    }
+  };
 
-  d.querySelectorAll('.cp-zap').forEach(function(b){
-    b.onclick=function(){
-      var i=b.getAttribute('data-i');
-      var ta=d.querySelector('.cp-txt[data-i="'+i+'"]');
-      var fn=d.querySelector('.cp-fone[data-i="'+i+'"]');
-      var fone=String((fn&&fn.value)||'').replace(/\D/g,'');
-      window.open('https://wa.me/'+(fone?('55'+fone):'')+'?text='+encodeURIComponent(ta.value),'_blank');
-    };
-  });
+  d.querySelector('#cp-zap-un').onclick=function(){
+    var fone=String((d.querySelector('#cp-fone-un')||{}).value||'').replace(/\D/g,'');
+    var ta=d.querySelector('#cp-txt-un');
+    window.open('https://wa.me/'+(fone?('55'+fone):'')+'?text='+encodeURIComponent(ta.value),'_blank');
+  };
+
+  setTimeout(function(){ var t=d.querySelector('#cp-txt-un'); if(t){ t.focus(); t.setSelectionRange(0,0); } },30);
 };
 
 function renderEstoque(){
@@ -1433,6 +1816,7 @@ function iniciarSessao(user){
     currentRole=d.role||'leitura';
     currentAtivo=d.ativo===true;
     var flag=(d.pecas===true);
+  flagRecebe=(d.pecasRecebe===true);
     if(!currentAtivo){ negar('Sua conta ('+sessaoEmail+') ainda não foi liberada por um administrador.'); return; }
     if(currentRole!=='admin' && !flag){ negar('O estoque de peças é restrito a quem tem a permissão (flag pecas).'); return; }
     podeLancar=(currentRole==='admin' || d.pecasMov===true);
@@ -1452,13 +1836,17 @@ function liberar(d){
     ultimaCarga=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     render();
   });
+  ouvir('pecasPedidos', query(collection(dbC,'pecasPedidos'), orderBy('criadoEm','desc'), limit(300)), function(s){
+    pedidosCompra=s.docs.map(function(x){ return Object.assign({ firestoreId:x.id }, x.data()); });
+    render();
+  });
   ouvir('movPecas', query(collection(dbC,'movPecas'), orderBy('em','desc'), limit(1500)), function(s){
     movs=s.docs.map(function(x){ return Object.assign({ firestoreId:x.id }, x.data()); });
     render();
   });
   render();
 }
-
+a
 /* ============ AUTH ============ */
 var overlay=document.getElementById('authOverlay');
 var emailEl=document.getElementById('authEmail'), senhaEl=document.getElementById('authSenha');
