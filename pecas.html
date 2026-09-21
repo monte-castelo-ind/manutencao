@@ -171,16 +171,35 @@ tbody tr:hover{background:var(--card-2)}
 .cp-obs{width:100%;background:none;border:none;border-bottom:1px dashed var(--border);color:var(--text);
         font-family:inherit;font-size:12.5px;padding:4px 2px;outline:none}
 .cp-obs:focus{border-bottom-color:var(--primary);border-bottom-style:solid}
-tr.cp-grupo td{background:var(--card-2);font-weight:700;font-size:11.5px;letter-spacing:.3px;
-               color:var(--muted);padding:7px 9px}
+tr.cp-grupo td{background:var(--card-2);padding:11px 12px;border-top:2px solid var(--primary);
+               border-bottom:1px solid var(--border)}
+.cp-gn{font-size:14.5px;font-weight:800;letter-spacing:-.2px;color:var(--text);margin-right:11px}
+.cp-gq{font-size:11px;color:var(--muted);background:var(--card);border:1px solid var(--border);
+       border-radius:20px;padding:2px 9px;margin-right:6px;white-space:nowrap}
+.cp-gp{font-size:11px;font-weight:700;color:var(--primary);background:var(--primary-soft,rgba(47,174,125,.12));
+       border:1px solid var(--primary);border-radius:20px;padding:2px 9px;white-space:nowrap}
 tr.cp-on td{background:rgba(47,174,125,.07)}
 tr.cp-baixo td:nth-child(4){color:var(--amber)}
 tr.cp-zero td:nth-child(4){color:var(--red)}
 .cp-modal{position:fixed;inset:0;background:rgba(0,0,0,.62);display:flex;align-items:center;
           justify-content:center;z-index:9000;padding:20px}
 .cp-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;
-        width:100%;max-width:520px;max-height:88vh;overflow:auto;box-shadow:var(--shadow)}
+        width:100%;max-width:560px;max-height:88vh;overflow:auto;box-shadow:var(--shadow)}
 .cp-h{font-size:16px;font-weight:800;margin-bottom:12px}
+.cp-sub{font-size:12.5px;color:var(--muted);margin:-6px 0 15px;line-height:1.5}
+.cp-forn-bloco{border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:11px;
+               padding:13px 14px;margin-bottom:13px;background:var(--card-2)}
+.cp-forn-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+             flex-wrap:wrap;margin-bottom:9px}
+.cp-forn-n{font-size:15px;font-weight:800;letter-spacing:-.2px;margin-right:9px}
+.cp-forn-q{font-size:11.5px;color:var(--muted)}
+.cp-txt{width:100%;min-height:190px;background:var(--card);border:1px solid var(--border);
+        color:var(--text);border-radius:9px;padding:11px;font-family:'JetBrains Mono',monospace;
+        font-size:11.5px;line-height:1.6;resize:vertical;box-sizing:border-box}
+.cp-txt:focus{outline:2px solid var(--primary);outline-offset:-1px}
+.cp-linha-btn{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+.cp-fone{flex:1;min-width:130px;background:var(--card);border:1px solid var(--border);color:var(--text);
+         border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px}
 .cp-box textarea{width:100%;min-height:270px;background:var(--card-2);border:1px solid var(--border);
                  color:var(--text);border-radius:9px;padding:12px;font-family:'JetBrains Mono',monospace;
                  font-size:12px;line-height:1.6;resize:vertical}
@@ -733,7 +752,13 @@ function renderCompra(){
     var f=p.fornecedor||'(sem fornecedor)';
     if(f!==fAtual && !forn){
       fAtual=f;
-      h+='<tr class="cp-grupo"><td colspan="7">'+esc(f)+'</td></tr>';
+      var noF=lista.filter(function(x){ return (x.fornecedor||'(sem fornecedor)')===f; });
+      var pedF=noF.filter(function(x){ return pedido[x.firestoreId]>0; }).length;
+      h+='<tr class="cp-grupo"><td colspan="7">'
+       + '<span class="cp-gn">'+esc(f)+'</span>'
+       + '<span class="cp-gq">'+noF.length+' peça'+(noF.length===1?'':'s')+'</span>'
+       + (pedF?'<span class="cp-gp">'+pedF+' no pedido</span>':'')
+       + '</td></tr>';
     }
     var st=abaixoMin(p)?'cp-baixo':(num(p.saldo)<=0?'cp-zero':'');
     h+='<tr class="'+(q>0?'cp-on ':'')+st+'">'
@@ -769,78 +794,104 @@ function atualizarResumoPedido(){
   }
 }
 
-/* ---- texto para o fornecedor ---- */
-function textoPedido(){
-  var itens=pedidoItens();
-  if(!itens.length) return '';
-  var forn=(document.getElementById('cp-forn')||{}).value||'';
+/* ---- texto para o fornecedor ----
+   Um texto POR FORNECEDOR: cada um recebe a mensagem só com as peças dele.
+   Mandar a lista inteira obrigaria o fornecedor a garimpar o que é seu, e
+   expõe para um o que você está comprando do outro. */
+function pedidoPorFornecedor(){
+  var mapa={}, ordem=[];
+  pedidoItens().forEach(function(x){
+    var f=x.p.fornecedor||'(sem fornecedor)';
+    if(!mapa[f]){ mapa[f]=[]; ordem.push(f); }
+    mapa[f].push(x);
+  });
+  ordem.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  return ordem.map(function(f){
+    var itens=mapa[f];
+    var val=itens.reduce(function(t,x){ return t + x.qtd*num(x.p.preco); },0);
+    return { fornecedor:f, itens:itens, valor:val };
+  });
+}
+
+function textoDoFornecedor(g){
   var linha='━━━━━━━━━━━━━━━━━━━━━━';
   var t='*PEDIDO DE PEÇAS*\n*PANIFICADORA MONTE CASTELO*\n'+linha+'\n\n';
   t+='📅 '+new Date().toLocaleDateString('pt-BR')+'\n';
-  if(forn) t+='🏢 Fornecedor: '+forn+'\n';
+  t+='🏢 '+g.fornecedor+'\n';
   t+='\n*ITENS:*\n';
-
-  var fAtual=null, n=0;
-  itens.forEach(function(x){
-    var f=x.p.fornecedor||'(sem fornecedor)';
-    if(!forn && f!==fAtual){ fAtual=f; t+='\n▪ '+f+'\n'; }
-    n++;
-    t+=n+'. '+(x.p.nome||'')+(x.p.codigo?' (cód '+x.p.codigo+')':'')+'\n';
+  g.itens.forEach(function(x, i){
+    t+=(i+1)+'. '+(x.p.nome||'')+(x.p.codigo?' (cód '+x.p.codigo+')':'')+'\n';
     t+='   '+fmtN(x.qtd,0)+' '+(x.p.unidade||'un')+'\n';
     if(x.obs) t+='   📝 '+x.obs+'\n';
   });
-
   t+='\n'+linha+'\n';
-  t+='*TOTAL: '+itens.length+' item'+(itens.length===1?'':'ns')+'*\n';
+  t+='*TOTAL: '+g.itens.length+(g.itens.length===1?' item':' itens')+'*\n';
   t+=linha+'\n';
   t+='\n_Por favor confirmar preço, prazo e disponibilidade._';
   return t;
 }
 
 window.gerarTextoPedido=function(){
-  var txt=textoPedido();
-  if(!txt){ alert('O pedido está vazio.'); return; }
+  var grupos=pedidoPorFornecedor();
+  if(!grupos.length){ alert('O pedido está vazio.'); return; }
+
   var host=document.getElementById('modal-host')||document.body;
   var d=document.createElement('div');
   d.className='cp-modal';
-  d.innerHTML='<div class="cp-box">'
-    + '<div class="cp-h">📋 Texto do pedido</div>'
-    + '<textarea id="cp-txt" spellcheck="false">'+esc(txt)+'</textarea>'
-    + '<div class="cp-zap"><label>WhatsApp do fornecedor (opcional)</label>'
-    +   '<input type="tel" id="cp-fone" placeholder="51 99999-9999" inputmode="tel"></div>'
-    + '<div class="cp-btns">'
-    +   '<button class="btn btn-sm btn-ghost" id="cp-fechar">Fechar</button>'
-    +   '<button class="btn btn-sm btn-ghost" id="cp-zap">Abrir WhatsApp</button>'
-    +   '<button class="btn btn-sm" id="cp-copiar">Copiar texto</button>'
-    + '</div></div>';
+
+  var h='<div class="cp-box">'
+      + '<div class="cp-h">📋 Pedido por fornecedor</div>'
+      + '<div class="cp-sub">'+grupos.length+' fornecedor'+(grupos.length===1?'':'es')
+      +   ' · uma mensagem para cada um. Copie e envie separadamente.</div>';
+
+  grupos.forEach(function(g, i){
+    var txt=textoDoFornecedor(g);
+    h+='<div class="cp-forn-bloco">'
+     + '<div class="cp-forn-top">'
+     +   '<div><span class="cp-forn-n">'+esc(g.fornecedor)+'</span>'
+     +     '<span class="cp-forn-q">'+g.itens.length+(g.itens.length===1?' item':' itens')
+     +     (g.valor>0?' · '+fmtR$k(g.valor):'')+'</span></div>'
+     + '</div>'
+     + '<textarea class="cp-txt" data-i="'+i+'" spellcheck="false">'+esc(txt)+'</textarea>'
+     + '<div class="cp-linha-btn">'
+     +   '<input type="tel" class="cp-fone" data-i="'+i+'" placeholder="WhatsApp (opcional)" inputmode="tel">'
+     +   '<button class="btn btn-sm btn-ghost cp-zap" data-i="'+i+'">WhatsApp</button>'
+     +   '<button class="btn btn-sm cp-copiar" data-i="'+i+'">Copiar</button>'
+     + '</div></div>';
+  });
+
+  h+='<div class="cp-btns"><button class="btn btn-sm btn-ghost" id="cp-fechar">Fechar</button></div></div>';
+  d.innerHTML=h;
   host.appendChild(d);
 
   function fechar(){ d.remove(); }
   d.querySelector('#cp-fechar').onclick=fechar;
   d.onclick=function(e){ if(e.target===d) fechar(); };
 
-  d.querySelector('#cp-copiar').onclick=function(){
-    var ta=d.querySelector('#cp-txt');
-    ta.select();
-    var b=this;
-    function ok(){ b.textContent='Copiado ✓'; setTimeout(function(){ b.textContent='Copiar texto'; },1800); }
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(ta.value).then(ok).catch(function(){
+  d.querySelectorAll('.cp-copiar').forEach(function(b){
+    b.onclick=function(){
+      var ta=d.querySelector('.cp-txt[data-i="'+b.getAttribute('data-i')+'"]');
+      ta.select();
+      function ok(){ b.textContent='Copiado ✓'; setTimeout(function(){ b.textContent='Copiar'; },1800); }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(ta.value).then(ok).catch(function(){
+          try{ document.execCommand('copy'); ok(); }catch(e){ alert('Selecione o texto e copie com Ctrl+C.'); }
+        });
+      } else {
         try{ document.execCommand('copy'); ok(); }catch(e){ alert('Selecione o texto e copie com Ctrl+C.'); }
-      });
-    } else {
-      try{ document.execCommand('copy'); ok(); }catch(e){ alert('Selecione o texto e copie com Ctrl+C.'); }
-    }
-  };
+      }
+    };
+  });
 
-  d.querySelector('#cp-zap').onclick=function(){
-    var fone=String((d.querySelector('#cp-fone')||{}).value||'').replace(/\D/g,'');
-    var ta=d.querySelector('#cp-txt');
-    var url='https://wa.me/'+(fone?('55'+fone):'')+'?text='+encodeURIComponent(ta.value);
-    window.open(url,'_blank');
-  };
-
-  setTimeout(function(){ var t=d.querySelector('#cp-txt'); if(t){ t.focus(); t.setSelectionRange(0,0); } },30);
+  d.querySelectorAll('.cp-zap').forEach(function(b){
+    b.onclick=function(){
+      var i=b.getAttribute('data-i');
+      var ta=d.querySelector('.cp-txt[data-i="'+i+'"]');
+      var fn=d.querySelector('.cp-fone[data-i="'+i+'"]');
+      var fone=String((fn&&fn.value)||'').replace(/\D/g,'');
+      window.open('https://wa.me/'+(fone?('55'+fone):'')+'?text='+encodeURIComponent(ta.value),'_blank');
+    };
+  });
 };
 
 function renderEstoque(){
