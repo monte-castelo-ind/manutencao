@@ -347,6 +347,78 @@ button.fn-f:hover{border-color:var(--amber);color:var(--amber)}
   #au-print tr{ page-break-inside:avoid }
 }
 
+/* ===== PALETAS ALTERNATIVAS =====
+   Só redefinem tokens de cor. Nenhuma regra de layout muda. */
+
+.paleta-box{padding:9px 4px 7px}
+.paleta-lab{font-size:9.5px;font-weight:700;letter-spacing:.7px;color:var(--muted);
+            text-transform:uppercase;margin-bottom:7px;padding-left:2px}
+.paleta-row{display:flex;gap:6px;flex-wrap:wrap}
+.pbola{width:22px;height:22px;border-radius:50%;cursor:pointer;padding:0;
+       border:2px solid transparent;position:relative;
+       background:linear-gradient(135deg,var(--a) 0 50%,var(--b) 50% 100%)}
+.pbola:hover{transform:scale(1.12)}
+.pbola.on{border-color:var(--text);box-shadow:0 0 0 2px var(--bg)}
+
+/* --- Monte Castelo: preto industrial e laranja da marca --- */
+html[data-pal="mc"]{
+  --bg:#141414; --card:#1E1E1E; --card-2:#282828; --text:#EDEDED; --muted:#8C8C8C;
+  --border:rgba(255,255,255,.08); --sidebar:#1A1A1A; --side-active:#3A2113; --side-active-text:#F58B4C;
+  --primary:#F26B1F; --amber:#E8A33D; --green:#4CAF6A; --red:#E05252; --blue:#5B8FB9; --purple:#9B7FD4;
+}
+html[data-pal="mc"][data-theme="light"]{
+  --bg:#F2F0ED; --card:#FFFFFF; --card-2:#F7F5F2; --text:#1F1D1B; --muted:#7A756F;
+  --border:#E4E0DA; --sidebar:#FFFFFF; --side-active:#FCEDE2; --side-active-text:#C04E0C;
+  --primary:#D9550F; --amber:#C98A21; --green:#2E8B4F; --red:#C93F3F; --blue:#3C6E94; --purple:#7A5FBF;
+}
+
+/* --- Aço: azul frio, cara de painel industrial --- */
+html[data-pal="aco"]{
+  --bg:#12161C; --card:#1A2029; --card-2:#232B36; --text:#E4E9F0; --muted:#8494A6;
+  --border:rgba(255,255,255,.07); --sidebar:#161C24; --side-active:#16303F; --side-active-text:#6FB6DE;
+  --primary:#4C8FBF; --amber:#E3AE4A; --green:#3FB68A; --red:#E06B6B; --blue:#5B9BD5; --purple:#8A86D6;
+}
+html[data-pal="aco"][data-theme="light"]{
+  --bg:#EDF1F5; --card:#FFFFFF; --card-2:#F5F8FB; --text:#16202B; --muted:#78879A;
+  --border:#E1E7EE; --sidebar:#FFFFFF; --side-active:#E3F0F8; --side-active-text:#1E6A96;
+  --primary:#2A76A8; --amber:#C8912C; --green:#249A72; --red:#CC5151; --blue:#3B7FBE; --purple:#6F6AC4;
+}
+
+/* --- Âmbar: grafite quente, tom de pão --- */
+html[data-pal="ambar"]{
+  --bg:#16130F; --card:#201C16; --card-2:#2A241C; --text:#EFE9DF; --muted:#998F80;
+  --border:rgba(255,255,255,.08); --sidebar:#1A1611; --side-active:#3B2E16; --side-active-text:#E6BC63;
+  --primary:#D9A441; --amber:#E8B84D; --green:#6FA86A; --red:#D96A5A; --blue:#6A93B8; --purple:#A088C4;
+}
+html[data-pal="ambar"][data-theme="light"]{
+  --bg:#F5F1E8; --card:#FFFFFF; --card-2:#FAF7F0; --text:#221D15; --muted:#8A8070;
+  --border:#E8E1D4; --sidebar:#FFFFFF; --side-active:#F7EDD6; --side-active-text:#9A6F12;
+  --primary:#B0812A; --amber:#C08F1E; --green:#4F8A4A; --red:#C05242; --blue:#4E7A9E; --purple:#7E66A8;
+}
+
+/* --- Índigo: roxo azulado, mais moderno --- */
+html[data-pal="indigo"]{
+  --bg:#101120; --card:#191B2E; --card-2:#22253C; --text:#E7E7F2; --muted:#8B8CA8;
+  --border:rgba(255,255,255,.07); --sidebar:#151629; --side-active:#272552; --side-active-text:#A99BF5;
+  --primary:#7B6CF0; --amber:#F0B84A; --green:#3FC08A; --red:#EE6B7E; --blue:#5C8BF0; --purple:#9A8AF5;
+}
+html[data-pal="indigo"][data-theme="light"]{
+  --bg:#EFEFF7; --card:#FFFFFF; --card-2:#F6F6FC; --text:#181A2E; --muted:#7D7F9B;
+  --border:#E5E5F0; --sidebar:#FFFFFF; --side-active:#ECEAFB; --side-active-text:#5344C4;
+  --primary:#5D4FD6; --amber:#C99320; --green:#22A06B; --red:#D6465C; --blue:#3E6FD4; --purple:#7566DC;
+}
+
+/* --- Vinho: escuro avermelhado, bem sóbrio --- */
+html[data-pal="vinho"]{
+  --bg:#181113; --card:#221A1C; --card-2:#2C2225; --text:#EDE4E4; --muted:#9A8A8C;
+  --border:rgba(255,255,255,.08); --sidebar:#1C1416; --side-active:#3E1F24; --side-active-text:#E0837E;
+  --primary:#C4544F; --amber:#DFA653; --green:#5FA678; --red:#E0645F; --blue:#6B8EB5; --purple:#A183C0;
+}
+html[data-pal="vinho"][data-theme="light"]{
+  --bg:#F5EFEF; --card:#FFFFFF; --card-2:#FBF6F6; --text:#241A1C; --muted:#8B7B7D;
+  --border:#EBE0E0; --sidebar:#FFFFFF; --side-active:#F8E8E7; --side-active-text:#A33B36;
+  --primary:#A8413C; --amber:#BC8828; --green:#3F8659; --red:#C24B46; --blue:#4F7399; --purple:#7F639E;
+}
 </style>
 </head>
 <body>
@@ -391,6 +463,17 @@ button.fn-f:hover{border-color:var(--amber);color:var(--amber)}
       <div class="uline">
         <div class="uav" id="uavatar">?</div>
         <div class="lbl" style="min-width:0"><div class="uname" id="uname">—</div><div class="urole" id="urole">—</div></div>
+      </div>
+      <div class="paleta-box lbl">
+        <div class="paleta-lab">Paleta</div>
+        <div class="paleta-row">
+          <button class="pbola" data-pal=""        onclick="setPaleta('')"        title="Verde (original)" style="--a:#2fae7d;--b:#0f111a"></button>
+          <button class="pbola" data-pal="mc"      onclick="setPaleta('mc')"      title="Monte Castelo" style="--a:#F26B1F;--b:#1A1A1A"></button>
+          <button class="pbola" data-pal="aco"     onclick="setPaleta('aco')"     title="Aço" style="--a:#4C8FBF;--b:#12161C"></button>
+          <button class="pbola" data-pal="ambar"   onclick="setPaleta('ambar')"   title="Âmbar" style="--a:#D9A441;--b:#16130F"></button>
+          <button class="pbola" data-pal="indigo"  onclick="setPaleta('indigo')"  title="Índigo" style="--a:#7B6CF0;--b:#101120"></button>
+          <button class="pbola" data-pal="vinho"   onclick="setPaleta('vinho')"   title="Vinho" style="--a:#C4544F;--b:#181113"></button>
+        </div>
       </div>
       <div style="display:flex;gap:6px;padding:0 2px">
         <button class="btn btn-sm btn-ghost" onclick="toggleTema()" style="flex:1;padding:7px 0" title="Tema">◐</button>
@@ -604,6 +687,27 @@ function slug(s){ return normSA(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').repl
 function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); try{ localStorage.setItem('mc_pecas_theme',t); }catch(e){} }
 window.toggleTema=function(){ var c=document.documentElement.getAttribute('data-theme')||'dark'; applyTheme(c==='dark'?'light':'dark'); };
 (function(){ try{ var t=localStorage.getItem('mc_pecas_theme'); applyTheme(t==='light'?'light':'dark'); }catch(e){ applyTheme('dark'); } })();
+
+/* Paleta: só troca tokens de cor no <html>. Guardada por app, não por
+   usuário — é preferência de quem está no equipamento, e o pessoal da
+   oficina usa terminal compartilhado. */
+window.setPaleta=function(p){
+  if(p) document.documentElement.setAttribute('data-pal', p);
+  else  document.documentElement.removeAttribute('data-pal');
+  try{ localStorage.setItem('mc_pecas_pal', p||''); }catch(e){}
+  document.querySelectorAll('.pbola').forEach(function(b){
+    b.classList.toggle('on', (b.getAttribute('data-pal')||'')===(p||''));
+  });
+};
+(function(){
+  try{ var p=localStorage.getItem('mc_pecas_pal'); if(p) document.documentElement.setAttribute('data-pal',p); }catch(e){}
+  document.addEventListener('DOMContentLoaded', function(){
+    var p=document.documentElement.getAttribute('data-pal')||'';
+    document.querySelectorAll('.pbola').forEach(function(b){
+      b.classList.toggle('on', (b.getAttribute('data-pal')||'')===p);
+    });
+  });
+})();
 window.togglePin=function(e){
   if(e) e.stopPropagation();
   var s=document.getElementById('sidebar');
