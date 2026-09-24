@@ -611,7 +611,7 @@ html[data-pal="vinho"][data-theme="light"]{
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc, addDoc, updateDoc, deleteDoc, increment, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, addDoc, updateDoc, deleteDoc, increment, query, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 /* ============ FIREBASE ============ */
@@ -1368,8 +1368,41 @@ function sessaoNomeCurto(){
 function podeEditarValores(){ return currentRole==='admin' || podeLancar || flagPreco; }
 /* financeiro (ou diretoria): é quem manda o pedido para assinatura */
 function podeValidarFin(){ return currentRole==='admin' || flagPreco; }
-function pedidoEditavel(st){
-  return st==='aguardando_fin' || st==='aguardando_aut' || st==='autorizado' || st==='aguardando';
+/* Depois que o financeiro valida, o pedido congela: ninguém edita. Para
+   corrigir, cancela e faz outro. A autorização que foi para a diretoria é uma
+   cópia do pedido — se um dos dois pudesse mudar depois, eles divergiriam. */
+function pedidoEditavel(st){ return st==='aguardando_fin'; }
+
+/* Quem cancela em cada etapa:
+   - antes do financeiro: o gerente (ou o próprio financeiro);
+   - validado, esperando assinatura: só o financeiro;
+   - autorizado em diante: só a diretoria. */
+function podeCancelar(p){
+  var st=statusPedido(p);
+  if(st==='recebido' || st==='cancelado') return false;
+  if(st==='aguardando_fin') return podeLancar || podeValidarFin();
+  if(st==='aguardando_aut') return podeValidarFin();
+  return currentRole==='admin';
+}
+
+/* Monta a autorização que vai para o app de Autorizações. Mesmo formato do
+   modelo "compra" de lá, para a folha impressa, o Pix, o código de
+   verificação e os detalhes funcionarem sem nada especial. */
+function autorizacaoDoPedido(p, itens, aut, total, obs){
+  return {
+    tipo:'Autorização de Compra', tipoId:'', modelo:'compra',
+    setor:'Manutenção', titulo:'Peças · '+(p.fornecedor||''),
+    descricao:obs||'', prazo:'',
+    fornecedor:{ razao:aut.razao||p.fornecedor||'', cnpj:aut.cnpj||'', endereco:aut.endereco||'',
+                 municipio:aut.municipio||'', pagamento:aut.pagamento||'', entrega:aut.entrega||'' },
+    itens:itens.map(function(it){
+      return { nome:it.nome||'', codigo:it.codigo||'', qtd:num(it.qtd), precoUn:num(it.precoUn) };
+    }),
+    valor:total, pix:false, pixChave:'',
+    status:'pendente', criadoPor:sessaoEmail,
+    criadoNome:aut.comprador||sessaoNomeCurto(), criadoEm:agora(),
+    origem:{ app:'pecas', pedidoId:p.firestoreId, solicitadoPor:p.criadoPor||'' }
+  };
 }
 
 window.editarValores=function(id){
@@ -1410,7 +1443,8 @@ window.editarValores=function(id){
             ? '<div class="alert a-warn">▲ <div>O financeiro já validou este pedido. Ao salvar, ele volta '
               + 'para o <b>financeiro validar</b> os valores novos.</div></div>'
             : '<div class="alert a-info">'+(validando
-                ? 'Confira os preços e as condições. Ao confirmar, o pedido vai para a <b>diretoria assinar</b>.'
+                ? 'Confira os preços e as condições. Ao confirmar, o pedido vai para a <b>diretoria assinar</b> '
+                  + 'no app de Autorizações e <b>não pode mais ser alterado</b> — para corrigir depois, só cancelando e fazendo outro.'
                 : 'Os valores daqui saem na autorização de compra impressa.')+'</div>'))
        + '<div class="au-grid">'
        +   '<div class="fld"><label>Comprador *</label>'
@@ -1428,9 +1462,7 @@ window.editarValores=function(id){
        + '<div class="au-total">Valor total: <b id="au-soma">—</b></div>'
        + '<div class="fld" style="margin-top:10px"><label>Observação</label>'
        + '<input type="text" id="ev-obs" maxlength="180" value="'+esc(p.obs||'')+'" placeholder="nº da cotação, prazo combinado…"></div>',
-    ok: validando ? 'Validar e enviar para assinatura'
-      : (st!==destino ? (fin ? 'Salvar e reenviar para autorização' : 'Salvar e devolver ao financeiro')
-                      : 'Salvar valores'),
+    ok: fin ? 'Validar e enviar para assinatura' : 'Salvar valores',
     onOk:function(){
       var comprador=String((document.getElementById('ev-comp')||{}).value||'').trim();
       if(!comprador){ alert('Informe o comprador — é o nome que sai na autorização.'); return false; }
@@ -1452,14 +1484,30 @@ window.editarValores=function(id){
         obs:String((document.getElementById('ev-obs')||{}).value||'').trim(),
         precoEditadoPor:sessaoEmail, precoEditadoNome:sessaoNomeCurto(), precoEditadoEm:agora()
       };
-      if(st!==destino) dados.status=destino;
-      if(jaAutorizado){ dados.autorizadoPor=''; dados.autorizadoEm=''; }
-      if(fin){ dados.validadoFinPor=sessaoEmail; dados.validadoFinNome=sessaoNomeCurto(); dados.validadoFinEm=agora(); }
-      updateDoc(doc(dbC,'pecasPedidos',id), dados)
+      if(!fin){
+        /* gerente ajustando antes do financeiro: o pedido fica onde está */
+        updateDoc(doc(dbC,'pecasPedidos',id), dados)
+          .then(function(){ render(); })
+          .catch(function(e){ console.error('editarValores:',e); alert('Não foi possível salvar: '+(e.code||e.message)); });
+        return;
+      }
+      /* Financeiro validando: o pedido avança E a autorização nasce no app de
+         Autorizações, numa gravação só. writeBatch é atômico — ou as duas
+         coisas entram, ou nenhuma. Não existe pedido "enviado" sem autorização
+         do outro lado, nem autorização órfã. */
+      var ref=doc(collection(dbC,'assinaturas'));
+      dados.status='aguardando_aut';
+      dados.assinaturaId=ref.id;
+      dados.validadoFinPor=sessaoEmail; dados.validadoFinNome=sessaoNomeCurto(); dados.validadoFinEm=agora();
+      var lote=writeBatch(dbC);
+      lote.set(ref, autorizacaoDoPedido(p, novos, aut, total, dados.obs));
+      lote.update(doc(dbC,'pecasPedidos',id), dados);
+      lote.commit()
         .then(function(){ render(); })
         .catch(function(e){
-          console.error('editarValores:',e);
-          alert('Não foi possível salvar: '+(e.code||e.message));
+          console.error('validar pedido:',e);
+          alert('Não foi possível enviar para assinatura: '+(e.code||e.message)
+            + (e.code==='permission-denied'?'\n\nConfira se sua conta tem acesso ao app de Autorizações (flag assinaturas).':''));
         });
     }
   });
@@ -1472,6 +1520,12 @@ window.cancelarPedido=function(id){
   if(!p) return;
   if(statusPedido(p)==='cancelado'){ alert('Este pedido já está cancelado.'); return; }
   if(statusPedido(p)==='recebido'){ alert('Pedido já recebido não pode ser cancelado.'); return; }
+  if(!podeCancelar(p)){
+    alert(statusPedido(p)==='aguardando_aut'
+      ? 'O financeiro já validou este pedido. Só o financeiro pode cancelá-lo agora.'
+      : 'Este pedido já foi autorizado. Só a diretoria pode cancelá-lo.');
+    return;
+  }
   modal({
     titulo:'Cancelar pedido',
     sub:esc(p.fornecedor||''),
@@ -1483,10 +1537,18 @@ window.cancelarPedido=function(id){
     onOk:function(){
       var m=String((document.getElementById('pd-mot')||{}).value||'').trim();
       if(!m){ alert('Informe o motivo do cancelamento.'); return false; }
-      updateDoc(doc(dbC,'pecasPedidos',id), {
-        status:'cancelado', canceladoPor:sessaoEmail, canceladoEm:agora(), motivoCancelamento:m
-      })
-      .then(function(){ render(); })
+      var canc={ status:'cancelado', canceladoPor:sessaoEmail, canceladoEm:agora(), motivoCancelamento:m };
+      var pr;
+      if(p.assinaturaId){
+        /* a autorização do outro lado cai junto, na mesma gravação */
+        var lote=writeBatch(dbC);
+        lote.update(doc(dbC,'pecasPedidos',id), canc);
+        lote.update(doc(dbC,'assinaturas',p.assinaturaId), canc);
+        pr=lote.commit();
+      }else{
+        pr=updateDoc(doc(dbC,'pecasPedidos',id), canc);
+      }
+      pr.then(function(){ render(); })
       .catch(function(e){
         console.error('cancelarPedido:',e);
         alert('Não foi possível cancelar: '+(e.code||e.message));
@@ -1673,10 +1735,19 @@ function renderPedidos(){
         h+='<span class="pd-espera">Aguardando validação do financeiro</span>';
     }
     if(st==='aguardando_aut'){
-      if(podeAutorizar())
+      if(p.assinaturaId){
+        /* pedido novo: a diretoria assina no app de Autorizações */
+        if(podeAutorizar())
+          h+='<a class="cp-conf" style="text-decoration:none;display:inline-flex;align-items:center" '
+           + 'href="https://monte-castelo-ind.github.io/autorizacao/" target="_blank" rel="noopener">✍ Assinar em Autorizações</a>';
+        else
+          h+='<span class="pd-espera">Aguardando assinatura da diretoria</span>';
+      }else if(podeAutorizar()){
+        /* pedido do fluxo antigo, sem autorização gerada: continua assinando aqui */
         h+='<button class="cp-conf" onclick="autorizarPedido(\'' + esc(p.firestoreId) + '\')">Autorizar compra</button>';
-      else
+      }else{
         h+='<span class="pd-espera">Aguardando autorização da diretoria</span>';
+      }
     }
     if(st!=='recebido' && st!=='cancelado' && st!=='aguardando_aut' && st!=='aguardando_fin'){
       if(podeReceber())
@@ -1686,7 +1757,7 @@ function renderPedidos(){
       h+='<button class="btn btn-sm btn-ghost" onclick="editarValores(\'' + esc(p.firestoreId) + '\')">✎ Editar valores</button>';
     if(p.aut)
       h+='<button class="btn btn-sm btn-ghost" onclick="imprimirAutorizacao(\'' + esc(p.firestoreId) + '\')">⎙ Autorização</button>';
-    if(st!=='recebido' && st!=='cancelado' && podeLancar)
+    if(podeCancelar(p))
       h+='<button class="btn btn-sm btn-ghost" onclick="cancelarPedido(\'' + esc(p.firestoreId) + '\')">Cancelar</button>';
     h+='<button class="btn btn-sm btn-ghost" onclick="textoPedidoSalvo(\'' + esc(p.firestoreId) + '\')">Ver texto</button>';
     h+='</div></div>';
