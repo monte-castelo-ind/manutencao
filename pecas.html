@@ -292,6 +292,7 @@ button.fn-f:hover{border-color:var(--amber);color:var(--amber)}
 .au-total{text-align:right;font-size:14px;margin-top:10px}
 .au-total b{font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--primary)}
 .pd-espera{font-size:12px;color:var(--amber);font-style:italic;align-self:center}
+.pd-st-aguardando_fin{color:var(--blue,#4b7bec);background:rgba(75,123,236,.13);border:1px solid rgba(75,123,236,.36)}
 .pd-st-aguardando_aut{color:var(--amber);background:rgba(245,176,19,.13);border:1px solid rgba(245,176,19,.36)}
 .pd-st-autorizado{color:var(--green);background:rgba(28,196,126,.13);border:1px solid rgba(28,196,126,.36)}
 .pd-aguardando_aut{border-left-color:var(--amber)}
@@ -551,6 +552,7 @@ html[data-pal="vinho"][data-theme="light"]{
       <div class="tools">
         <select id="pd-filtro" onchange="render()">
           <option value="abertos">Em aberto</option>
+          <option value="aguardando_fin">A validar (financeiro)</option>
           <option value="aguardando_aut">A autorizar</option>
           <option value="autorizado">Autorizados</option>
           <option value="parcial">Parcial</option>
@@ -1054,6 +1056,7 @@ window.autorizarPedido=function(id){
   var p=pedidosCompra.filter(function(x){ return x.firestoreId===id; })[0];
   if(!p) return;
   if(statusPedido(p)==='cancelado'){ alert('Pedido cancelado.'); return; }
+  if(statusPedido(p)==='aguardando_fin'){ alert('Este pedido ainda não foi validado pelo financeiro.'); return; }
 
   var a=p.aut||{}, itens=p.itens||[];
   var total=itens.reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0);
@@ -1246,7 +1249,10 @@ function pendentePorPeca(){
 function statusPedido(p){
   return p.status || 'aguardando';
 }
-var PED_ROTULO={ aguardando_aut:'Aguardando autorização', autorizado:'Autorizado',
+/* Fluxo: gerente monta → financeiro valida valores (aguardando_fin) →
+   diretoria autoriza (aguardando_aut) → autorizado → recebido. */
+var PED_ROTULO={ aguardando_fin:'Aguardando financeiro',
+                 aguardando_aut:'Aguardando autorização', autorizado:'Autorizado',
                  aguardando:'Autorizado', parcial:'Parcial', recebido:'Recebido', cancelado:'Cancelado' };
 
 function pedidoPendente(it){
@@ -1303,7 +1309,7 @@ window.confirmarPedido=function(nomeForn){
        + '<div class="au-total">Valor total: <b id="au-soma">—</b></div>'
        + '<div class="fld" style="margin-top:10px"><label>Observação</label>'
        + '<input type="text" id="pd-obs" maxlength="180" placeholder="nº da cotação, prazo combinado…"></div>',
-    ok:'Confirmar pedido',
+    ok:'Enviar para o financeiro',
     onOk:function(){
       var comprador=String((document.getElementById('au-comp')||{}).value||'').trim();
       if(!comprador){
@@ -1320,7 +1326,7 @@ window.confirmarPedido=function(nomeForn){
       });
       var total=itens.reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0);
       addDoc(collection(dbC,'pecasPedidos'), {
-        fornecedor:g.fornecedor, itens:itens, status:'aguardando_aut',
+        fornecedor:g.fornecedor, itens:itens, status:'aguardando_fin',
         obs:String((document.getElementById('pd-obs')||{}).value||'').trim(),
         criadoPor:sessaoEmail, criadoEm:agora(),
         valorEstimado:total,
@@ -1360,7 +1366,11 @@ function sessaoNomeCurto(){
    a diretoria não viu. Recebido (parcial ou total) não edita mais: o preço
    já virou entrada de estoque. */
 function podeEditarValores(){ return currentRole==='admin' || podeLancar || flagPreco; }
-function pedidoEditavel(st){ return st==='aguardando_aut' || st==='autorizado' || st==='aguardando'; }
+/* financeiro (ou diretoria): é quem manda o pedido para assinatura */
+function podeValidarFin(){ return currentRole==='admin' || flagPreco; }
+function pedidoEditavel(st){
+  return st==='aguardando_fin' || st==='aguardando_aut' || st==='autorizado' || st==='aguardando';
+}
 
 window.editarValores=function(id){
   if(!podeEditarValores()){ alert('Você não tem permissão para alterar valores de pedido.'); return; }
@@ -1368,7 +1378,14 @@ window.editarValores=function(id){
   if(!p) return;
   var st=statusPedido(p);
   if(!pedidoEditavel(st)){ alert('Este pedido não pode mais ser alterado ('+(PED_ROTULO[st]||st)+').'); return; }
-  var jaAutorizado=(st!=='aguardando_aut');
+  /* Quem mexe nos valores decide para onde o pedido vai:
+     - financeiro/diretoria: sempre sai em "aguardando autorização";
+     - gerente: sempre volta para o financeiro validar de novo.
+     Assim nenhum valor chega à assinatura sem passar pelo financeiro. */
+  var fin=podeValidarFin();
+  var destino = fin ? 'aguardando_aut' : 'aguardando_fin';
+  var jaAutorizado=(st==='autorizado' || st==='aguardando');
+  var validando=(fin && st==='aguardando_fin');
   var a=p.aut||{}, itens=p.itens||[];
 
   var linhas=itens.map(function(it,i){
@@ -1388,8 +1405,13 @@ window.editarValores=function(id){
     sub:esc(p.fornecedor||'')+' · '+itens.length+(itens.length===1?' item':' itens'),
     body:(jaAutorizado
         ? '<div class="alert a-warn">▲ <div>Esta compra <b>já foi autorizada</b>. Ao salvar, ela volta para '
-          + '<b>aguardando autorização</b> e a diretoria precisa aprovar os valores novos.</div></div>'
-        : '<div class="alert a-info">Os valores daqui saem na autorização de compra impressa.</div>')
+          + '<b>'+(fin?'aguardando autorização':'o financeiro validar')+'</b> antes de valer.</div></div>'
+        : (!fin && st!=='aguardando_fin'
+            ? '<div class="alert a-warn">▲ <div>O financeiro já validou este pedido. Ao salvar, ele volta '
+              + 'para o <b>financeiro validar</b> os valores novos.</div></div>'
+            : '<div class="alert a-info">'+(validando
+                ? 'Confira os preços e as condições. Ao confirmar, o pedido vai para a <b>diretoria assinar</b>.'
+                : 'Os valores daqui saem na autorização de compra impressa.')+'</div>'))
        + '<div class="au-grid">'
        +   '<div class="fld"><label>Comprador *</label>'
        +     '<input type="text" id="ev-comp" value="'+esc(a.comprador||sessaoNomeCurto())+'"></div>'
@@ -1406,7 +1428,9 @@ window.editarValores=function(id){
        + '<div class="au-total">Valor total: <b id="au-soma">—</b></div>'
        + '<div class="fld" style="margin-top:10px"><label>Observação</label>'
        + '<input type="text" id="ev-obs" maxlength="180" value="'+esc(p.obs||'')+'" placeholder="nº da cotação, prazo combinado…"></div>',
-    ok: jaAutorizado ? 'Salvar e reenviar para autorização' : 'Salvar valores',
+    ok: validando ? 'Validar e enviar para assinatura'
+      : (st!==destino ? (fin ? 'Salvar e reenviar para autorização' : 'Salvar e devolver ao financeiro')
+                      : 'Salvar valores'),
     onOk:function(){
       var comprador=String((document.getElementById('ev-comp')||{}).value||'').trim();
       if(!comprador){ alert('Informe o comprador — é o nome que sai na autorização.'); return false; }
@@ -1428,7 +1452,9 @@ window.editarValores=function(id){
         obs:String((document.getElementById('ev-obs')||{}).value||'').trim(),
         precoEditadoPor:sessaoEmail, precoEditadoNome:sessaoNomeCurto(), precoEditadoEm:agora()
       };
-      if(jaAutorizado){ dados.status='aguardando_aut'; dados.autorizadoPor=''; dados.autorizadoEm=''; }
+      if(st!==destino) dados.status=destino;
+      if(jaAutorizado){ dados.autorizadoPor=''; dados.autorizadoEm=''; }
+      if(fin){ dados.validadoFinPor=sessaoEmail; dados.validadoFinNome=sessaoNomeCurto(); dados.validadoFinEm=agora(); }
       updateDoc(doc(dbC,'pecasPedidos',id), dados)
         .then(function(){ render(); })
         .catch(function(e){
@@ -1567,18 +1593,20 @@ function renderPedidos(){
     var st=statusPedido(p);
     if(fil==='abertos' && (st==='recebido'||st==='cancelado')) return false;
     if(fil==='autorizado' && st!=='autorizado' && st!=='aguardando') return false;
-    if(fil && fil!=='abertos' && fil!=='todos' && st!==fil) return false;
+    if(fil && fil!=='abertos' && fil!=='todos' && fil!=='autorizado' && st!==fil) return false;
     if(termo && ((p.fornecedor||'')+' '+(p.obs||'')).toLowerCase().indexOf(termo)<0) return false;
     return true;
   });
 
+  var nFin=pedidosCompra.filter(function(p){ return statusPedido(p)==='aguardando_fin'; }).length;
   var nAut=pedidosCompra.filter(function(p){ return statusPedido(p)==='aguardando_aut'; }).length;
   var nAg=pedidosCompra.filter(function(p){ var st=statusPedido(p); return st==='aguardando'||st==='autorizado'; }).length;
   var nPa=pedidosCompra.filter(function(p){ return statusPedido(p)==='parcial'; }).length;
 
   var h='<div class="cp-faixa">'
-   + (nAut?'<span class="cp-f1" style="color:var(--amber)"><b>'+nAut+'</b> a autorizar</span>':'')
-   + '<span class="'+(nAut?'cp-f2':'cp-f1')+'"><b>'+nAg+'</b> autorizado'+(nAg===1?'':'s')+'</span>'
+   + (nFin?'<span class="cp-f1" style="color:var(--blue,#4b7bec)"><b>'+nFin+'</b> a validar</span>':'')
+   + (nAut?'<span class="'+(nFin?'cp-f2':'cp-f1')+'" style="color:var(--amber)"><b>'+nAut+'</b> a autorizar</span>':'')
+   + '<span class="'+((nAut||nFin)?'cp-f2':'cp-f1')+'"><b>'+nAg+'</b> autorizado'+(nAg===1?'':'s')+'</span>'
    + (nPa?'<span class="cp-f3">'+nPa+' parcial'+(nPa===1?'':'is')+'</span>':'')
    + '<span class="cp-f2">'+pedidosCompra.length+' no total</span>'
    + '</div>';
@@ -1624,8 +1652,10 @@ function renderPedidos(){
     h+='<div class="pd-pct" style="margin-top:2px">'
      + (valPed>0?'Valor: <b>'+fmtR$(valPed,2)+'</b>':'<span style="color:var(--amber)">Sem valores informados</span>')
      + (valPed>0 && semPr?' · <span style="color:var(--amber)">'+semPr+(semPr===1?' item sem preço':' itens sem preço')+'</span>':'')
-     + (p.precoEditadoEm?' · valores atualizados por '+esc(p.precoEditadoNome||p.precoEditadoPor||'')
-        +' em '+esc(dataBR(p.precoEditadoEm)):'')
+     + (p.validadoFinEm?' · validado por '+esc(p.validadoFinNome||p.validadoFinPor||'')
+        +' em '+esc(dataBR(p.validadoFinEm))
+        : (p.precoEditadoEm?' · valores atualizados por '+esc(p.precoEditadoNome||p.precoEditadoPor||'')
+        +' em '+esc(dataBR(p.precoEditadoEm)):''))
      + '</div>';
     }
 
@@ -1636,17 +1666,23 @@ function renderPedidos(){
     }
 
     h+='<div class="pd-btns">';
+    if(st==='aguardando_fin'){
+      if(podeValidarFin())
+        h+='<button class="cp-conf" onclick="editarValores(\'' + esc(p.firestoreId) + '\')">Validar valores</button>';
+      else
+        h+='<span class="pd-espera">Aguardando validação do financeiro</span>';
+    }
     if(st==='aguardando_aut'){
       if(podeAutorizar())
         h+='<button class="cp-conf" onclick="autorizarPedido(\'' + esc(p.firestoreId) + '\')">Autorizar compra</button>';
       else
         h+='<span class="pd-espera">Aguardando autorização da diretoria</span>';
     }
-    if(st!=='recebido' && st!=='cancelado' && st!=='aguardando_aut'){
+    if(st!=='recebido' && st!=='cancelado' && st!=='aguardando_aut' && st!=='aguardando_fin'){
       if(podeReceber())
         h+='<button class="cp-ger" onclick="receberPedido(\'' + esc(p.firestoreId) + '\')">Receber</button>';
     }
-    if(pedidoEditavel(st) && podeEditarValores())
+    if(pedidoEditavel(st) && podeEditarValores() && !(st==='aguardando_fin' && podeValidarFin()))
       h+='<button class="btn btn-sm btn-ghost" onclick="editarValores(\'' + esc(p.firestoreId) + '\')">✎ Editar valores</button>';
     if(p.aut)
       h+='<button class="btn btn-sm btn-ghost" onclick="imprimirAutorizacao(\'' + esc(p.firestoreId) + '\')">⎙ Autorização</button>';
