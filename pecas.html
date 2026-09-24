@@ -625,6 +625,10 @@ var pagina='estoque', sessaoEmail='', currentRole=null, currentAtivo=false, pode
 var flagRecebe=false;
 /* pecasAutoriza: libera autorizar compra. Admin já tem. */
 var flagAutoriza=false;
+/* pecasPreco: financeiro que executa a compra. Ajusta preço, pagamento e
+   entrega do pedido para a autorização sair com os valores reais — sem
+   poder lançar estoque nem autorizar a própria compra. */
+var flagPreco=false;
 var pecas=[], movs=[];
 var subs={}, errosLeitura={};
 var ord={ est:{col:'nome',dir:1}, mov:{col:'em',dir:-1}, cad:{col:'codigo',dir:1} };
@@ -1349,6 +1353,93 @@ function sessaoNomeCurto(){
   return n ? n.charAt(0).toUpperCase()+n.slice(1) : '';
 }
 
+/* ---- editar valores (financeiro) ----
+   Enquanto aguarda autorização, edita à vontade. Depois de autorizado, salvar
+   devolve o pedido para "aguardando autorização": a autorização impressa leva
+   a assinatura da diretoria, e ela não pode acabar valendo para um valor que
+   a diretoria não viu. Recebido (parcial ou total) não edita mais: o preço
+   já virou entrada de estoque. */
+function podeEditarValores(){ return currentRole==='admin' || podeLancar || flagPreco; }
+function pedidoEditavel(st){ return st==='aguardando_aut' || st==='autorizado' || st==='aguardando'; }
+
+window.editarValores=function(id){
+  if(!podeEditarValores()){ alert('Você não tem permissão para alterar valores de pedido.'); return; }
+  var p=pedidosCompra.filter(function(x){ return x.firestoreId===id; })[0];
+  if(!p) return;
+  var st=statusPedido(p);
+  if(!pedidoEditavel(st)){ alert('Este pedido não pode mais ser alterado ('+(PED_ROTULO[st]||st)+').'); return; }
+  var jaAutorizado=(st!=='aguardando_aut');
+  var a=p.aut||{}, itens=p.itens||[];
+
+  var linhas=itens.map(function(it,i){
+    var pr=num(it.precoUn);
+    return '<tr>'
+      + '<td class="r mono">'+(i+1)+'</td>'
+      + '<td class="r mono">'+fmtN(num(it.qtd),0)+'</td>'
+      + '<td>'+esc(it.nome||'')+'</td>'
+      + '<td><input type="number" min="0" step="0.01" class="au-pr" data-i="'+i+'" '
+      +   'value="'+(pr>0?pr:'')+'" placeholder="0,00" oninput="recalcAut()"></td>'
+      + '<td class="r mono au-tot" data-i="'+i+'">'+(pr>0?fmtR$(pr*num(it.qtd),2):'—')+'</td>'
+      + '</tr>';
+  }).join('');
+
+  modal({
+    titulo:'Editar valores',
+    sub:esc(p.fornecedor||'')+' · '+itens.length+(itens.length===1?' item':' itens'),
+    body:(jaAutorizado
+        ? '<div class="alert a-warn">▲ <div>Esta compra <b>já foi autorizada</b>. Ao salvar, ela volta para '
+          + '<b>aguardando autorização</b> e a diretoria precisa aprovar os valores novos.</div></div>'
+        : '<div class="alert a-info">Os valores daqui saem na autorização de compra impressa.</div>')
+       + '<div class="au-grid">'
+       +   '<div class="fld"><label>Comprador *</label>'
+       +     '<input type="text" id="ev-comp" value="'+esc(a.comprador||sessaoNomeCurto())+'"></div>'
+       +   '<div class="fld"><label>Forma de pagamento</label>'
+       +     '<input type="text" id="ev-pag" value="'+esc(a.pagamento||'')+'" placeholder="boleto 28 dias, Pix…"></div>'
+       +   '<div class="fld"><label>Data de entrega</label>'
+       +     '<input type="text" id="ev-ent" value="'+esc(a.entrega||'')+'" placeholder="15 dias, 30/09…"></div>'
+       + '</div>'
+       + '<div class="tw" style="margin-top:12px"><div class="tscroll" style="max-height:260px">'
+       + '<table class="au-tab"><thead><tr><th class="r" style="width:42px">Item</th>'
+       + '<th class="r" style="width:62px">Qtde</th><th>Descrição</th>'
+       + '<th style="width:104px">Unit (R$)</th><th class="r" style="width:104px">Total</th></tr></thead>'
+       + '<tbody>'+linhas+'</tbody></table></div></div>'
+       + '<div class="au-total">Valor total: <b id="au-soma">—</b></div>'
+       + '<div class="fld" style="margin-top:10px"><label>Observação</label>'
+       + '<input type="text" id="ev-obs" maxlength="180" value="'+esc(p.obs||'')+'" placeholder="nº da cotação, prazo combinado…"></div>',
+    ok: jaAutorizado ? 'Salvar e reenviar para autorização' : 'Salvar valores',
+    onOk:function(){
+      var comprador=String((document.getElementById('ev-comp')||{}).value||'').trim();
+      if(!comprador){ alert('Informe o comprador — é o nome que sai na autorização.'); return false; }
+      /* só o preço muda em cada item; quantidade, nome e o que já foi recebido ficam */
+      var novos=itens.map(function(it,i){
+        var el=document.querySelector('.au-pr[data-i="'+i+'"]');
+        var pr=parseFloat(String((el&&el.value)||'').replace(',','.'));
+        var c={}; for(var k in it) c[k]=it[k];
+        c.precoUn=(isFinite(pr)&&pr>0)?pr:0;
+        return c;
+      });
+      var total=novos.reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0);
+      var aut={}; for(var k in a) aut[k]=a[k];
+      aut.comprador=comprador;
+      aut.pagamento=String((document.getElementById('ev-pag')||{}).value||'').trim();
+      aut.entrega=String((document.getElementById('ev-ent')||{}).value||'').trim();
+      var dados={
+        itens:novos, aut:aut, valorEstimado:total,
+        obs:String((document.getElementById('ev-obs')||{}).value||'').trim(),
+        precoEditadoPor:sessaoEmail, precoEditadoNome:sessaoNomeCurto(), precoEditadoEm:agora()
+      };
+      if(jaAutorizado){ dados.status='aguardando_aut'; dados.autorizadoPor=''; dados.autorizadoEm=''; }
+      updateDoc(doc(dbC,'pecasPedidos',id), dados)
+        .then(function(){ render(); })
+        .catch(function(e){
+          console.error('editarValores:',e);
+          alert('Não foi possível salvar: '+(e.code||e.message));
+        });
+    }
+  });
+  setTimeout(recalcAut, 40);
+};
+
 /* ---- cancelar: marca, não apaga ---- */
 window.cancelarPedido=function(id){
   var p=pedidosCompra.filter(function(x){ return x.firestoreId===id; })[0];
@@ -1528,6 +1619,14 @@ function renderPedidos(){
     if(st!=='cancelado' && totPed>0){
       h+='<div class="pd-barra"><div class="pd-fill" style="width:'+pct+'%"></div></div>'
        + '<div class="pd-pct">'+fmtN(totRec,0)+' de '+fmtN(totPed,0)+' recebidos ('+pct+'%)</div>';
+    var valPed=(p.itens||[]).reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0);
+    var semPr=(p.itens||[]).filter(function(x){ return !(num(x.precoUn)>0); }).length;
+    h+='<div class="pd-pct" style="margin-top:2px">'
+     + (valPed>0?'Valor: <b>'+fmtR$(valPed,2)+'</b>':'<span style="color:var(--amber)">Sem valores informados</span>')
+     + (valPed>0 && semPr?' · <span style="color:var(--amber)">'+semPr+(semPr===1?' item sem preço':' itens sem preço')+'</span>':'')
+     + (p.precoEditadoEm?' · valores atualizados por '+esc(p.precoEditadoNome||p.precoEditadoPor||'')
+        +' em '+esc(dataBR(p.precoEditadoEm)):'')
+     + '</div>';
     }
 
     if(st==='cancelado'){
@@ -1547,6 +1646,8 @@ function renderPedidos(){
       if(podeReceber())
         h+='<button class="cp-ger" onclick="receberPedido(\'' + esc(p.firestoreId) + '\')">Receber</button>';
     }
+    if(pedidoEditavel(st) && podeEditarValores())
+      h+='<button class="btn btn-sm btn-ghost" onclick="editarValores(\'' + esc(p.firestoreId) + '\')">✎ Editar valores</button>';
     if(p.aut)
       h+='<button class="btn btn-sm btn-ghost" onclick="imprimirAutorizacao(\'' + esc(p.firestoreId) + '\')">⎙ Autorização</button>';
     if(st!=='recebido' && st!=='cancelado' && podeLancar)
@@ -2430,6 +2531,7 @@ function iniciarSessao(user){
     var flag=(d.pecas===true);
   flagRecebe=(d.pecasRecebe===true);
   flagAutoriza=(d.pecasAutoriza===true);
+  flagPreco=(d.pecasPreco===true);
     if(!currentAtivo){ negar('Sua conta ('+sessaoEmail+') ainda não foi liberada por um administrador.'); return; }
     if(currentRole!=='admin' && !flag){ negar('O estoque de peças é restrito a quem tem a permissão (flag pecas).'); return; }
     podeLancar=(currentRole==='admin' || d.pecasMov===true);
