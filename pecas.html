@@ -963,6 +963,28 @@ function fornSemCadastro(){
   return falta.sort();
 }
 
+/* Quem cadastra e corrige fornecedor: quem lança estoque e o financeiro.
+   O financeiro é quem precisa do cadastro completo para enviar a compra. */
+function podeCadastrarForn(){ return podeLancar || podeValidarFin(); }
+
+/* Cria de uma vez o cadastro de todos os fornecedores que aparecem nas peças
+   e ainda não existem — só com o nome. Os dados fiscais ficam para completar. */
+window.cadastrarFaltantes=function(){
+  if(!podeCadastrarForn()) return;
+  var falta=fornSemCadastro();
+  if(!falta.length){ alert('Todos os fornecedores das peças já têm cadastro.'); return; }
+  if(!confirm('Cadastrar '+falta.length+' fornecedor'+(falta.length===1?'':'es')+' de uma vez?\n\n'
+              + falta.join('\n')+'\n\nEntram só com o nome; os dados fiscais você completa depois.')) return;
+  var lote=writeBatch(dbC), quando=agora();
+  falta.forEach(function(nome){
+    lote.set(doc(collection(dbC,'pecasFornecedores')), {
+      nome:nome, razao:'', cnpj:'', endereco:'', municipio:'', pagamento:'',
+      contato:'', vendedor:'', atualizadoEm:quando, atualizadoPor:sessaoEmail });
+  });
+  lote.commit().then(function(){ render(); })
+    .catch(function(e){ console.error('cadastrarFaltantes:',e); alert('Não foi possível cadastrar: '+(e.code||e.message)); });
+};
+
 function renderForn(){
   var alvo=document.getElementById('fn-saida');
   if(!alvo) return;
@@ -972,14 +994,18 @@ function renderForn(){
   var h='<div class="cp-faixa">'
    + '<span class="cp-f1"><b>'+fornecedores.length+'</b> cadastrados</span>'
    + (falta.length?'<span class="cp-f3">'+falta.length+' sem cadastro</span>':'')
-   + (podeLancar?'<button class="cp-conf" style="margin-left:auto" onclick="abrirForn()">+ Fornecedor</button>':'')
+   + (fornecedores.filter(function(f){ return faltaCadastro(f).length; }).length
+        ? '<span class="cp-f3">'+fornecedores.filter(function(f){ return faltaCadastro(f).length; }).length+' incompletos</span>':'')
+   + (podeCadastrarForn()?'<button class="cp-conf" style="margin-left:auto" onclick="abrirForn()">+ Fornecedor</button>':'')
    + '</div>';
 
   if(falta.length){
     h+='<div class="alert a-warn">▲ <div>Estes fornecedores aparecem nas peças mas não têm cadastro. '
-     + 'Sem os dados fiscais, o pedido deles não pode ser autorizado:<div class="fn-falta">'
+     + 'Sem os dados fiscais, o pedido deles não pode ser enviado para assinatura:'
+     + (podeCadastrarForn()?' <button class="btn btn-sm" style="margin-left:6px" onclick="cadastrarFaltantes()">Cadastrar todos ('+falta.length+')</button>':'')
+     + '<div class="fn-falta">'
      + falta.map(function(f){
-         return podeLancar
+         return podeCadastrarForn()
            ? '<button class="fn-f" onclick="abrirForn(null,\'' + esc(f).replace(/'/g,"\\'") + '\')">'+esc(f)+'</button>'
            : '<span class="fn-f">'+esc(f)+'</span>';
        }).join('')
@@ -998,16 +1024,19 @@ function renderForn(){
 
   h+='<div class="tw"><div class="tscroll"><table><thead><tr>'
    + '<th>Fornecedor</th><th>Razão social</th><th>CNPJ</th><th>Município / UF</th>'
-   + '<th>Pagamento</th><th style="width:90px"></th></tr></thead><tbody>';
+   + '<th>Pagamento</th><th>Situação</th><th style="width:90px"></th></tr></thead><tbody>';
   lista.forEach(function(f){
-    var falta2=!(f.razao&&f.cnpj);
+    var faltaF=faltaCadastro(f), falta2=faltaF.length>0;
     h+='<tr'+(falta2?' class="cp-falta"':'')+'>'
      + '<td><b>'+esc(f.nome||'—')+'</b></td>'
      + '<td>'+esc(f.razao||'—')+'</td>'
      + '<td class="mono" style="font-size:12px">'+esc(f.cnpj||'—')+'</td>'
      + '<td style="color:var(--muted);font-size:12.5px">'+esc(f.municipio||'—')+'</td>'
      + '<td style="color:var(--muted);font-size:12.5px">'+esc(f.pagamento||'—')+'</td>'
-     + '<td class="r">'+(podeLancar
+     + '<td style="font-size:12px">'+(falta2
+         ? '<span style="color:var(--amber)">falta: '+esc(faltaF.join(', '))+'</span>'
+         : '<span style="color:var(--green)">✓ completo</span>')+'</td>'
+     + '<td class="r">'+(podeCadastrarForn()
          ? '<button class="btn btn-sm btn-ghost" onclick="abrirForn(\'' + esc(f.firestoreId) + '\')">Editar</button>'
          : '')+'</td></tr>';
   });
@@ -1016,7 +1045,7 @@ function renderForn(){
 }
 
 window.abrirForn=function(id, nomeSugerido){
-  if(!podeLancar){ alert('Você não tem permissão para cadastrar fornecedor.'); return; }
+  if(!podeCadastrarForn()){ alert('Você não tem permissão para cadastrar fornecedor.'); return; }
   var f=id?fornecedores.filter(function(x){ return x.firestoreId===id; })[0]:null;
   var novo=!f; f=f||{};
   modal({
@@ -1025,11 +1054,11 @@ window.abrirForn=function(id, nomeSugerido){
     body:'<div class="au-grid">'
        + '<div class="fld"><label>Nome (igual ao das peças)</label>'
        +   '<input type="text" id="fn-nome" value="'+esc(f.nome||nomeSugerido||'')+'"></div>'
-       + '<div class="fld"><label>Razão social</label><input type="text" id="fn-razao" value="'+esc(f.razao||'')+'"></div>'
-       + '<div class="fld"><label>CNPJ</label><input type="text" id="fn-cnpj" value="'+esc(f.cnpj||'')+'" placeholder="00.000.000/0001-00"></div>'
-       + '<div class="fld"><label>Endereço</label><input type="text" id="fn-end" value="'+esc(f.endereco||'')+'"></div>'
-       + '<div class="fld"><label>Município / UF</label><input type="text" id="fn-mun" value="'+esc(f.municipio||'')+'"></div>'
-       + '<div class="fld"><label>Forma de pagamento</label><input type="text" id="fn-pag" value="'+esc(f.pagamento||'')+'" placeholder="boleto 28 dias"></div>'
+       + '<div class="fld"><label>Razão social *</label><input type="text" id="fn-razao" value="'+esc(f.razao||'')+'"></div>'
+       + '<div class="fld"><label>CNPJ *</label><input type="text" id="fn-cnpj" inputmode="numeric" maxlength="18" oninput="mascaraCnpj(this)" value="'+esc(f.cnpj||'')+'" placeholder="00.000.000/0001-00"></div>'
+       + '<div class="fld"><label>Endereço *</label><input type="text" id="fn-end" value="'+esc(f.endereco||'')+'"></div>'
+       + '<div class="fld"><label>Município / UF *</label><input type="text" id="fn-mun" value="'+esc(f.municipio||'')+'"></div>'
+       + '<div class="fld"><label>Forma de pagamento *</label><input type="text" id="fn-pag" value="'+esc(f.pagamento||'')+'" placeholder="boleto 28 dias"></div>'
        + '<div class="fld"><label>WhatsApp</label><input type="tel" id="fn-fone" value="'+esc(f.contato||'')+'" placeholder="51 99999-9999"></div>'
        + '<div class="fld"><label>Vendedor</label><input type="text" id="fn-vend" value="'+esc(f.vendedor||'')+'"></div>'
        + '</div>',
@@ -1046,6 +1075,11 @@ window.abrirForn=function(id, nomeSugerido){
         contato:String((document.getElementById('fn-fone')||{}).value||'').trim(),
         vendedor:String((document.getElementById('fn-vend')||{}).value||'').trim(),
         atualizadoEm:agora(), atualizadoPor:sessaoEmail };
+      /* CNPJ pode ficar em branco por enquanto, mas errado não entra */
+      var digC=dados.cnpj.replace(/\D/g,'');
+      if(digC && !(digC.length===14 ? cnpjValido(digC) : (digC.length===11 && cpfValido(digC)))){
+        alert('CNPJ inválido — confira os números. (Fornecedor pessoa física: use o CPF.)'); return false;
+      }
       var pr=novo ? addDoc(collection(dbC,'pecasFornecedores'), dados)
                   : updateDoc(doc(dbC,'pecasFornecedores',id), dados);
       pr.catch(function(e){
@@ -1494,27 +1528,13 @@ window.editarValores=function(id){
                 ? 'Confira os preços e as condições. Ao confirmar, o pedido vai para a <b>diretoria assinar</b> '
                   + 'no app de Autorizações e <b>não pode mais ser alterado</b> — para corrigir depois, só cancelando e fazendo outro.'
                 : 'Os valores daqui saem na autorização de compra impressa.')+'</div>'))
-       + (fin
-          ? '<div class="klabel" style="margin:4px 0 6px">Dados do fornecedor · '+esc(a.razao||p.fornecedor||'')+'</div>'
-          + '<div class="au-grid">'
-          +   '<div class="fld"><label>CNPJ'+(validando?' *':'')+'</label>'
-          +     '<input type="text" id="ev-cnpj" inputmode="numeric" maxlength="18" oninput="mascaraCnpj(this)" '
-          +       'value="'+esc(a.cnpj||'')+'" placeholder="00.000.000/0000-00"></div>'
-          +   '<div class="fld"><label>Município / UF'+(validando?' *':'')+'</label>'
-          +     '<input type="text" id="ev-mun" value="'+esc(a.municipio||'')+'" placeholder="Porto Alegre / RS"></div>'
-          +   '<div class="fld" style="grid-column:1/-1"><label>Endereço'+(validando?' *':'')+'</label>'
-          +     '<input type="text" id="ev-end" value="'+esc(a.endereco||'')+'" placeholder="Rua, número, bairro"></div>'
-          + '</div>'
-          + '<div class="klabel" style="margin:12px 0 6px">Condições da compra</div>'
-          : '')
+       + (fin ? quadroCadastro(p) + '<div class="klabel" style="margin:12px 0 6px">Condições da compra</div>' : '')
        + '<div class="au-grid">'
        +   '<div class="fld"><label>Comprador *</label>'
        +     '<input type="text" id="ev-comp" value="'+esc(a.comprador||sessaoNomeCurto())+'"></div>'
-       +   '<div class="fld"><label>Forma de pagamento'+(validando?' *':'')+'</label>'
-       +     '<input type="text" id="ev-pag" value="'+esc(a.pagamento||'')+'" placeholder="boleto 28 dias, Pix…"></div>'
        +   '<div class="fld"><label>Data de entrega'+(validando?' *':'')+'</label>'
        +     '<input type="text" id="ev-ent" value="'+esc(a.entrega||'')+'" placeholder="15 dias, 30/09…"></div>'
-       +   (fin ? '<div class="fld"><label>Frete (R$)'+(validando?' *':'')+'</label>'
+       +   (fin ? '<div class="fld"><label>Frete (R$)</label>'
        +     '<input type="number" id="ev-frete" min="0" step="0.01" oninput="recalcAut()" '
        +     'value="'+(p.frete!=null && p.frete!==''?num(p.frete):'')+'" placeholder="0 se não houver"></div>' : '')
        + '</div>'
@@ -1546,12 +1566,7 @@ window.editarValores=function(id){
       var total=novos.reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0);
       var aut={}; for(var k in a) aut[k]=a[k];
       aut.comprador=comprador;
-      aut.pagamento=String((document.getElementById('ev-pag')||{}).value||'').trim();
       aut.entrega=String((document.getElementById('ev-ent')||{}).value||'').trim();
-      ['cnpj:ev-cnpj','endereco:ev-end','municipio:ev-mun'].forEach(function(par){
-        var k=par.split(':'), el=document.getElementById(k[1]);
-        if(el) aut[k[0]]=String(el.value||'').trim();
-      });
       var dados={
         itens:novos, aut:aut, valorEstimado:total,
         obs:String((document.getElementById('ev-obs')||{}).value||'').trim(),
@@ -1578,9 +1593,14 @@ window.editarValores=function(id){
       /* enviar: só com tudo preenchido */
       var semPreco=novos.filter(function(x){ return !(num(x.precoUn)>0); }).length;
       if(semPreco){ alert(semPreco+(semPreco===1?' item está':' itens estão')+' sem preço.'); return false; }
-      if(dados.frete==null){ alert('Informe o frete. Se não houver, coloque 0.'); return false; }
-      var faltaForn=faltaDadosFornecedor(aut);
-      if(faltaForn.length){ alert('Para enviar, falta:\n\n• '+faltaForn.join('\n• ')); return false; }
+      if(!aut.entrega){ alert('Informe a data de entrega.'); return false; }
+      var fc=fornPorNome(p.fornecedor), faltaForn=faltaCadastro(fc, p.fornecedor);
+      if(faltaForn.length){
+        alert('O cadastro do fornecedor está incompleto:\n\n• '+faltaForn.join('\n• ')
+            + '\n\nOs valores foram guardados? Use "Salvar" antes, complete o cadastro e envie de novo.');
+        return false;
+      }
+      aut=autDoCadastro(aut, fc); dados.aut=aut;
       /* Financeiro validando: o pedido avança E a autorização nasce no app de
          Autorizações, numa gravação só. writeBatch é atômico — ou as duas
          coisas entram, ou nenhuma. Não existe pedido "enviado" sem autorização
@@ -1657,9 +1677,61 @@ function faltaParaEnviar(p){
   var f=[];
   var semPr=(p.itens||[]).filter(function(x){ return !(num(x.precoUn)>0); }).length;
   if(semPr) f.push(semPr+(semPr===1?' item sem preço':' itens sem preço'));
-  if(p.frete==null || p.frete==='') f.push('frete não informado (se não houver, informe 0)');
   if(!((p.aut||{}).comprador)) f.push('comprador não informado');
-  return f.concat(faltaDadosFornecedor(p.aut||{}));
+  if(!((p.aut||{}).entrega))   f.push('data de entrega');
+  return f.concat(faltaCadastro(fornPorNome(p.fornecedor), p.fornecedor));
+}
+
+/* ===== o cadastro do fornecedor é a fonte dos dados fiscais =====
+   Razão social, CNPJ, endereço, município e forma de pagamento saem SEMPRE do
+   cadastro, copiados no momento do envio. O pedido não tem versão própria
+   desses dados: corrigiu no cadastro, vale para o próximo envio. Só a data de
+   entrega é do pedido. */
+function faltaCadastro(f, nome){
+  if(!f) return [(nome||'Este fornecedor')+' não está no cadastro de fornecedores'];
+  var falta=[];
+  if(!String(f.razao||'').trim()) falta.push('razão social');
+  var dig=String(f.cnpj||'').replace(/\D/g,'');
+  if(!dig) falta.push('CNPJ');
+  else if(!(dig.length===14 ? cnpjValido(dig) : (dig.length===11 && cpfValido(dig))))
+    falta.push('CNPJ inválido — confira os números');
+  if(!String(f.endereco||'').trim())  falta.push('endereço');
+  if(!String(f.municipio||'').trim()) falta.push('município / UF');
+  if(!String(f.pagamento||'').trim()) falta.push('forma de pagamento');
+  return falta;
+}
+function autDoCadastro(aut, f){
+  var c={}; for(var k in (aut||{})) c[k]=aut[k];
+  c.razao=f.razao||''; c.cnpj=f.cnpj||''; c.endereco=f.endereco||'';
+  c.municipio=f.municipio||''; c.pagamento=f.pagamento||'';
+  return c;
+}
+/* O quadro de leitura no modal do financeiro: mostra o que vai sair impresso
+   e leva direto ao cadastro quando falta algo. */
+function quadroCadastro(p){
+  var f=fornPorNome(p.fornecedor), falta=faltaCadastro(f, p.fornecedor);
+  function lin(rot, v){
+    var vazio=!String(v||'').trim();
+    return '<div><span style="display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">'+rot+'</span>'
+         + '<b style="font-size:13px;'+(vazio?'color:var(--amber);font-weight:600':'')+'">'+(vazio?'falta':esc(v))+'</b></div>';
+  }
+  var botao=podeCadastrarForn()
+    ? '<button class="btn btn-sm btn-ghost" style="margin-top:10px" onclick="fecharModal();abrirForn('
+      + (f?'\''+esc(f.firestoreId)+'\'':'null')+',\''+esc(p.fornecedor||'').replace(/'/g,"\\'")+'\')">'
+      + (!f?'+ Cadastrar fornecedor':(falta.length?'✎ Completar cadastro':'✎ Editar cadastro'))+'</button>' : '';
+  return '<div class="klabel" style="margin:4px 0 6px">Dados do fornecedor · vêm do cadastro</div>'
+    + '<div style="background:var(--card-2);border-radius:10px;padding:12px 14px;'
+    +   (falta.length?'border:1px solid var(--amber);':'')+'">'
+    + (f
+        ? '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 14px">'
+          + lin('Razão social', f.razao) + lin('CNPJ', f.cnpj) + lin('Município / UF', f.municipio)
+          + lin('Forma de pagamento', f.pagamento)
+          + '<div style="grid-column:1/-1">'+lin('Endereço', f.endereco)+'</div>'
+          + '</div>'
+        : '<div style="color:var(--amber);font-weight:600">'+esc(p.fornecedor||'')+' não está no cadastro de fornecedores.</div>')
+    + (falta.length?'<div style="font-size:12px;color:var(--amber);margin-top:9px">Para enviar à assinatura, complete: '
+                     +esc(falta.join(', '))+'.</div>':'')
+    + botao + '</div>';
 }
 
 /* O que sai no quadro "Dados do fornecedor" da autorização e no documento
@@ -1731,7 +1803,7 @@ window.enviarAssinatura=function(id){
     if(confirm('Ainda falta:\n\n• '+falta.join('\n• ')+'\n\nAbrir os valores para completar?')) editarValores(id);
     return;
   }
-  var a=p.aut||{}, sub=subtotalItens(p.itens), fr=num(p.frete);
+  var a=autDoCadastro(p.aut||{}, fornPorNome(p.fornecedor)), sub=subtotalItens(p.itens), fr=num(p.frete);
   modal({
     titulo:'Enviar para assinatura', sub:esc(p.fornecedor||''),
     body:'<div class="alert a-info">Vai para a diretoria assinar no app de Autorizações. '
@@ -1746,7 +1818,7 @@ window.enviarAssinatura=function(id){
        + '<tr><td>Comprador</td><td class="r">'+esc(a.comprador||'—')+'</td></tr>'
        + '</tbody></table>',
     ok:'Enviar para assinatura',
-    onOk:function(){ mandarParaAssinatura(p, p.itens||[], a, p.obs||'', p.frete, {}); }
+    onOk:function(){ mandarParaAssinatura(p, p.itens||[], a, p.obs||'', p.frete, { aut:a }); }
   });
 };
 
