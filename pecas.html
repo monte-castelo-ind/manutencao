@@ -1118,6 +1118,9 @@ window.recalcAut=function(){
     if(isFinite(pr) && pr>0){ soma+=pr*qtd; if(cel) cel.textContent=fmtR$(pr*qtd,2); }
     else if(cel) cel.textContent='—';
   });
+  /* frete (só existe no modal do financeiro) entra no total que vai para assinatura */
+  var fr=document.getElementById('ev-frete');
+  if(fr){ var vf=parseFloat(String(fr.value).replace(',','.')); if(isFinite(vf) && vf>0) soma+=vf; }
   var s=document.getElementById('au-soma');
   if(s) s.textContent = soma>0 ? fmtR$(soma,2) : '—';
 };
@@ -1200,8 +1203,11 @@ window.imprimirAutorizacao=function(id){
     +   '<th style="width:8%">ITEM</th><th style="width:10%">QTDE</th>'
     +   '<th>DESCRIÇÃO DO PRODUTO</th><th style="width:15%">UNIT (R$)</th><th style="width:15%">TOTAL (R$)</th>'
     + '</tr></thead><tbody>'+linhas+vazias+'</tbody>'
-    + '<tfoot><tr><td colspan="4" class="r"><b>VALOR TOTAL:</b></td>'
-    +   '<td class="r"><b>'+(total>0?fmtN(total,2):'—')+'</b></td></tr></tfoot></table>'
+    + '<tfoot>'
+    +   ((p.frete!=null && p.frete!=='')?'<tr><td colspan="4" class="r"><b>FRETE:</b></td>'
+    +     '<td class="r">'+(num(p.frete)>0?fmtN(num(p.frete),2):'—')+'</td></tr>':'')
+    +   '<tr><td colspan="4" class="r"><b>VALOR TOTAL:</b></td>'
+    +   '<td class="r"><b>'+((total+num(p.frete))>0?fmtN(total+num(p.frete),2):'—')+'</b></td></tr></tfoot></table>'
     + '<div class="au-obs"><b>OBSERVAÇÃO:</b><br>'+esc(p.obs||'')+'</div>'
     + blocoAssinatura(p);
 
@@ -1388,8 +1394,9 @@ function podeCancelar(p){
 /* Monta a autorização que vai para o app de Autorizações. Mesmo formato do
    modelo "compra" de lá, para a folha impressa, o Pix, o código de
    verificação e os detalhes funcionarem sem nada especial. */
-function autorizacaoDoPedido(p, itens, aut, total, obs){
+function autorizacaoDoPedido(p, itens, aut, total, obs, frete){
   return {
+    frete:num(frete),
     tipo:'Autorização de Compra', tipoId:'', modelo:'compra',
     setor:'Manutenção', titulo:'Peças · '+(p.fornecedor||''),
     descricao:obs||'', prazo:'',
@@ -1453,17 +1460,25 @@ window.editarValores=function(id){
        +     '<input type="text" id="ev-pag" value="'+esc(a.pagamento||'')+'" placeholder="boleto 28 dias, Pix…"></div>'
        +   '<div class="fld"><label>Data de entrega</label>'
        +     '<input type="text" id="ev-ent" value="'+esc(a.entrega||'')+'" placeholder="15 dias, 30/09…"></div>'
+       +   (fin ? '<div class="fld"><label>Frete (R$)'+(validando?' *':'')+'</label>'
+       +     '<input type="number" id="ev-frete" min="0" step="0.01" oninput="recalcAut()" '
+       +     'value="'+(p.frete!=null && p.frete!==''?num(p.frete):'')+'" placeholder="0 se não houver"></div>' : '')
        + '</div>'
        + '<div class="tw" style="margin-top:12px"><div class="tscroll" style="max-height:260px">'
        + '<table class="au-tab"><thead><tr><th class="r" style="width:42px">Item</th>'
        + '<th class="r" style="width:62px">Qtde</th><th>Descrição</th>'
        + '<th style="width:104px">Unit (R$)</th><th class="r" style="width:104px">Total</th></tr></thead>'
        + '<tbody>'+linhas+'</tbody></table></div></div>'
-       + '<div class="au-total">Valor total: <b id="au-soma">—</b></div>'
+       + '<div class="au-total">Valor total'+(fin?' (com frete)':'')+': <b id="au-soma">—</b></div>'
        + '<div class="fld" style="margin-top:10px"><label>Observação</label>'
        + '<input type="text" id="ev-obs" maxlength="180" value="'+esc(p.obs||'')+'" placeholder="nº da cotação, prazo combinado…"></div>',
-    ok: fin ? 'Validar e enviar para assinatura' : 'Salvar valores',
-    onOk:function(){
+    extra: fin ? '<button class="btn btn-sm btn-ghost" style="margin-right:auto" onclick="_evGravar(false)">Salvar</button>' : '',
+    ok: fin ? 'Salvar e enviar para assinatura' : 'Salvar valores',
+    onOk:function(){ return window._evGravar(true); }
+  });
+  /* Os dois botões do financeiro chamam a mesma gravação:
+     enviar=false guarda e deixa o pedido com ele; enviar=true guarda e manda. */
+  window._evGravar=function(enviar){
       var comprador=String((document.getElementById('ev-comp')||{}).value||'').trim();
       if(!comprador){ alert('Informe o comprador — é o nome que sai na autorização.'); return false; }
       /* só o preço muda em cada item; quantidade, nome e o que já foi recebido ficam */
@@ -1484,34 +1499,98 @@ window.editarValores=function(id){
         obs:String((document.getElementById('ev-obs')||{}).value||'').trim(),
         precoEditadoPor:sessaoEmail, precoEditadoNome:sessaoNomeCurto(), precoEditadoEm:agora()
       };
-      if(!fin){
-        /* gerente ajustando antes do financeiro: o pedido fica onde está */
+      var elFr=document.getElementById('ev-frete');
+      if(elFr){
+        var txtFr=String(elFr.value||'').trim();
+        if(txtFr!==''){
+          var vfr=parseFloat(txtFr.replace(',','.'));
+          if(!isFinite(vfr) || vfr<0){ alert('Frete inválido.'); return false; }
+          dados.frete=vfr; dados.valorEstimado=total+vfr;
+        }
+      }
+      if(!fin || !enviar){
+        /* gerente ajustando, ou financeiro salvando para continuar depois:
+           o pedido fica com o financeiro */
         updateDoc(doc(dbC,'pecasPedidos',id), dados)
           .then(function(){ render(); })
           .catch(function(e){ console.error('editarValores:',e); alert('Não foi possível salvar: '+(e.code||e.message)); });
+        fecharModal();
         return;
       }
+      /* enviar: só com tudo preenchido */
+      var semPreco=novos.filter(function(x){ return !(num(x.precoUn)>0); }).length;
+      if(semPreco){ alert(semPreco+(semPreco===1?' item está':' itens estão')+' sem preço.'); return false; }
+      if(dados.frete==null){ alert('Informe o frete. Se não houver, coloque 0.'); return false; }
       /* Financeiro validando: o pedido avança E a autorização nasce no app de
          Autorizações, numa gravação só. writeBatch é atômico — ou as duas
          coisas entram, ou nenhuma. Não existe pedido "enviado" sem autorização
          do outro lado, nem autorização órfã. */
-      var ref=doc(collection(dbC,'assinaturas'));
-      dados.status='aguardando_aut';
-      dados.assinaturaId=ref.id;
-      dados.validadoFinPor=sessaoEmail; dados.validadoFinNome=sessaoNomeCurto(); dados.validadoFinEm=agora();
-      var lote=writeBatch(dbC);
-      lote.set(ref, autorizacaoDoPedido(p, novos, aut, total, dados.obs));
-      lote.update(doc(dbC,'pecasPedidos',id), dados);
-      lote.commit()
-        .then(function(){ render(); })
-        .catch(function(e){
-          console.error('validar pedido:',e);
-          alert('Não foi possível enviar para assinatura: '+(e.code||e.message)
-            + (e.code==='permission-denied'?'\n\nConfira se sua conta tem acesso ao app de Autorizações (flag assinaturas).':''));
-        });
-    }
-  });
+      mandarParaAssinatura(p, novos, aut, dados.obs, dados.frete, dados);
+      fecharModal();
+      return false;   /* o modal já foi fechado aqui */
+  };
   setTimeout(recalcAut, 40);
+};
+
+/* O que falta para o pedido poder ir para a diretoria. Vazio = pronto. */
+function faltaParaEnviar(p){
+  var f=[];
+  var semPr=(p.itens||[]).filter(function(x){ return !(num(x.precoUn)>0); }).length;
+  if(semPr) f.push(semPr+(semPr===1?' item sem preço':' itens sem preço'));
+  if(p.frete==null || p.frete==='') f.push('frete não informado (se não houver, informe 0)');
+  if(!((p.aut||{}).comprador)) f.push('comprador não informado');
+  return f;
+}
+function subtotalItens(itens){ return (itens||[]).reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0); }
+
+/* Manda para a assinatura um pedido que o financeiro já salvou. Mesma
+   gravação atômica da validação: a autorização nasce no app de Autorizações
+   e o pedido avança juntos, ou nada acontece. */
+function mandarParaAssinatura(p, itens, aut, obs, frete, dadosExtras){
+  var total=subtotalItens(itens)+num(frete);
+  var ref=doc(collection(dbC,'assinaturas'));
+  var dados=dadosExtras||{};
+  dados.status='aguardando_aut';
+  dados.assinaturaId=ref.id;
+  dados.validadoFinPor=sessaoEmail; dados.validadoFinNome=sessaoNomeCurto(); dados.validadoFinEm=agora();
+  var lote=writeBatch(dbC);
+  lote.set(ref, autorizacaoDoPedido(p, itens, aut, total, obs, frete));
+  lote.update(doc(dbC,'pecasPedidos',p.firestoreId), dados);
+  return lote.commit()
+    .then(function(){ render(); })
+    .catch(function(e){
+      console.error('enviar para assinatura:',e);
+      alert('Não foi possível enviar para assinatura: '+(e.code||e.message)
+        + (e.code==='permission-denied'?'\n\nConfira se sua conta tem as flags pecasPreco e assinaturas.':''));
+    });
+}
+
+window.enviarAssinatura=function(id){
+  if(!podeValidarFin()){ alert('Só o financeiro envia pedido para assinatura.'); return; }
+  var p=pedidosCompra.filter(function(x){ return x.firestoreId===id; })[0];
+  if(!p || statusPedido(p)!=='aguardando_fin') return;
+  var falta=faltaParaEnviar(p);
+  if(falta.length){
+    if(confirm('Ainda falta:\n\n• '+falta.join('\n• ')+'\n\nAbrir os valores para completar?')) editarValores(id);
+    return;
+  }
+  var a=p.aut||{}, sub=subtotalItens(p.itens), fr=num(p.frete);
+  modal({
+    titulo:'Enviar para assinatura', sub:esc(p.fornecedor||''),
+    body:'<div class="alert a-info">Vai para a diretoria assinar no app de Autorizações. '
+       + 'Depois de enviado, <b>não pode mais ser alterado</b> — para corrigir, só cancelando e refazendo.</div>'
+       + '<table class="au-tab" style="margin-top:4px"><tbody>'
+       + '<tr><td>Itens</td><td class="r mono">'+(p.itens||[]).length+'</td></tr>'
+       + '<tr><td>Subtotal dos itens</td><td class="r mono">'+fmtR$(sub,2)+'</td></tr>'
+       + '<tr><td>Frete</td><td class="r mono">'+(fr>0?fmtR$(fr,2):'sem frete')+'</td></tr>'
+       + '<tr><td><b>Total para assinatura</b></td><td class="r mono"><b>'+fmtR$(sub+fr,2)+'</b></td></tr>'
+       + '<tr><td>Pagamento</td><td class="r">'+esc(a.pagamento||'—')+'</td></tr>'
+       + '<tr><td>Entrega</td><td class="r">'+esc(a.entrega||'—')+'</td></tr>'
+       + '<tr><td>Comprador</td><td class="r">'+esc(a.comprador||'—')+'</td></tr>'
+       + '</tbody></table>',
+    ok:'Enviar para assinatura',
+    onOk:function(){ mandarParaAssinatura(p, p.itens||[], a, p.obs||'', p.frete, {}); }
+  });
 };
 
 /* ---- cancelar: marca, não apaga ---- */
@@ -1709,10 +1788,11 @@ function renderPedidos(){
     if(st!=='cancelado' && totPed>0){
       h+='<div class="pd-barra"><div class="pd-fill" style="width:'+pct+'%"></div></div>'
        + '<div class="pd-pct">'+fmtN(totRec,0)+' de '+fmtN(totPed,0)+' recebidos ('+pct+'%)</div>';
-    var valPed=(p.itens||[]).reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0);
+    var temFrete=(p.frete!=null && p.frete!=='');
+    var valPed=(p.itens||[]).reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0)+(temFrete?num(p.frete):0);
     var semPr=(p.itens||[]).filter(function(x){ return !(num(x.precoUn)>0); }).length;
     h+='<div class="pd-pct" style="margin-top:2px">'
-     + (valPed>0?'Valor: <b>'+fmtR$(valPed,2)+'</b>':'<span style="color:var(--amber)">Sem valores informados</span>')
+     + (valPed>0?'Valor: <b>'+fmtR$(valPed,2)+'</b>'+(temFrete?' <span style="color:var(--muted)">(frete '+(num(p.frete)>0?fmtR$(num(p.frete),2):'—')+')</span>':''):'<span style="color:var(--amber)">Sem valores informados</span>')
      + (valPed>0 && semPr?' · <span style="color:var(--amber)">'+semPr+(semPr===1?' item sem preço':' itens sem preço')+'</span>':'')
      + (p.validadoFinEm?' · validado por '+esc(p.validadoFinNome||p.validadoFinPor||'')
         +' em '+esc(dataBR(p.validadoFinEm))
@@ -1730,7 +1810,7 @@ function renderPedidos(){
     h+='<div class="pd-btns">';
     if(st==='aguardando_fin'){
       if(podeValidarFin())
-        h+='<button class="cp-conf" onclick="editarValores(\'' + esc(p.firestoreId) + '\')">Validar valores</button>';
+        h+='<button class="cp-conf" onclick="enviarAssinatura(\'' + esc(p.firestoreId) + '\')">✍ Enviar para assinatura</button>';
       else
         h+='<span class="pd-espera">Aguardando validação do financeiro</span>';
     }
@@ -1753,7 +1833,7 @@ function renderPedidos(){
       if(podeReceber())
         h+='<button class="cp-ger" onclick="receberPedido(\'' + esc(p.firestoreId) + '\')">Receber</button>';
     }
-    if(pedidoEditavel(st) && podeEditarValores() && !(st==='aguardando_fin' && podeValidarFin()))
+    if(pedidoEditavel(st) && podeEditarValores())
       h+='<button class="btn btn-sm btn-ghost" onclick="editarValores(\'' + esc(p.firestoreId) + '\')">✎ Editar valores</button>';
     if(p.aut)
       h+='<button class="btn btn-sm btn-ghost" onclick="imprimirAutorizacao(\'' + esc(p.firestoreId) + '\')">⎙ Autorização</button>';
