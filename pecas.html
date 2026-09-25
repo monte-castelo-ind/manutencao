@@ -296,6 +296,31 @@ button.fn-f:hover{border-color:var(--amber);color:var(--amber)}
 .pd-st-aguardando_aut{color:var(--amber);background:rgba(245,176,19,.13);border:1px solid rgba(245,176,19,.36)}
 .pd-st-autorizado{color:var(--green);background:rgba(28,196,126,.13);border:1px solid rgba(28,196,126,.36)}
 .pd-aguardando_aut{border-left-color:var(--amber)}
+.pd-aguardando_fin{border-left-color:var(--blue,#4b7bec)}
+/* ---- pedidos em lista: uma linha por pedido; abrir mostra o bloco completo ---- */
+.pd-vista{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-left:auto}
+.pd-vista button{background:transparent;border:none;color:var(--muted);font:inherit;font-size:12.5px;
+                 font-weight:600;padding:7px 12px;cursor:pointer}
+.pd-vista button.on{background:var(--card-2);color:var(--text)}
+.pl-lista{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.pl-cab,.pl-lin{display:grid;grid-template-columns:92px minmax(150px,1.6fr) 60px 118px minmax(205px,1fr) 18px;
+                gap:12px;align-items:center;padding:9px 14px}
+.pl-cab{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.pl-item{border-top:1px solid var(--border)}
+.pl-lin{cursor:pointer;border-left-width:3px;border-left-style:solid;font-size:13.5px}
+.pl-lin:hover{background:var(--card-2)}
+.pl-forn{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl-num{text-align:right;font-family:'JetBrains Mono',monospace;font-size:12.5px}
+.pl-mut{color:var(--muted);font-size:12.5px}
+.pl-seta{color:var(--muted);text-align:right}
+.pl-lin .pd-st{white-space:nowrap}
+.pl-bloco{padding:0 10px 10px}
+.pl-bloco .pd-card{margin:0}
+@media(max-width:760px){
+  .pl-cab{display:none}
+  .pl-lin{grid-template-columns:1fr auto 16px}
+  .pl-lin .pl-data,.pl-lin .pl-itens{display:none}
+}
 .pd-autorizado{border-left-color:var(--green)}
 
 #au-print{display:none}
@@ -576,6 +601,10 @@ html[data-pal="vinho"][data-theme="light"]{
           <input type="date" id="pd-ate" onchange="render()" title="Até" style="min-width:0">
         </span>
         <input type="text" id="pd-busca" placeholder="Buscar fornecedor ou observação" oninput="render()" style="min-width:220px">
+        <span class="pd-vista" role="group" aria-label="Visualização">
+          <button id="pdv-blocos" onclick="vistaPedidos('blocos')" title="Um bloco por pedido">▦ Blocos</button>
+          <button id="pdv-lista"  onclick="vistaPedidos('lista')"  title="Uma linha por pedido">☰ Lista</button>
+        </span>
       </div>
       <div id="pd-saida"></div>
     </div>
@@ -1986,10 +2015,15 @@ function renderPedidos(){
   if(!lista.length){
     h+='<div class="alert a-info">Nenhum pedido aqui. Monte em <b>Montar pedido</b> e confirme no botão do fornecedor.</div>';
     alvo.innerHTML=h;
+    marcaVista();
     return;
   }
 
+  var emLista=(vistaPed==='lista');
+  if(emLista) h+='<div class="pl-lista"><div class="pl-cab"><span>Data</span><span>Fornecedor</span>'
+               + '<span style="text-align:right">Itens</span><span style="text-align:right">Valor</span><span>Situação</span><span></span></div>';
   lista.forEach(function(p){
+    var h0=h.length;
     var st=statusPedido(p);
     var itens=p.itens||[];
     var totPed=itens.reduce(function(t,x){ return t+num(x.qtd); },0);
@@ -2078,9 +2112,51 @@ function renderPedidos(){
       h+='<button class="btn btn-sm btn-ghost" onclick="cancelarPedido(\'' + esc(p.firestoreId) + '\')">Cancelar</button>';
     h+='<button class="btn btn-sm btn-ghost" onclick="textoPedidoSalvo(\'' + esc(p.firestoreId) + '\')">Ver texto</button>';
     h+='</div></div>';
+    if(emLista){
+      /* o bloco montado acima vira o conteúdo que abre sob a linha */
+      var bloco=h.slice(h0); h=h.slice(0,h0);
+      h+=linhaPedido(p, st, bloco);
+    }
   });
+  if(emLista) h+='</div>';
 
   alvo.innerHTML=h;
+  marcaVista();
+}
+
+/* ---- Blocos ou Lista ----
+   A lista não repete as ações: abrir a linha mostra o mesmo bloco de sempre,
+   com todos os botões. Assim nada do que funciona no bloco deixa de existir.
+   A escolha fica guardada no navegador de cada pessoa. */
+var vistaPed='blocos', pedidoAberto={};
+try{ if(localStorage.getItem('mc_pecas_vista')==='lista') vistaPed='lista'; }catch(e){}
+function marcaVista(){
+  var b=document.getElementById('pdv-blocos'), l=document.getElementById('pdv-lista');
+  if(b) b.classList.toggle('on', vistaPed!=='lista');
+  if(l) l.classList.toggle('on', vistaPed==='lista');
+}
+window.vistaPedidos=function(v){
+  vistaPed=(v==='lista')?'lista':'blocos';
+  try{ localStorage.setItem('mc_pecas_vista', vistaPed); }catch(e){}
+  render();
+};
+window.alternaPedido=function(id){ pedidoAberto[id]=!pedidoAberto[id]; render(); };
+function linhaPedido(p, st, bloco){
+  var id=p.firestoreId, aberto=!!pedidoAberto[id];
+  var itens=p.itens||[];
+  var temFr=(p.frete!=null && p.frete!=='');
+  var val=itens.reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0)+(temFr?num(p.frete):0);
+  return '<div class="pl-item">'
+    + '<div class="pl-lin pd-'+st+'" onclick="alternaPedido(\''+esc(id)+'\')" title="'+(aberto?'Fechar':'Abrir')+' o pedido">'
+    +   '<span class="pl-data pl-mut mono">'+esc(dataBR(p.criadoEm))+'</span>'
+    +   '<span class="pl-forn">'+esc(p.fornecedor||'—')+'</span>'
+    +   '<span class="pl-itens pl-num">'+itens.length+'</span>'
+    +   '<span class="pl-num">'+(val>0?fmtR$(val,2):'<span class="pl-mut">—</span>')+'</span>'
+    +   '<span><span class="pd-st pd-st-'+st+'">'+PED_ROTULO[st]+'</span></span>'
+    +   '<span class="pl-seta">'+(aberto?'▾':'▸')+'</span>'
+    + '</div>'
+    + (aberto?'<div class="pl-bloco">'+bloco+'</div>':'')
+    + '</div>';
 }
 
 window.textoPedidoSalvo=function(id){
@@ -2633,6 +2709,36 @@ function lancarMov(p, tipo, qtd, precoUn, obs){
     .catch(function(e){ console.error('lancarMov:',e); alert('Erro ao registrar: '+(e.code||e.message)); });
 }
 
+/* Fornecedor da peça vem do cadastro, em lista: texto livre criava nomes
+   divergentes ("SP PARAFUSOS" x "SP Parafusos Ltda"), e o pedido não achava o
+   cadastro para imprimir CNPJ e endereço. A peça continua guardando o NOME do
+   fornecedor — é por ele que o Montar pedido agrupa. */
+function opcoesFornecedor(atual){
+  var vistos={}, nomes=[];
+  fornecedores.forEach(function(f){
+    var n=String(f.nome||'').trim(); if(!n || vistos[norm(n)]) return;
+    vistos[norm(n)]=1; nomes.push(n);
+  });
+  nomes.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var achou=false;
+  var h='<option value="">— sem fornecedor —</option>'
+    + nomes.map(function(n){
+        var sel=!!atual && norm(n)===norm(atual); if(sel) achou=true;
+        return '<option value="'+esc(n)+'"'+(sel?' selected':'')+'>'+esc(n)+'</option>';
+      }).join('');
+  /* nome antigo fora do cadastro: continua escolhido, para não sumir ao salvar */
+  if(atual && !achou)
+    h='<option value="'+esc(atual)+'" selected>'+esc(atual)+' · sem cadastro</option>'+h;
+  return h;
+}
+function dicaFornecedor(atual){
+  var semCad=!!atual && !fornPorNome(atual);
+  return '<div class="fhint" style="font-size:11px;margin-top:4px;color:var('+(semCad?'--amber':'--muted')+')">'
+    + (semCad ? 'Este fornecedor não está no cadastro — cadastre em Fornecedores ou escolha outro.'
+              : 'Não está na lista? Cadastre antes em Fornecedores.')
+    + '</div>';
+}
+
 window.abrirPeca=function(id){
   if(!podeLancar){ alert('Você não tem permissão para cadastrar peças.'); return; }
   var p=id?pecaPorId(id):null;
@@ -2650,7 +2756,8 @@ window.abrirPeca=function(id){
       '</div>'+
       '<div class="fld" style="margin-top:12px"><label>Nome da peça</label><input type="text" id="pc-nome" value="'+esc(p?p.nome:'')+'" placeholder="Ex: ROLAMENTO 6204 2RS" /></div>'+
       '<div class="fgrid" style="margin-top:12px">'+
-        '<div><label>Fornecedor</label><input type="text" id="pc-forn" value="'+esc(p?p.fornecedor:'')+'" placeholder="Ex: SP PARAFUSOS" /></div>'+
+        '<div><label>Fornecedor</label><select id="pc-forn">'+opcoesFornecedor(p?p.fornecedor:'')+'</select>'+
+          dicaFornecedor(p?p.fornecedor:'')+'</div>'+
         '<div><label>Categoria</label><input type="text" id="pc-cat" value="'+esc(p?p.categoria:'')+'" placeholder="Ex: Rolamentos" /></div>'+
         '<div><label>Local</label><input type="text" id="pc-local" value="'+esc(p?p.local:'')+'" placeholder="Ex: Prateleira A3" /></div>'+
         '<div><label>Estoque mínimo</label><input type="number" id="pc-min" step="0.01" value="'+(p&&num(p.minimo)>0?num(p.minimo):'')+'" /></div>'+
