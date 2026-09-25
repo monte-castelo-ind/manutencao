@@ -1145,6 +1145,29 @@ window.recalcAut=function(){
    O carimbo puxa data, hora e quem autorizou do próprio sistema — é isso que
    dá rastro ao documento, mais do que o desenho da assinatura. Pedido ainda
    não autorizado sai com a linha em branco, para assinar à mão. */
+/* A firma usa uma fonte da internet (Mrs Saint Delafield), e o navegador só a
+   baixa quando algo na tela precisa dela. Imprimir com espera fixa fazia a
+   primeira impressão sair com a fonte substituta, grossa: a "foto" da página
+   era tirada antes de a fonte chegar. Agora a impressão espera a fonte — com
+   limite, para sem internet ainda imprimir. Ela também é pedida na abertura
+   do app, para quase sempre já estar pronta no primeiro clique. */
+function imprimirComFonte(){
+  var foi=false;
+  function vai(){ if(foi) return; foi=true; window.print(); }
+  try{
+    if(document.fonts && document.fonts.load){
+      Promise.all([document.fonts.load('44px "Mrs Saint Delafield"'), document.fonts.ready])
+        .then(function(){ setTimeout(vai,60); }, vai);
+      setTimeout(vai,2500);
+      return;
+    }
+  }catch(e){}
+  setTimeout(vai,140);
+}
+window.addEventListener('load', function(){
+  try{ if(document.fonts && document.fonts.load) document.fonts.load('44px "Mrs Saint Delafield"').catch(function(){}); }catch(e){}
+});
+
 function blocoAssinatura(p){
   var autorizado = (p.status==='autorizado' || p.status==='parcial' || p.status==='recebido');
   var quem = p.autorizadoPor || '';
@@ -1188,8 +1211,8 @@ window.imprimirAutorizacao=function(id){
     var tot=num(it.precoUn)*num(it.qtd);
     return '<tr><td class="c">'+(i+1)+'</td><td class="c">'+fmtN(num(it.qtd),0)+'</td>'
       + '<td>'+esc(it.nome||'')+(it.codigo?' (cód '+esc(it.codigo)+')':'')+'</td>'
-      + '<td class="r">'+(num(it.precoUn)>0?fmtN(num(it.precoUn),2):'—')+'</td>'
-      + '<td class="r">'+(tot>0?fmtN(tot,2):'—')+'</td></tr>';
+      + '<td class="r">'+(num(it.precoUn)>0?'R$&nbsp;'+fmtN(num(it.precoUn),2):'—')+'</td>'
+      + '<td class="r">'+(tot>0?'R$&nbsp;'+fmtN(tot,2):'—')+'</td></tr>';
   }).join('');
   /* linhas em branco para a folha ficar com o corpo do modelo */
   var vazias='';
@@ -1216,18 +1239,18 @@ window.imprimirAutorizacao=function(id){
     + '</table>'
     + '<table class="au-itens"><thead><tr>'
     +   '<th style="width:8%">ITEM</th><th style="width:10%">QTDE</th>'
-    +   '<th>DESCRIÇÃO DO PRODUTO</th><th style="width:15%">UNIT (R$)</th><th style="width:15%">TOTAL (R$)</th>'
+    +   '<th>DESCRIÇÃO DO PRODUTO</th><th style="width:16%">UNIT.</th><th style="width:16%">TOTAL</th>'
     + '</tr></thead><tbody>'+linhas+vazias+'</tbody>'
     + '<tfoot>'
     +   ((p.frete!=null && p.frete!=='')?'<tr><td colspan="4" class="r"><b>FRETE:</b></td>'
-    +     '<td class="r">'+(num(p.frete)>0?fmtN(num(p.frete),2):'—')+'</td></tr>':'')
+    +     '<td class="r">'+(num(p.frete)>0?'R$&nbsp;'+fmtN(num(p.frete),2):'—')+'</td></tr>':'')
     +   '<tr><td colspan="4" class="r"><b>VALOR TOTAL:</b></td>'
-    +   '<td class="r"><b>'+((total+num(p.frete))>0?fmtN(total+num(p.frete),2):'—')+'</b></td></tr></tfoot></table>'
+    +   '<td class="r"><b>'+((total+num(p.frete))>0?'R$&nbsp;'+fmtN(total+num(p.frete),2):'—')+'</b></td></tr></tfoot></table>'
     + '<div class="au-obs"><b>OBSERVAÇÃO:</b><br>'+esc(p.obs||'')+'</div>'
     + blocoAssinatura(p);
 
   window.scrollTo(0,0);
-  setTimeout(function(){ window.print(); }, 120);
+  imprimirComFonte();
 };
 
 /* ============ PEDIDOS DE COMPRA ============
@@ -1471,12 +1494,25 @@ window.editarValores=function(id){
                 ? 'Confira os preços e as condições. Ao confirmar, o pedido vai para a <b>diretoria assinar</b> '
                   + 'no app de Autorizações e <b>não pode mais ser alterado</b> — para corrigir depois, só cancelando e fazendo outro.'
                 : 'Os valores daqui saem na autorização de compra impressa.')+'</div>'))
+       + (fin
+          ? '<div class="klabel" style="margin:4px 0 6px">Dados do fornecedor · '+esc(a.razao||p.fornecedor||'')+'</div>'
+          + '<div class="au-grid">'
+          +   '<div class="fld"><label>CNPJ'+(validando?' *':'')+'</label>'
+          +     '<input type="text" id="ev-cnpj" inputmode="numeric" maxlength="18" oninput="mascaraCnpj(this)" '
+          +       'value="'+esc(a.cnpj||'')+'" placeholder="00.000.000/0000-00"></div>'
+          +   '<div class="fld"><label>Município / UF'+(validando?' *':'')+'</label>'
+          +     '<input type="text" id="ev-mun" value="'+esc(a.municipio||'')+'" placeholder="Porto Alegre / RS"></div>'
+          +   '<div class="fld" style="grid-column:1/-1"><label>Endereço'+(validando?' *':'')+'</label>'
+          +     '<input type="text" id="ev-end" value="'+esc(a.endereco||'')+'" placeholder="Rua, número, bairro"></div>'
+          + '</div>'
+          + '<div class="klabel" style="margin:12px 0 6px">Condições da compra</div>'
+          : '')
        + '<div class="au-grid">'
        +   '<div class="fld"><label>Comprador *</label>'
        +     '<input type="text" id="ev-comp" value="'+esc(a.comprador||sessaoNomeCurto())+'"></div>'
-       +   '<div class="fld"><label>Forma de pagamento</label>'
+       +   '<div class="fld"><label>Forma de pagamento'+(validando?' *':'')+'</label>'
        +     '<input type="text" id="ev-pag" value="'+esc(a.pagamento||'')+'" placeholder="boleto 28 dias, Pix…"></div>'
-       +   '<div class="fld"><label>Data de entrega</label>'
+       +   '<div class="fld"><label>Data de entrega'+(validando?' *':'')+'</label>'
        +     '<input type="text" id="ev-ent" value="'+esc(a.entrega||'')+'" placeholder="15 dias, 30/09…"></div>'
        +   (fin ? '<div class="fld"><label>Frete (R$)'+(validando?' *':'')+'</label>'
        +     '<input type="number" id="ev-frete" min="0" step="0.01" oninput="recalcAut()" '
@@ -1512,6 +1548,10 @@ window.editarValores=function(id){
       aut.comprador=comprador;
       aut.pagamento=String((document.getElementById('ev-pag')||{}).value||'').trim();
       aut.entrega=String((document.getElementById('ev-ent')||{}).value||'').trim();
+      ['cnpj:ev-cnpj','endereco:ev-end','municipio:ev-mun'].forEach(function(par){
+        var k=par.split(':'), el=document.getElementById(k[1]);
+        if(el) aut[k[0]]=String(el.value||'').trim();
+      });
       var dados={
         itens:novos, aut:aut, valorEstimado:total,
         obs:String((document.getElementById('ev-obs')||{}).value||'').trim(),
@@ -1539,6 +1579,8 @@ window.editarValores=function(id){
       var semPreco=novos.filter(function(x){ return !(num(x.precoUn)>0); }).length;
       if(semPreco){ alert(semPreco+(semPreco===1?' item está':' itens estão')+' sem preço.'); return false; }
       if(dados.frete==null){ alert('Informe o frete. Se não houver, coloque 0.'); return false; }
+      var faltaForn=faltaDadosFornecedor(aut);
+      if(faltaForn.length){ alert('Para enviar, falta:\n\n• '+faltaForn.join('\n• ')); return false; }
       /* Financeiro validando: o pedido avança E a autorização nasce no app de
          Autorizações, numa gravação só. writeBatch é atômico — ou as duas
          coisas entram, ou nenhuma. Não existe pedido "enviado" sem autorização
@@ -1617,8 +1659,45 @@ function faltaParaEnviar(p){
   if(semPr) f.push(semPr+(semPr===1?' item sem preço':' itens sem preço'));
   if(p.frete==null || p.frete==='') f.push('frete não informado (se não houver, informe 0)');
   if(!((p.aut||{}).comprador)) f.push('comprador não informado');
+  return f.concat(faltaDadosFornecedor(p.aut||{}));
+}
+
+/* O que sai no quadro "Dados do fornecedor" da autorização e no documento
+   que vai ao fornecedor. CNPJ é conferido pelos dígitos verificadores: um
+   número digitado errado num documento assinado é pior do que um em branco. */
+function faltaDadosFornecedor(a){
+  var f=[];
+  var dig=String(a.cnpj||'').replace(/\D/g,'');
+  if(!dig) f.push('CNPJ do fornecedor');
+  else if(!(dig.length===14 ? cnpjValido(dig) : (dig.length===11 && cpfValido(dig))))
+    f.push('CNPJ inválido — confira os números (fornecedor pessoa física: use o CPF)');
+  if(!String(a.endereco||'').trim())  f.push('endereço do fornecedor');
+  if(!String(a.municipio||'').trim()) f.push('município / UF');
+  if(!String(a.pagamento||'').trim()) f.push('forma de pagamento');
+  if(!String(a.entrega||'').trim())   f.push('data de entrega');
   return f;
 }
+function cnpjValido(c){
+  if(/^(\d)\1+$/.test(c)) return false;
+  function dv(base, pesos){ var s=0; for(var i=0;i<pesos.length;i++) s+=(+base[i])*pesos[i]; var r=s%11; return r<2?0:11-r; }
+  var p1=[5,4,3,2,9,8,7,6,5,4,3,2], p2=[6].concat(p1);
+  return dv(c,p1)===+c[12] && dv(c,p2)===+c[13];
+}
+function cpfValido(c){
+  if(/^(\d)\1+$/.test(c)) return false;
+  function dv(n){ var s=0; for(var i=0;i<n;i++) s+=(+c[i])*(n+1-i); var r=(s*10)%11; return r===10?0:r; }
+  return dv(9)===+c[9] && dv(10)===+c[10];
+}
+window.mascaraCnpj=function(el){
+  var d=String(el.value||'').replace(/\D/g,'').slice(0,14), v=d;
+  /* até 11 dígitos formata como CPF; do 12º em diante, como CNPJ */
+  if(d.length>12)      v=d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/,'$1.$2.$3/$4-$5');
+  else if(d.length>11) v=d.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4}).*/,'$1.$2.$3/$4');
+  else if(d.length>9)  v=d.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/,'$1.$2.$3-$4');
+  else if(d.length>6)  v=d.replace(/^(\d{3})(\d{3})(\d{0,3}).*/,'$1.$2.$3');
+  else if(d.length>3)  v=d.replace(/^(\d{3})(\d{0,3}).*/,'$1.$2');
+  el.value=v;
+};
 function subtotalItens(itens){ return (itens||[]).reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0); }
 
 /* Manda para a assinatura um pedido que o financeiro já salvou. Mesma
