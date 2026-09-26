@@ -1231,6 +1231,22 @@ window.addEventListener('load', function(){
   try{ if(document.fonts && document.fonts.load) document.fonts.load('44px "Mrs Saint Delafield"').catch(function(){}); }catch(e){}
 });
 
+/* ===== Quem assina a folha =====
+   A firma e o nome saem de quem assinou DE VERDADE no sistema, pelo e-mail
+   gravado na assinatura — antes estava fixo "João Thomé" e a folha mentia
+   quando outro administrador assinava. Novo assinante: uma linha aqui.
+   A fonte e o tamanho vêm do CSS da firma, iguais para todos. */
+var ASSINANTES={
+  'joao.ricardo@montecastelo.ind.br': { nome:'João Thomé',     cargo:'Diretor Geral' },
+  'jonathanthome123@gmail.com':       { nome:'Jonathan Thomé', cargo:'Diretoria' }
+};
+function assinanteDe(email, nomeNoSistema){
+  var a=ASSINANTES[String(email||'').trim().toLowerCase()];
+  if(a) return a;
+  /* assinante sem cadastro aqui: usa o nome do login, nunca o de outra pessoa */
+  return { nome: nomeNoSistema || email || 'Diretoria', cargo:'Diretoria' };
+}
+
 function blocoAssinatura(p){
   var autorizado = (p.status==='autorizado' || p.status==='parcial' || p.status==='recebido');
   var quem = p.autorizadoPor || '';
@@ -1248,12 +1264,13 @@ function blocoAssinatura(p){
       + '</div></div>';
   }
 
+  var ass=assinanteDe(quem, '');
   return '<div class="au-ass">'
     + '<div class="au-ass-bloco">'
-    +   '<div class="au-ass-firma">João Thomé</div>'
+    +   '<div class="au-ass-firma">'+esc(ass.nome)+'</div>'
     +   '<div class="au-ass-linha"></div>'
-    +   '<div class="au-ass-nome">João Thomé</div>'
-    +   '<div class="au-ass-cargo">Diretor Geral</div>'
+    +   '<div class="au-ass-nome">'+esc(ass.nome)+'</div>'
+    +   '<div class="au-ass-cargo">'+esc(ass.cargo)+'</div>'
     +   '<div class="au-ass-cnpj">Panificadora Monte Castelo Ltda · CNPJ 01.052.266/0001-40</div>'
     + '</div>'
     + '<div class="au-carimbo"><b>AUTORIZADO</b>'
