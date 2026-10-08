@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script src="https://monte-castelo-ind.github.io/mc-ui.js"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Peças · Monte Castelo</title>
@@ -736,7 +737,7 @@ function slug(s){ return normSA(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').repl
 /* ============ TEMA / MENU ============ */
 function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); try{ localStorage.setItem('mc_pecas_theme',t); }catch(e){} }
 window.toggleTema=function(){ var c=document.documentElement.getAttribute('data-theme')||'dark'; applyTheme(c==='dark'?'light':'dark'); };
-(function(){ try{ var t=localStorage.getItem('mc_pecas_theme'); applyTheme(t==='light'?'light':'dark'); }catch(e){ applyTheme('dark'); } })();
+/* tema e paleta: agora em mc-ui.js (compartilhado entre os apps) */
 
 /* Paleta: só troca tokens de cor no <html>. Guardada por app, não por
    usuário — é preferência de quem está no equipamento, e o pessoal da
@@ -750,7 +751,6 @@ window.setPaleta=function(p){
   });
 };
 (function(){
-  try{ var p=localStorage.getItem('mc_pecas_pal'); if(p) document.documentElement.setAttribute('data-pal',p); }catch(e){}
   document.addEventListener('DOMContentLoaded', function(){
     var p=document.documentElement.getAttribute('data-pal')||'';
     document.querySelectorAll('.pbola').forEach(function(b){
