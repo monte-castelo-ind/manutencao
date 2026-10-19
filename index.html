@@ -512,52 +512,7 @@
 #s-solic .chip{white-space:nowrap;flex:0 0 auto}
 .sc-vazio{padding:30px 14px;text-align:center;color:var(--text-secondary);font-size:13px}
 .sc-n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#f59e0b;color:#111;font-size:11px;font-weight:700;margin-left:6px}
-/* ===== Folha da solicitação (na tela e na impressão) — mesmo modelo da Autorização de Compra ===== */
-.sc-folha{background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:11.5px;line-height:1.45;padding:22px 24px;border-radius:6px}
-.sc-folha .f-cab{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:2px solid #000;padding-bottom:9px}
-.sc-folha .f-logo{height:46px;width:auto;max-width:200px;object-fit:contain}
-.sc-folha .f-emp{text-align:right;font-size:9.5px;line-height:1.55}
-.sc-folha .f-tit{text-align:center;font-size:16px;font-weight:bold;letter-spacing:1.6px;margin:14px 0 12px;padding-bottom:5px;border-bottom:1px solid #000}
-.sc-folha table{border-collapse:collapse}
-.sc-folha .f-meta{width:100%;font-size:11px;margin-bottom:10px}
-.sc-folha .f-meta td{padding:2px 0;vertical-align:middle}
-.sc-folha .f-meta td:last-child{text-align:right}
-.sc-folha .f-sec{background:#ddd;border:1px solid #000;padding:4px 7px;font-weight:bold;font-size:11px;letter-spacing:.4px}
-.sc-folha .f-dados{width:100%;border:1px solid #000;border-top:none;margin-bottom:12px}
-.sc-folha .f-dados td{padding:5px 7px;border-bottom:1px solid #bbb;width:50%;vertical-align:top}
-.sc-folha .f-itens{width:100%;border:1px solid #000;margin-bottom:12px}
-.sc-folha .f-itens th{background:#ddd;border:1px solid #000;padding:5px 6px;font-size:10.5px}
-.sc-folha .f-itens td{border:1px solid #999;padding:5px 6px;height:17px}
-.sc-folha .c{text-align:center} .sc-folha .r{text-align:right}
-.sc-folha .f-obs{border:1px solid #000;border-top:none;padding:7px;min-height:46px;font-size:10.5px;line-height:1.5;white-space:pre-wrap;margin-bottom:12px}
-.sc-folha .f-hist{border:1px solid #000;border-top:none;padding:6px 8px;font-size:10px;line-height:1.6}
-.sc-folha .f-hist div span{color:#555}
-.sc-folha .f-selo{display:inline-block;border:2px solid currentColor;border-radius:5px;padding:2px 10px;font-weight:bold;letter-spacing:.12em;font-size:11px;transform:rotate(-3deg)}
-.sc-folha .f-ass{display:flex;gap:26px;justify-content:space-between;margin-top:40px;break-inside:avoid;page-break-inside:avoid}
-.sc-folha .f-ass > div{flex:1;text-align:center}
-.sc-folha .f-nm{font-size:11px;font-weight:bold;min-height:15px}
-.sc-folha .f-ln{border-top:1.2px solid #000;margin:4px 0 5px}
-.sc-folha .f-cg{font-size:9px;letter-spacing:.6px;text-transform:uppercase;color:#444}
-.sc-folha .f-rod{margin-top:20px;border-top:1px solid #999;padding-top:6px;font-size:8.5px;color:#666;display:flex;justify-content:space-between;align-items:center;gap:12px}
-.sc-folha .f-cod{font-family:'Courier New',monospace;font-size:11px;font-weight:bold;color:#000;border:1.5px solid #000;padding:2px 8px;letter-spacing:1.4px}
-#dMaskSol .d-mbody .sc-folha{box-shadow:0 2px 12px rgba(0,0,0,.35)}
-/* dentro do #desk, as tabelas do app têm estilo próprio: aqui vale o da folha */
-.sc-folha table{width:100%;font-size:inherit}
-.sc-folha th,.sc-folha td{white-space:normal!important;color:#000!important;text-transform:none!important;letter-spacing:0!important;font-size:inherit}
-.sc-folha .f-meta td{padding:2px 0!important;border:none!important}
-.sc-folha .f-dados td{padding:5px 7px!important;border:none!important;border-bottom:1px solid #bbb!important;background:#fff!important}
-.sc-folha .f-itens th{background:#ddd!important;border:1px solid #000!important;padding:5px 6px!important;font-size:10.5px!important;font-weight:bold!important;text-align:center!important}
-.sc-folha .f-itens td{border:1px solid #999!important;padding:5px 6px!important;background:#fff!important}
-#scImp{display:none}
-@media print{
-  @page{ size:A4 portrait; margin:13mm 12mm }
-  /* display:none e não visibility: invisível ainda ocupa lugar e sai folha em branco */
-  body.sc-imprimindo{background:#fff!important}
-  body.sc-imprimindo > *:not(#scImp){display:none!important}
-  body.sc-imprimindo #scImp{display:block!important}
-  #scImp .sc-folha{padding:0;border-radius:0;box-shadow:none}
-  #scImp, #scImp *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-}
+/* a folha da solicitação (estilo e impressão) vem de folha-solicitacao.js, na raiz do hub */
 #scToast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:9999;background:#111827;color:#fff;
   padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.35);transition:opacity .2s, transform .2s;max-width:90vw}
 #scToast.on{opacity:1;transform:translate(-50%,0)}
@@ -3884,70 +3839,18 @@ function scBotoes(s, cls){
   return b.join('');
 }
 
-/* ---------- folha (mesmo modelo da Autorização de Compra) ---------- */
-var SC_SELO={ autorizacao:['AGUARDA AUTORIZAÇÃO','#b45309'], aberta:['ABERTA','#b7791f'], separacao:['EM SEPARAÇÃO','#1d4ed8'],
-  entregue:['ENTREGUE','#1f6b45'], cancelada:['CANCELADA','#555'], recusada:['RECUSADA','#b91c1c'] };
-function scAutLinha(s){
-  if(!s.novo) return '';
-  var a=s.autorizacao||{};
-  var t= a.status==='aprovado' ? 'Autorizado por '+(a.nome||a.por||'')+' em '+scDH(a.em)+(a.codigo?' · código '+a.codigo:'')
-       : a.status==='recusado' ? 'Recusado por '+(a.nome||a.por||'')+' em '+scDH(a.em)+(a.motivo?' · '+a.motivo:'')
-       : 'Aguardando a assinatura da diretoria';
-  return '<tr><td colspan="2" style="text-align:left;padding-top:4px"><b>Equipamento NOVO</b>'+(s.valorEstimado?' · valor estimado '+scR$(s.valorEstimado):'')+' — '+esc(t)+'</td></tr>';
-}
-function scLogoSrc(){
-  try{ var v=getComputedStyle(document.getElementById('desk')||document.documentElement).getPropertyValue('--logo-light')||''; var m=v.match(/url\(\s*['"]?([^'")]+)['"]?\s*\)/); return m?m[1]:''; }catch(e){ return ''; }
-}
-function scCodigo(s){ return 'SE-'+String(s.id||'').slice(0,6).toUpperCase(); }
-function scDH(ms){ if(!ms) return '—'; var d=new Date(ms); return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
-function scQuemEntregou(s){
-  var h=(s.historico||[]).filter(function(x){ return /entregue/.test(x.acao||''); }).pop();
-  return h ? (h.nome||h.por||'') : '';
-}
+/* ---------- folha (mesmo modelo da Autorização de Compra) ----------
+   O modelo mora em folha-solicitacao.js, na raiz do hub, e é o MESMO que o
+   Comercial usa: os dois apps leem o mesmo pedido e montam a mesma folha. */
+function scCodigo(s){ return (window.MCSolic && MCSolic.codigo) ? MCSolic.codigo(s) : 'SE-'+String(s.id||'').slice(0,6).toUpperCase(); }
 function scFolhaHtml(s){
-  var logo=scLogoSrc(), selo=SC_SELO[s.status]||[String(s.status||'').toUpperCase(),'#000'];
-  var eq=esc(s.equipamento||'')+(s.modelo?' · '+esc(s.modelo):'');
-  var vazias=''; for(var k=0;k<2;k++) vazias+='<tr><td class="c">&nbsp;</td><td></td><td></td><td></td><td></td></tr>';
-  var obs=esc(s.obs||'')+(s.obsManut?(s.obs?'\n\n':'')+'Manutenção: '+esc(s.obsManut):'');
-  return '<div class="sc-folha">'
-    +'<div class="f-cab">'+(logo?'<img class="f-logo" src="'+logo+'" alt="Monte Castelo">':'<b style="font-size:18px">MONTE CASTELO</b>')
-    +  '<div class="f-emp"><b>PANIFICADORA MONTE CASTELO LTDA</b><br>AV RODRIGUES DA FONSECA 1840<br>VILA NOVA - PORTO ALEGRE<br>CNPJ 01.052.266/0001-40</div></div>'
-    +'<div class="f-tit">SOLICITAÇÃO DE EQUIPAMENTO — COMODATO</div>'
-    +'<table class="f-meta"><tr><td><b>Data da solicitação:</b> '+scDH(s.criadoEm)+'</td><td><b>Solicitante:</b> '+esc(s.solicitadoNome||s.solicitadoPor||'')+'</td></tr>'
-    +  '<tr><td><b>Entrega programada:</b> '+scDataBR(s.dataProgramada)+'</td><td><span class="f-selo" style="color:'+selo[1]+'">'+selo[0]+'</span></td></tr>'+scAutLinha(s)+'</table>'
-    +'<div class="f-sec">DADOS DO CLIENTE</div>'
-    +'<table class="f-dados">'
-    +  '<tr><td><b>Cliente:</b> '+esc(s.cliente||'')+'</td><td><b>Contato:</b> '+esc(s.contato||'—')+'</td></tr>'
-    +  '<tr><td colspan="2" style="width:auto"><b>Endereço:</b> '+esc(s.endereco||'—')+'</td></tr>'
-    +  '<tr><td><b>Cidade:</b> '+esc(s.cidade||'—')+'</td><td><b>Cód. no ERP:</b> '+esc(s.clienteId||'—')+'</td></tr></table>'
-    +'<table class="f-itens"><thead><tr><th style="width:7%">ITEM</th><th style="width:9%">QTDE</th><th>EQUIPAMENTO</th>'
-    +  '<th style="width:22%">PATRIMÔNIO</th><th style="width:20%">SERVIÇO</th></tr></thead><tbody>'
-    +  '<tr><td class="c">1</td><td class="c">'+(s.quantidade||1)+'</td><td>'+eq+'</td><td>'+esc(s.patrimonio||'')+'</td><td>'+esc(SC_SERV[s.servico]||s.servico||'')+'</td></tr>'
-    +  vazias+'</tbody></table>'
-    +'<div class="f-sec">OBSERVAÇÃO</div><div class="f-obs">'+(obs||'&nbsp;')+'</div>'
-    +'<div class="f-sec">ANDAMENTO</div><div class="f-hist">'+((s.historico||[]).map(function(h){
-        return '<div><span>'+scDH(h.em)+'</span> · <b>'+esc(h.nome||h.por||'')+'</b> '+esc(h.acao||'')+(h.txt?': '+esc(h.txt):'')+'</div>'; }).join('')||'—')+'</div>'
-    +'<div class="f-ass">'
-    +  '<div><div class="f-nm">'+esc(s.solicitadoNome||'')+'</div><div class="f-ln"></div><div class="f-cg">Solicitado por</div></div>'
-    +  '<div><div class="f-nm">'+esc(scQuemEntregou(s))+'</div><div class="f-ln"></div><div class="f-cg">Entregue por (manutenção)</div></div>'
-    +  '<div><div class="f-nm">&nbsp;</div><div class="f-ln"></div><div class="f-cg">Recebido pelo cliente · nome e data</div></div>'
-    +'</div>'
-    +'<div class="f-rod"><span>Emitido pelo Manut. Comodato em '+scDH(Date.now())+'</span><span class="f-cod">'+scCodigo(s)+'</span></div>'
-    +'</div>';
+  if(window.MCSolic) return MCSolic.html(s, { sombra:true });
+  return '<div style="padding:20px">Não foi possível carregar o modelo da folha (folha-solicitacao.js). Recarregue a página.</div>';
 }
-/* Imprimir ou salvar em PDF: a folha vai para #scImp e só ela sai na impressão */
 function scImprimir(id){
   var s=scLista.filter(function(x){ return x.id===id; })[0]; if(!s) return;
-  var box=document.getElementById('scImp');
-  if(!box){ box=document.createElement('div'); box.id='scImp'; document.body.appendChild(box); }
-  box.innerHTML=scFolhaHtml(s);
-  var titulo=document.title; document.title='Solicitação '+scCodigo(s)+' - '+(s.cliente||'');
-  document.body.classList.add('sc-imprimindo');
-  var foi=false;
-  function fim(){ document.body.classList.remove('sc-imprimindo'); document.title=titulo; window.removeEventListener('afterprint', fim); }
-  function vai(){ if(foi) return; foi=true; window.addEventListener('afterprint', fim); window.print(); setTimeout(fim, 1500); }
-  var img=box.querySelector('img');
-  if(img && !img.complete){ img.onload=vai; img.onerror=vai; setTimeout(vai,1500); } else setTimeout(vai,60);
+  if(!window.MCSolic){ scToast('Modelo da folha não carregou. Recarregue a página.', true); return; }
+  MCSolic.imprimir(s);
 }
 
 /* ---------- celular ---------- */
@@ -4138,6 +4041,7 @@ onAuthStateChanged(auth, (user) => {
   // logout de verdade pro botão "Sair"
   window.sairApp = () => signOut(auth).then(()=>location.reload());
 </script>
+<script src="https://monte-castelo-ind.github.io/folha-solicitacao.js?v=1"></script>
 <script src="https://monte-castelo-ind.github.io/voltar.js"></script>
 </body>
 </html>
