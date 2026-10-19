@@ -477,6 +477,19 @@
 #desk .sc-f label{color:var(--muted)}
 #desk .sc-f input,#desk .sc-f select,#desk .sc-f textarea{width:100%}
 .sc-f textarea{min-height:64px}
+.sc-cli-f{position:relative}
+.sc-end{font-size:11.5px;color:var(--text-secondary,var(--muted));margin-top:5px;min-height:14px;line-height:1.4}
+#desk .sc-end{color:var(--muted)}
+.sc-res{display:none;position:absolute;left:0;right:0;top:100%;z-index:60;margin-top:-14px;max-height:300px;overflow:auto;
+  background:var(--bg-secondary,var(--card));border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+#desk .sc-res{background:var(--card)}
+.sc-ri{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--border);padding:9px 12px;color:inherit;font-family:inherit;cursor:pointer}
+.sc-ri:last-child{border-bottom:none}
+.sc-ri:hover{background:rgba(127,127,127,.12)}
+.sc-ri b{display:block;font-size:13px}
+.sc-ri small{display:block;font-size:11.5px;opacity:.7;margin-top:2px}
+.sc-rinfo{cursor:default;font-size:12.5px;opacity:.8}
+.sc-endl{font-size:12px;color:var(--text-secondary);margin-top:3px}
 .sc-pill{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap}
 .sc-card{cursor:pointer}
 .sc-card.sc-atras{border-left:3px solid #ef4444}
@@ -1400,7 +1413,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, deleteDoc, setDoc, onSnapshot, doc, updateDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, deleteDoc, setDoc, onSnapshot, doc, updateDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCH_t074MvkJn-qVMvCtLfEMaQHf_e_d7M",
@@ -3603,7 +3616,7 @@ function scDoFiltro(lista, f, q){
     if(f==='abertas' && !(s.status==='aberta'||s.status==='separacao')) return false;
     if(f==='entregues' && s.status!=='entregue') return false;
     if(f==='canceladas' && s.status!=='cancelada') return false;
-    if(q && [s.cliente,s.cidade,s.equipamento,s.modelo,s.solicitadoNome,s.obs].join(' ').toLowerCase().indexOf(q)<0) return false;
+    if(q && [s.cliente,s.cidade,s.endereco,s.equipamento,s.modelo,s.patrimonio,s.solicitadoNome,s.obs].join(' ').toLowerCase().indexOf(q)<0) return false;
     return true;
   }).sort(function(a,b){
     var ab=(a.status==='aberta'||a.status==='separacao'), bb=(b.status==='aberta'||b.status==='separacao');
@@ -3630,23 +3643,89 @@ function scFormHtml(s, pre){
     +'<option value="__outro"'+(outro?' selected':'')+'>Outro…</option>';
   var opS=Object.keys(SC_SERV).map(function(k){ return '<option value="'+k+'"'+((s.servico||'entregar')===k?' selected':'')+'>'+SC_SERV[k]+'</option>'; }).join('');
   return '<div class="sc-grid">'
-    +'<div class="sc-f sc-w2"><label>Cliente *</label><input type="text" id="'+p+'-cli" value="'+esc(s.cliente||'')+'" placeholder="Nome do cliente"></div>'
+    +'<div class="sc-f sc-w2 sc-cli-f"><label>Cliente *</label>'
+      +'<input type="text" id="'+p+'-cli" value="'+esc(s.cliente||'')+'" placeholder="Buscar cliente do ERP pelo nome…" autocomplete="off" oninput="scCliBusca(\''+p+'\',true)" onfocus="scCliBusca(\''+p+'\',false)" onblur="setTimeout(function(){scCliFechar(\''+p+'\')},180)">'
+      +'<div class="sc-res" id="'+p+'-cli-res"></div>'
+      +'<div class="sc-end" id="'+p+'-cli-end">'+esc(s.endereco||'')+'</div></div>'
     +'<div class="sc-f"><label>Cidade</label><input type="text" id="'+p+'-cid" value="'+esc(s.cidade||'')+'"></div>'
     +'<div class="sc-f"><label>Contato / telefone</label><input type="text" id="'+p+'-ctt" value="'+esc(s.contato||'')+'"></div>'
     +'<div class="sc-f"><label>Equipamento *</label><select id="'+p+'-eq" onchange="scEqMudou(\''+p+'\')">'+opT+'</select></div>'
     +'<div class="sc-f" id="'+p+'-outro-w" style="'+(outro?'':'display:none')+'"><label>Qual equipamento? *</label><input type="text" id="'+p+'-outro" value="'+esc(outro?eq:'')+'"></div>'
     +'<div class="sc-f"><label>Modelo / detalhe</label><input type="text" id="'+p+'-mod" value="'+esc(s.modelo||'')+'" placeholder="ex.: 2 portas, 220V"></div>'
+    +'<div class="sc-f"><label>Nº do patrimônio</label><div style="display:flex;gap:6px"><input type="text" id="'+p+'-pat" value="'+esc(s.patrimonio||'')+'" placeholder="ex.: 0042 (vários: separe por vírgula)">'
+      +(p==='scm' && typeof abrirScanner==='function' ? '<button type="button" class="scan-btn" onclick="abrirScanner(\''+p+'-pat\')" title="Escanear">📷</button>' : '')+'</div></div>'
     +'<div class="sc-f"><label>Quantidade *</label><input type="number" min="1" step="1" inputmode="numeric" id="'+p+'-qtd" value="'+(s.quantidade||1)+'"></div>'
     +'<div class="sc-f"><label>Serviço *</label><select id="'+p+'-serv">'+opS+'</select></div>'
     +'<div class="sc-f"><label>Data programada para entrega *</label><input type="date" id="'+p+'-data" value="'+esc(s.dataProgramada||'')+'"></div>'
     +'<div class="sc-f sc-w2"><label>Observações</label><textarea id="'+p+'-obs" placeholder="Endereço de entrega, horário, quem recebe…">'+esc(s.obs||'')+'</textarea></div>'
     +'</div>';
 }
+/* Clientes do ERP: logClientesMapa (nome, cidade) + logClientesEndereco
+   (endereço completo). Carrega uma vez, ao abrir o formulário. Sem permissão
+   para a base, o campo segue aceitando o nome digitado. */
+var scBase=null, scBaseLendo=false, scBaseErro='', scCliSel={};
+function scNorm(t){ return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
+function scBaseCarregar(){
+  if(scBase || scBaseLendo) return;
+  scBaseLendo=true;
+  getDocs(collection(db,'logClientesMapa')).then(function(r){
+    var base={};
+    r.docs.forEach(function(d){ var cl=(d.data()||{}).clientes||{}; Object.keys(cl).forEach(function(k){ base[k]={ n:cl[k].n||'', c:cl[k].c||'' }; }); });
+    return getDocs(collection(db,'logClientesEndereco')).then(function(e){
+      e.docs.forEach(function(d){ var cl=(d.data()||{}).clientes||{}; Object.keys(cl).forEach(function(k){ if(base[k]) base[k].a=cl[k]; }); });
+    }).catch(function(){ /* sem endereço completo: mostra só a cidade */ }).then(function(){ return base; });
+  }).then(function(base){
+    var lista=Object.keys(base).map(function(k){ var b=base[k]; return { id:k, nome:b.n, cidade:b.c, end:scEndTxt(b), busca:scNorm(b.n+' '+b.c) }; })
+      .filter(function(x){ return x.nome; });
+    scBase=lista; scBaseLendo=false;
+  }).catch(function(e){
+    console.warn('clientes do ERP:', e); scBase=[]; scBaseLendo=false;
+    scBaseErro=e.code==='permission-denied'?'Sem acesso à base de clientes do ERP: digite o nome.':'Não foi possível ler os clientes do ERP: digite o nome.';
+  });
+}
+function scEndTxt(b){
+  var a=b&&b.a; if(!a) return b&&b.c?b.c:'';
+  var cep=String(a.cep||'').replace(/\D/g,''); if(cep.length===8) cep=cep.slice(0,5)+'-'+cep.slice(5);
+  return [a.end, a.bairro, [a.cidade||b.c, a.uf].filter(Boolean).join('/'), cep].filter(Boolean).join(' · ');
+}
+function scCliBusca(p, digitando){
+  var inp=document.getElementById(p+'-cli'), res=document.getElementById(p+'-cli-res'), end=document.getElementById(p+'-cli-end');
+  if(!inp || !res) return;
+  if(digitando){ scCliSel[p]=null; if(end) end.textContent=''; }
+  var q=scNorm(inp.value).trim();
+  if(q.length<2){ res.innerHTML=''; res.style.display='none'; return; }
+  if(!scBase){ scBaseCarregar(); res.innerHTML='<div class="sc-ri sc-rinfo">Carregando clientes do ERP…</div>'; res.style.display='block';
+    setTimeout(function(){ if(document.activeElement===inp) scCliBusca(p,false); },700); return; }
+  var pal=q.split(/\s+/).filter(Boolean);
+  var achou=scBase.filter(function(x){ return pal.every(function(w){ return x.busca.indexOf(w)>=0; }); }).slice(0,8);
+  res.innerHTML=(achou.length ? achou.map(function(x){
+      return '<button type="button" class="sc-ri" onmousedown="event.preventDefault()" onclick="scCliEscolher(\''+p+'\',\''+esc(x.id)+'\')">'
+        +'<b>'+esc(x.nome)+'</b><small>'+esc(x.end||x.cidade||'')+'</small></button>'; }).join('')
+      : '<div class="sc-ri sc-rinfo">'+esc(scBaseErro||'Nenhum cliente do ERP com esse nome. Pode seguir com o nome digitado.')+'</div>');
+  res.style.display='block';
+}
+function scCliEscolher(p, id){
+  var x=(scBase||[]).filter(function(c){ return c.id===id; })[0]; if(!x) return;
+  scCliSel[p]={ id:x.id, nome:x.nome, end:x.end||x.cidade||'' };
+  var inp=document.getElementById(p+'-cli'); if(inp) inp.value=x.nome;
+  var end=document.getElementById(p+'-cli-end'); if(end) end.textContent=x.end||x.cidade||'';
+  var cid=document.getElementById(p+'-cid'); if(cid && !cid.value.trim()) cid.value=x.cidade||'';
+  scCliFechar(p);
+}
+function scCliFechar(p){ var r=document.getElementById(p+'-cli-res'); if(r){ r.style.display='none'; } }
+/* ao abrir um pedido salvo, o cliente escolhido do ERP continua valendo */
+function scCliPreparar(p, s){
+  scCliSel[p]=(s && s.clienteId) ? { id:s.clienteId, nome:s.cliente, end:s.endereco||'' } : null;
+  scBaseCarregar();
+}
 function scEqMudou(p){ var v=document.getElementById(p+'-eq').value, w=document.getElementById(p+'-outro-w'); if(w) w.style.display=v==='__outro'?'':'none'; }
 function scLerForm(p){
   var g=function(id){ var e=document.getElementById(p+'-'+id); return e?String(e.value||'').trim():''; };
   var eq=g('eq'); if(eq==='__outro') eq=g('outro');
-  var f={ cliente:g('cli'), cidade:g('cid'), contato:g('ctt'), equipamento:eq, modelo:g('mod'),
+  var sel=scCliSel[p], nomeCli=g('cli');
+  var doErp=!!(sel && sel.nome===nomeCli);
+  var f={ cliente:nomeCli, clienteId:doErp?sel.id:'', endereco:doErp?(sel.end||''):'', patrimonio:g('pat'),
+          cidade:g('cid'), contato:g('ctt'), equipamento:eq, modelo:g('mod'),
           quantidade:parseInt(g('qtd'),10), servico:g('serv')||'entregar', dataProgramada:g('data'), obs:g('obs') };
   var falta=function(id,msg){ scToast(msg,true); var e=document.getElementById(p+'-'+id); if(e) e.focus(); return null; };
   if(!f.cliente) return falta('cli','Informe o cliente.');
@@ -3722,7 +3801,8 @@ function scRenderMob(){
     var qd=scQuando(s), atras=/atrasada/.test(qd), aberto=scAberta===s.id;
     return '<div class="card sc-card'+(atras?' sc-atras':'')+'" onclick="scToggle(\''+s.id+'\')">'
       +'<div class="sc-top"><div class="sc-cli">'+esc(s.cliente)+'</div>'+scPill(s.status)+'</div>'
-      +'<div class="sc-eq">'+esc((s.quantidade||1)+'× '+s.equipamento+(s.modelo?' · '+s.modelo:''))+' · '+esc(SC_SERV[s.servico]||s.servico||'')+'</div>'
+      +(s.endereco?'<div class="sc-endl">'+esc(s.endereco)+'</div>':'')
+      +'<div class="sc-eq">'+esc((s.quantidade||1)+'× '+s.equipamento+(s.modelo?' · '+s.modelo:''))+' · '+esc(SC_SERV[s.servico]||s.servico||'')+(s.patrimonio?' · Pat. '+esc(s.patrimonio):'')+'</div>'
       +'<div class="sc-meta">📅 '+scDataBR(s.dataProgramada)+(qd?' · <b'+(atras?' style="color:#ef4444"':'')+'>'+qd+'</b>':'')
         +(s.cidade?' · '+esc(s.cidade):'')+' · por '+esc(s.solicitadoNome||s.solicitadoPor||'')+'</div>'
       +(aberto
@@ -3738,9 +3818,9 @@ function scRenderMob(){
 }
 function scToggle(id){ scAberta=(scAberta===id)?null:id; scRenderMob(); }
 function scFiltrar(f){ scFiltro=f; scRenderMob(); }
-function scNovoMob(){ scEditId=null; document.getElementById('sc-form-tit').textContent='Nova solicitação'; document.getElementById('sc-form').innerHTML=scFormHtml(null,'scm'); goTo('s-solic-form'); }
+function scNovoMob(){ scEditId=null; scCliPreparar('scm',null); document.getElementById('sc-form-tit').textContent='Nova solicitação'; document.getElementById('sc-form').innerHTML=scFormHtml(null,'scm'); goTo('s-solic-form'); }
 function scEditarMob(id){ var s=scLista.filter(function(x){ return x.id===id; })[0]; if(!s) return; scEditId=id;
-  document.getElementById('sc-form-tit').textContent='Corrigir solicitação'; document.getElementById('sc-form').innerHTML=scFormHtml(s,'scm'); goTo('s-solic-form'); }
+  scCliPreparar('scm',s); document.getElementById('sc-form-tit').textContent='Corrigir solicitação'; document.getElementById('sc-form').innerHTML=scFormHtml(s,'scm'); goTo('s-solic-form'); }
 function scSalvarMob(){ scSalvarPedido('scm', scEditId, function(){ goTo('s-solic'); }); }
 
 /* ---------- computador ---------- */
@@ -3757,8 +3837,8 @@ function dRenderSol(){
       var qd=scQuando(s), atras=/atrasada/.test(qd);
       return '<tr class="clk" onclick="dAbrirSol(\''+s.id+'\')">'
         +'<td><b>'+scDataBR(s.dataProgramada)+'</b>'+(qd?'<div class="d-mut" style="font-size:11.5px'+(atras?';color:var(--red)':'')+'">'+qd+'</div>':'')+'</td>'
-        +'<td><b>'+esc(s.cliente)+'</b>'+(s.cidade?'<div class="d-mut" style="font-size:11.5px">'+esc(s.cidade)+'</div>':'')+'</td>'
-        +'<td>'+esc(s.equipamento)+(s.modelo?'<div class="d-mut" style="font-size:11.5px">'+esc(s.modelo)+'</div>':'')+'</td>'
+        +'<td style="white-space:normal;max-width:320px"><b>'+esc(s.cliente)+'</b>'+((s.endereco||s.cidade)?'<div class="d-mut" style="font-size:11.5px">'+esc(s.endereco||s.cidade)+'</div>':'')+'</td>'
+        +'<td>'+esc(s.equipamento)+((s.modelo||s.patrimonio)?'<div class="d-mut" style="font-size:11.5px">'+esc([s.modelo, s.patrimonio?'Pat. '+s.patrimonio:''].filter(Boolean).join(' · '))+'</div>':'')+'</td>'
         +'<td class="r"><b>'+(s.quantidade||1)+'</b></td>'
         +'<td>'+esc(SC_SERV[s.servico]||s.servico||'')+'</td>'
         +'<td>'+esc(s.solicitadoNome||s.solicitadoPor||'')+'</td>'
@@ -3775,6 +3855,7 @@ function dPintarSol(){
   if(scDeskModo==='novo' || scDeskModo==='editar'){
     tit.textContent=scDeskModo==='novo'?'Nova solicitação de equipamento':'Corrigir solicitação';
     sub.textContent=scDeskModo==='novo'?'Vai para a manutenção separar e entregar':(s?s.cliente:'');
+    scCliPreparar('scd', scDeskModo==='editar'?s:null);
     body.innerHTML=scFormHtml(s,'scd');
     foot.innerHTML='<button class="d-btn d-ghost" onclick="'+(scDeskModo==='novo'?'dFecharSol()':'dAbrirSol(\''+scDeskId+'\')')+'">Cancelar</button>'
       +'<button class="d-btn" onclick="scSalvarPedido(\'scd\','+(scDeskId?'\''+scDeskId+'\'':'null')+',dFecharSol)">'+(scDeskModo==='novo'?'Enviar solicitação':'Salvar')+'</button>';
@@ -3788,16 +3869,18 @@ function dPintarSol(){
     +lin('Equipamento', esc((s.quantidade||1)+'× '+s.equipamento+(s.modelo?' · '+s.modelo:'')))
     +lin('Serviço', esc(SC_SERV[s.servico]||s.servico||''))
     +lin('Entrega programada', scDataBR(s.dataProgramada)+(qd?' <span class="d-mut">('+qd+')</span>':''))
+    +lin('Patrimônio', esc(s.patrimonio||'—'))
     +lin('Cidade', esc(s.cidade||'—'))
     +lin('Contato', esc(s.contato||'—'))
     +'</div>'
+    +(s.endereco?'<div style="margin-top:14px">'+lin('Endereço', esc(s.endereco))+'</div>':'')
     +(s.obs?'<div style="margin-top:14px">'+lin('Observações', esc(s.obs))+'</div>':'')
     +(s.obsManut?'<div style="margin-top:10px">'+lin('Manutenção', esc(s.obsManut))+'</div>':'')
     +'<div class="d-klabel" style="margin:18px 0 6px">Andamento</div><div class="sc-hist">'+scLinhaHist(s)+'</div>';
   foot.innerHTML=(scPodeEditarPedido(s)?'<button class="d-btn d-ghost" onclick="dEditarSol()">Corrigir pedido</button>':'')+scBotoes(s,'d-btn');
 }
 
-Object.assign(window,{ scFiltrar:scFiltrar, scToggle:scToggle, scNovoMob:scNovoMob, scEditarMob:scEditarMob, scSalvarMob:scSalvarMob,
+Object.assign(window,{ scCliBusca:scCliBusca, scCliEscolher:scCliEscolher, scCliFechar:scCliFechar, scFiltrar:scFiltrar, scToggle:scToggle, scNovoMob:scNovoMob, scEditarMob:scEditarMob, scSalvarMob:scSalvarMob,
   scEqMudou:scEqMudou, scMudar:scMudar, scSalvarPedido:scSalvarPedido, scRenderMob:scRenderMob,
   dRenderSol:dRenderSol, dNovaSol:dNovaSol, dAbrirSol:dAbrirSol, dEditarSol:dEditarSol, dFecharSol:dFecharSol });
 
