@@ -3585,6 +3585,10 @@ Object.defineProperty(window,'dBaseTipo',{get:function(){ return dBaseTipo; },se
 // comodatoSolicitacoes: nunca se apaga; cancelar e entregar são mudanças de
 // status, com o rastro em historico. A regra do banco espelha isto.
 var SC_SERV={ entregar:'Entregar / instalar', retirar:'Retirar', trocar:'Trocar', consertar:'Consertar no cliente' };
+/* tipo do pedido e cliente novo: vêm marcados do app Comercial */
+var SC_CAT={ remessa:'Remessa / retorno', externa:'Manutenção externa' };
+function scServTxt(s){ return (s.categoria&&SC_CAT[s.categoria]?SC_CAT[s.categoria]+' · ':'')+(SC_SERV[s.servico]||s.servico||''); }
+function scNovoTag(s){ return s.clienteNovo ? ' <span style="font-size:10.5px;font-weight:700;color:#3b82f6;border:1px solid rgba(59,130,246,.45);border-radius:20px;padding:1px 7px;white-space:nowrap">cliente novo</span>' : ''; }
 var SC_ST={ autorizacao:['Aguardando autorização','#d97706'], aberta:['Aberta','#f59e0b'], separacao:['Em separação','#3b82f6'],
   entregue:['Entregue','#10b981'], cancelada:['Cancelada','#6b7280'], recusada:['Recusada pela diretoria','#ef4444'] };
 /* em aberto = ainda não terminou: inclui o que espera a diretoria autorizar */
@@ -3866,9 +3870,9 @@ function scRenderMob(){
   el.innerHTML=l.map(function(s){
     var qd=scQuando(s), atras=/atrasada/.test(qd), aberto=scAberta===s.id;
     return '<div class="card sc-card'+(atras?' sc-atras':'')+'" onclick="scToggle(\''+s.id+'\')">'
-      +'<div class="sc-top"><div class="sc-cli">'+esc(s.cliente)+'</div>'+scPill(s.status)+'</div>'
+      +'<div class="sc-top"><div class="sc-cli">'+esc(s.cliente)+scNovoTag(s)+'</div>'+scPill(s.status)+'</div>'
       +(s.endereco?'<div class="sc-endl">'+esc(s.endereco)+'</div>':'')
-      +'<div class="sc-eq">'+esc((s.quantidade||1)+'× '+s.equipamento+(s.modelo?' · '+s.modelo:''))+' · '+esc(SC_SERV[s.servico]||s.servico||'')+(s.patrimonio?' · Pat. '+esc(s.patrimonio):'')+'</div>'
+      +'<div class="sc-eq">'+esc((s.quantidade||1)+'× '+s.equipamento+(s.modelo?' · '+s.modelo:''))+' · '+esc(scServTxt(s))+(s.patrimonio?' · Pat. '+esc(s.patrimonio):'')+'</div>'
       +'<div class="sc-meta">📅 '+scDataBR(s.dataProgramada)+(qd?' · <b'+(atras?' style="color:#ef4444"':'')+'>'+qd+'</b>':'')
         +(s.cidade?' · '+esc(s.cidade):'')+' · por '+esc(s.solicitadoNome||s.solicitadoPor||'')+'</div>'
       +(aberto
@@ -3903,10 +3907,10 @@ function dRenderSol(){
       var qd=scQuando(s), atras=/atrasada/.test(qd);
       return '<tr class="clk" onclick="dAbrirSol(\''+s.id+'\')">'
         +'<td><b>'+scDataBR(s.dataProgramada)+'</b>'+(qd?'<div class="d-mut" style="font-size:11.5px'+(atras?';color:var(--red)':'')+'">'+qd+'</div>':'')+'</td>'
-        +'<td style="white-space:normal;max-width:320px"><b>'+esc(s.cliente)+'</b>'+((s.endereco||s.cidade)?'<div class="d-mut" style="font-size:11.5px">'+esc(s.endereco||s.cidade)+'</div>':'')+'</td>'
+        +'<td style="white-space:normal;max-width:320px"><b>'+esc(s.cliente)+'</b>'+scNovoTag(s)+((s.endereco||s.cidade)?'<div class="d-mut" style="font-size:11.5px">'+esc(s.endereco||s.cidade)+'</div>':'')+'</td>'
         +'<td>'+esc(s.equipamento)+((s.modelo||s.patrimonio)?'<div class="d-mut" style="font-size:11.5px">'+esc([s.modelo, s.patrimonio?'Pat. '+s.patrimonio:''].filter(Boolean).join(' · '))+'</div>':'')+'</td>'
         +'<td class="r"><b>'+(s.quantidade||1)+'</b></td>'
-        +'<td>'+esc(SC_SERV[s.servico]||s.servico||'')+'</td>'
+        +'<td>'+esc(scServTxt(s))+'</td>'
         +'<td>'+esc(s.solicitadoNome||s.solicitadoPor||'')+'</td>'
         +'<td>'+scPill(s.status)+'</td></tr>';
     }).join('')+'</tbody></table>';
@@ -4041,7 +4045,7 @@ onAuthStateChanged(auth, (user) => {
   // logout de verdade pro botão "Sair"
   window.sairApp = () => signOut(auth).then(()=>location.reload());
 </script>
-<script src="https://monte-castelo-ind.github.io/folha-solicitacao.js?v=1"></script>
+<script src="https://monte-castelo-ind.github.io/folha-solicitacao.js?v=2"></script>
 <script src="https://monte-castelo-ind.github.io/voltar.js"></script>
 </body>
 </html>
