@@ -257,6 +257,16 @@ tr.cp-zero td:nth-child(4){color:var(--red)}
 .pd-li b{font-family:'JetBrains Mono',monospace;font-size:12.5px;white-space:nowrap}
 .pd-li-ok{color:var(--muted)}
 .pd-li-ok b{color:var(--green)}
+/* item em falta, quantidade alterada ou incluído pelo financeiro */
+.pd-li-falta span{text-decoration:line-through;opacity:.65}
+.pd-li-falta b{color:var(--muted)}
+.pd-nota{font-size:11px;color:var(--amber);margin:-1px 0 4px}
+.ev-falta td{opacity:.55}
+.ev-falta td:last-child{opacity:1}
+.ev-nota{font-size:11px;color:var(--amber);margin-top:2px}
+.ev-add{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:9px}
+.ev-add input{width:auto}
+.ev-add #ev-add-p{flex:1 1 260px;min-width:200px}
 .pd-barra{height:6px;background:var(--card-2);border-radius:4px;overflow:hidden;margin-bottom:5px}
 .pd-fill{height:100%;background:var(--green);transition:width .2s}
 .pd-pct{font-size:11.5px;color:var(--muted);margin-bottom:10px}
@@ -1136,7 +1146,7 @@ window.autorizarPedido=function(id){
   if(statusPedido(p)==='cancelado'){ alert('Pedido cancelado.'); return; }
   if(statusPedido(p)==='aguardando_fin'){ alert('Este pedido ainda não foi validado pelo financeiro.'); return; }
 
-  var a=p.aut||{}, itens=p.itens||[];
+  var a=p.aut||{}, itens=(p.itens||[]).filter(function(x){ return !itemFalta(x); });
   var total=itens.reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0);
   var semPreco=itens.filter(function(x){ return !(num(x.precoUn)>0); }).length;
 
@@ -1191,8 +1201,11 @@ window.recalcAut=function(){
     var i=el.getAttribute('data-i');
     var pr=parseFloat(String(el.value).replace(',','.'));
     var lin=el.closest('tr');
-    var qtd=num((lin.children[1].textContent||'').replace(/\./g,'').replace(',','.'));
     var cel=document.querySelector('.au-tot[data-i="'+i+'"]');
+    var fl=lin.querySelector('.au-fl');
+    if(fl && fl.checked){ if(cel) cel.textContent='—'; return; }      /* em falta: fora do total */
+    var qi=lin.querySelector('.au-qt');
+    var qtd=qi ? num(String(qi.value).replace(',','.')) : num((lin.children[1].textContent||'').replace(/\./g,'').replace(',','.'));
     if(isFinite(pr) && pr>0){ soma+=pr*qtd; if(cel) cel.textContent=fmtR$(pr*qtd,2); }
     else if(cel) cel.textContent='—';
   });
@@ -1284,7 +1297,7 @@ window.imprimirAutorizacao=function(id){
   var p=pedidosCompra.filter(function(x){ return x.firestoreId===id; })[0];
   if(!p) return;
   if(!p.aut){ alert('Este pedido ainda não foi autorizado.'); return; }
-  var a=p.aut, itens=p.itens||[];
+  var a=p.aut, itens=(p.itens||[]).filter(function(x){ return !itemFalta(x); });
   var total=itens.reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0);
 
   var linhas=itens.map(function(it,i){
@@ -1360,7 +1373,7 @@ function pendentePorPeca(){
     var st=p.status||'aguardando';
     if(st==='recebido' || st==='cancelado') return;
     (p.itens||[]).forEach(function(it){
-      var falta=Math.max(0, num(it.qtd)-num(it.recebido));
+      var falta=Math.max(0, qtdEf(it)-num(it.recebido));
       if(!falta || !it.pecaId) return;
       if(!mapa[it.pecaId]) mapa[it.pecaId]={ qtd:0, fornecedores:{} };
       mapa[it.pecaId].qtd+=falta;
@@ -1379,8 +1392,39 @@ var PED_ROTULO={ aguardando_fin:'Aguardando financeiro',
                  aguardando_aut:'Aguardando autorização', autorizado:'Autorizado',
                  aguardando:'Autorizado', parcial:'Parcial', recebido:'Recebido', cancelado:'Cancelado' };
 
+/* Item em falta no fornecedor: continua no pedido (o registro fica), mas não
+   entra no valor, na autorização nem no que falta receber. */
+function itemFalta(it){ return !!(it && it.falta); }
+function qtdEf(it){ return itemFalta(it) ? 0 : num(it.qtd); }
+/* rastro do que o financeiro mexeu no item: falta, quantidade e inclusão */
+function notaItem(it){
+  var n=[];
+  if(itemFalta(it)) n.push('em falta'+(it.faltaNome?' — marcado por '+it.faltaNome:'')+(it.faltaEm?' em '+dataBR(it.faltaEm):''));
+  if(it.qtdOriginal!=null && num(it.qtdOriginal)!==num(it.qtd))
+    n.push('qtd alterada de '+fmtN(num(it.qtdOriginal),0)+' para '+fmtN(num(it.qtd),0)
+      +(it.qtdAlteradaNome?' por '+it.qtdAlteradaNome:'')+(it.qtdAlteradaEm?' em '+dataBR(it.qtdAlteradaEm):''));
+  if(it.incluidoEm) n.push('incluído'+(it.incluidoNome?' por '+it.incluidoNome:'')+' em '+dataBR(it.incluidoEm));
+  return n.join(' · ');
+}
+/* texto que vai junto na autorização, para a diretoria ver o que mudou */
+function resumoAlteracoes(itens){
+  var f=[], q=[], inc=[];
+  (itens||[]).forEach(function(it){
+    if(itemFalta(it)) f.push(it.nome);
+    else {
+      if(it.qtdOriginal!=null && num(it.qtdOriginal)!==num(it.qtd))
+        q.push(it.nome+' de '+fmtN(num(it.qtdOriginal),0)+' para '+fmtN(num(it.qtd),0)+(it.qtdAlteradaNome?' ('+it.qtdAlteradaNome+(it.qtdAlteradaEm?', '+dataBR(it.qtdAlteradaEm):'')+')':''));
+      if(it.incluidoEm) inc.push(it.nome+(it.incluidoNome?' ('+it.incluidoNome+', '+dataBR(it.incluidoEm)+')':''));
+    }
+  });
+  var t=[];
+  if(f.length) t.push('Em falta no fornecedor (fora desta compra): '+f.join('; ')+'.');
+  if(q.length) t.push('Quantidade alterada pelo financeiro: '+q.join('; ')+'.');
+  if(inc.length) t.push('Incluído pelo financeiro: '+inc.join('; ')+'.');
+  return t.join(' ');
+}
 function pedidoPendente(it){
-  return Math.max(0, num(it.qtd) - num(it.recebido));
+  return Math.max(0, qtdEf(it) - num(it.recebido));
 }
 function pedidoTemPendencia(p){
   return (p.itens||[]).some(function(it){ return pedidoPendente(it)>0; });
@@ -1517,10 +1561,10 @@ function autorizacaoDoPedido(p, itens, aut, total, obs, frete){
     frete:num(frete),
     tipo:'Autorização de Compra', tipoId:'', modelo:'compra',
     setor:'Manutenção', titulo:'Peças · '+(p.fornecedor||''),
-    descricao:obs||'', prazo:'',
+    descricao:[obs||'', resumoAlteracoes(itens)].filter(Boolean).join(' — '), prazo:'',
     fornecedor:{ razao:aut.razao||p.fornecedor||'', cnpj:aut.cnpj||'', endereco:aut.endereco||'',
                  municipio:aut.municipio||'', pagamento:aut.pagamento||'', entrega:aut.entrega||'' },
-    itens:itens.map(function(it){
+    itens:itens.filter(function(it){ return !itemFalta(it); }).map(function(it){
       return { nome:it.nome||'', codigo:it.codigo||'', qtd:num(it.qtd), precoUn:num(it.precoUn) };
     }),
     valor:total, pix:false, pixChave:'',
@@ -1546,17 +1590,62 @@ window.editarValores=function(id){
   var validando=(fin && st==='aguardando_fin');
   var a=p.aut||{}, itens=p.itens||[];
 
-  var linhas=itens.map(function(it,i){
-    var pr=num(it.precoUn);
-    return '<tr>'
+  /* O financeiro (Simone) também ajusta a quantidade, marca item em falta no
+     fornecedor e inclui peça no pedido. Tudo fica com rastro no próprio item
+     (quem e quando), aparece no cartão e vai escrito na autorização. */
+  var EV=itens.map(function(it){ var c={}; for(var k in it) c[k]=it[k]; return c; });
+  var nOrig=itens.length;
+  function evLinha(it,i){
+    /* o que já foi digitado na tela (_qtd, _pr, _falta) vale mais que o gravado */
+    var pr=(it._pr!=null)?it._pr:num(it.precoUn), fl=(it._falta!=null)?it._falta:itemFalta(it), nota=notaItem(it);
+    var qv=(it._qtd!=null && isFinite(it._qtd))?it._qtd:num(it.qtd);
+    return '<tr'+(fl?' class="ev-falta"':'')+'>'
       + '<td class="r mono">'+(i+1)+'</td>'
-      + '<td class="r mono">'+fmtN(num(it.qtd),0)+'</td>'
-      + '<td>'+esc(it.nome||'')+'</td>'
+      + (fin ? '<td><input type="number" min="1" step="1" class="au-qt" data-i="'+i+'" value="'+qv+'" oninput="recalcAut()" style="width:66px;text-align:right"'+(fl?' disabled':'')+'></td>'
+             : '<td class="r mono">'+fmtN(num(it.qtd),0)+'</td>')
+      + '<td>'+esc(it.nome||'')+(i>=nOrig?' <span class="pd-flag">novo</span>':'')+(nota?'<div class="ev-nota">'+esc(nota)+'</div>':'')+'</td>'
       + '<td><input type="number" min="0" step="0.01" class="au-pr" data-i="'+i+'" '
-      +   'value="'+(pr>0?pr:'')+'" placeholder="0,00" oninput="recalcAut()"></td>'
-      + '<td class="r mono au-tot" data-i="'+i+'">'+(pr>0?fmtR$(pr*num(it.qtd),2):'—')+'</td>'
+      +   'value="'+(pr>0?pr:'')+'" placeholder="0,00" oninput="recalcAut()"'+(fl?' disabled':'')+'></td>'
+      + '<td class="r mono au-tot" data-i="'+i+'">'+(pr>0&&!fl?fmtR$(pr*qv,2):'—')+'</td>'
+      + (fin ? '<td style="text-align:center"><input type="checkbox" class="au-fl" data-i="'+i+'"'+(fl?' checked':'')+' onchange="evFalta(this)" title="Em falta no fornecedor"></td>' : '')
       + '</tr>';
-  }).join('');
+  }
+  /* guarda o que está digitado na tela antes de redesenhar ou gravar */
+  function evLer(){
+    EV.forEach(function(it,i){
+      var q=document.querySelector('.au-qt[data-i="'+i+'"]'), pr=document.querySelector('.au-pr[data-i="'+i+'"]'), fl=document.querySelector('.au-fl[data-i="'+i+'"]');
+      if(q) it._qtd=parseFloat(String(q.value).replace(',','.'));
+      if(pr){ var v=parseFloat(String(pr.value||'').replace(',','.')); it._pr=(isFinite(v)&&v>0)?v:0; }
+      if(fl) it._falta=fl.checked;
+    });
+  }
+  function evPintar(){
+    var tb=document.getElementById('ev-tbody'); if(tb) tb.innerHTML=EV.map(evLinha).join('');
+    recalcAut();
+  }
+  window.evFalta=function(cb){
+    var lin=cb.closest('tr'); lin.classList.toggle('ev-falta', cb.checked);
+    lin.querySelectorAll('.au-qt,.au-pr').forEach(function(x){ x.disabled=cb.checked; });
+    recalcAut();
+  };
+  window.evIncluir=function(){
+    var inp=document.getElementById('ev-add-p'), qi=document.getElementById('ev-add-q');
+    var t=String((inp&&inp.value)||'').trim(), q=parseFloat(String((qi&&qi.value)||'').replace(',','.'));
+    if(!t){ alert('Escolha a peça na lista (digite parte do nome ou do código).'); return; }
+    var pc=(pecas||[]).filter(function(x){ return (x.codigo?x.codigo+' · ':'')+(x.nome||'')===t; })[0]
+        || (pecas||[]).filter(function(x){ return String(x.nome||'').toUpperCase()===t.toUpperCase() || String(x.codigo||'')===t; })[0];
+    if(!pc){ alert('Peça não encontrada no estoque. Escolha uma das opções da lista — se for peça nova, cadastre antes em Estoque.'); return; }
+    if(!(q>0)){ alert('Informe a quantidade.'); return; }
+    evLer();
+    if(EV.some(function(x){ return x.pecaId===pc.firestoreId; })){ alert(pc.nome+' já está neste pedido — altere a quantidade na linha dele.'); return; }
+    EV.push({ pecaId:pc.firestoreId, codigo:pc.codigo||'', nome:pc.nome||'', unidade:pc.unidade||'un',
+              qtd:q, recebido:0, obs:'', precoUn:0, _qtd:q, _pr:0, _novo:true });
+    inp.value=''; qi.value='1';
+    evPintar();
+  };
+  var linhas=EV.map(evLinha).join('');
+  var opPecas=fin ? (pecas||[]).filter(function(x){ return x.ativo!==false; }).map(function(x){
+      return '<option value="'+esc((x.codigo?x.codigo+' · ':'')+(x.nome||''))+'">'; }).join('') : '';
 
   modal({
     titulo:'Editar valores',
@@ -1587,8 +1676,14 @@ window.editarValores=function(id){
        + '<div class="tw" style="margin-top:12px"><div class="tscroll" style="max-height:260px">'
        + '<table class="au-tab"><thead><tr><th class="r" style="width:42px">Item</th>'
        + '<th class="r" style="width:62px">Qtde</th><th>Descrição</th>'
-       + '<th style="width:104px">Unit (R$)</th><th class="r" style="width:104px">Total</th></tr></thead>'
-       + '<tbody>'+linhas+'</tbody></table></div></div>'
+       + '<th style="width:104px">Unit (R$)</th><th class="r" style="width:104px">Total</th>'
+       + (fin?'<th style="width:58px;text-align:center" title="Em falta no fornecedor">Falta</th>':'')+'</tr></thead>'
+       + '<tbody id="ev-tbody">'+linhas+'</tbody></table></div></div>'
+       + (fin ? '<div class="ev-add"><input type="text" id="ev-add-p" list="ev-pecas" placeholder="Incluir peça no pedido: nome ou código…" autocomplete="off">'
+              + '<input type="number" id="ev-add-q" min="1" step="1" value="1" style="width:70px" title="Quantidade">'
+              + '<button type="button" class="btn btn-sm btn-ghost" onclick="evIncluir()">+ Incluir</button>'
+              + '<datalist id="ev-pecas">'+opPecas+'</datalist></div>'
+              + '<div class="pd-meta" style="margin-top:5px">Mudou a quantidade, marcou em falta ou incluiu item? Fica registrado com seu nome e a data, aparece no pedido e vai escrito na autorização.</div>' : '')
        + '<div class="au-total">Valor total'+(fin?' (com frete)':'')+': <b id="au-soma">—</b></div>'
        + '<div class="fld" style="margin-top:10px"><label>Observação</label>'
        + '<input type="text" id="ev-obs" maxlength="180" value="'+esc(p.obs||'')+'" placeholder="nº da cotação, prazo combinado…"></div>',
@@ -1601,15 +1696,33 @@ window.editarValores=function(id){
   window._evGravar=function(enviar){
       var comprador=String((document.getElementById('ev-comp')||{}).value||'').trim();
       if(!comprador){ alert('Informe o comprador — é o nome que sai na autorização.'); return false; }
-      /* só o preço muda em cada item; quantidade, nome e o que já foi recebido ficam */
-      var novos=itens.map(function(it,i){
-        var el=document.querySelector('.au-pr[data-i="'+i+'"]');
-        var pr=parseFloat(String((el&&el.value)||'').replace(',','.'));
-        var c={}; for(var k in it) c[k]=it[k];
-        c.precoUn=(isFinite(pr)&&pr>0)?pr:0;
+      /* preço sempre; o financeiro também muda quantidade, marca falta e inclui
+         item — cada mudança guarda quem e quando no próprio item */
+      evLer();
+      var ts=agora(), nm=sessaoNomeCurto(), erroQtd='';
+      var novos=EV.map(function(it,i){
+        var c={}; for(var k in it){ if(k.charAt(0)!=='_') c[k]=it[k]; }
+        c.precoUn=it._pr||0;
+        if(!fin) return c;
+        var orig=i<nOrig ? itens[i] : null;
+        /* em falta */
+        if(it._falta && !(orig && orig.falta)){ c.falta=true; c.faltaPor=sessaoEmail; c.faltaNome=nm; c.faltaEm=ts; c.precoUn=0; }
+        else if(!it._falta && orig && orig.falta){ c.falta=false; delete c.faltaPor; delete c.faltaNome; delete c.faltaEm; }
+        else if(it._falta) c.precoUn=0;
+        /* quantidade */
+        var q=it._qtd;
+        if(!it._falta && !(q>0)) erroQtd=it.nome;
+        if(orig && q>0 && q!==num(orig.qtd)){
+          if(c.qtdOriginal==null) c.qtdOriginal=num(orig.qtd);
+          c.qtd=q; c.qtdAlteradaPor=sessaoEmail; c.qtdAlteradaNome=nm; c.qtdAlteradaEm=ts;
+          if(num(c.qtdOriginal)===q){ delete c.qtdOriginal; delete c.qtdAlteradaPor; delete c.qtdAlteradaNome; delete c.qtdAlteradaEm; }
+        }
+        /* item incluído agora */
+        if(!orig){ c.qtd=q>0?q:num(it.qtd); c.incluidoPor=sessaoEmail; c.incluidoNome=nm; c.incluidoEm=ts; }
         return c;
       });
-      var total=novos.reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0);
+      if(erroQtd){ alert('Quantidade inválida em: '+erroQtd+'.\n\nSe o item não vem, marque "Falta" em vez de zerar.'); return false; }
+      var total=novos.reduce(function(t,x){ return t+num(x.precoUn)*qtdEf(x); },0);
       var aut={}; for(var k in a) aut[k]=a[k];
       aut.comprador=comprador;
       aut.entrega=String((document.getElementById('ev-ent')||{}).value||'').trim();
@@ -1637,7 +1750,8 @@ window.editarValores=function(id){
         return;
       }
       /* enviar: só com tudo preenchido */
-      var semPreco=novos.filter(function(x){ return !(num(x.precoUn)>0); }).length;
+      if(!novos.some(function(x){ return !itemFalta(x); })){ alert('Todos os itens estão em falta: não há o que comprar. Cancele o pedido.'); return false; }
+      var semPreco=novos.filter(function(x){ return !itemFalta(x) && !(num(x.precoUn)>0); }).length;
       if(semPreco){ alert(semPreco+(semPreco===1?' item está':' itens estão')+' sem preço.'); return false; }
       if(!aut.entrega){ alert('Informe a data de entrega.'); return false; }
       var fc=fornPorNome(p.fornecedor), faltaForn=faltaCadastro(fc, p.fornecedor);
@@ -1721,8 +1835,9 @@ window.devolverPedido=function(id){
 /* O que falta para o pedido poder ir para a diretoria. Vazio = pronto. */
 function faltaParaEnviar(p){
   var f=[];
-  var semPr=(p.itens||[]).filter(function(x){ return !(num(x.precoUn)>0); }).length;
+  var semPr=(p.itens||[]).filter(function(x){ return !itemFalta(x) && !(num(x.precoUn)>0); }).length;
   if(semPr) f.push(semPr+(semPr===1?' item sem preço':' itens sem preço'));
+  if(!(p.itens||[]).some(function(x){ return !itemFalta(x); })) f.push('todos os itens estão em falta (cancele o pedido)');
   if(!((p.aut||{}).comprador)) f.push('comprador não informado');
   if(!((p.aut||{}).entrega))   f.push('data de entrega');
   return f.concat(faltaCadastro(fornPorNome(p.fornecedor), p.fornecedor));
@@ -1816,7 +1931,7 @@ window.mascaraCnpj=function(el){
   else if(d.length>3)  v=d.replace(/^(\d{3})(\d{0,3}).*/,'$1.$2');
   el.value=v;
 };
-function subtotalItens(itens){ return (itens||[]).reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0); }
+function subtotalItens(itens){ return (itens||[]).reduce(function(t,x){ return t+num(x.precoUn)*qtdEf(x); },0); }
 
 /* Manda para a assinatura um pedido que o financeiro já salvou. Mesma
    gravação atômica da validação: a autorização nasce no app de Autorizações
@@ -1855,7 +1970,8 @@ window.enviarAssinatura=function(id){
     body:'<div class="alert a-info">Vai para a diretoria assinar no app de Autorizações. '
        + 'Depois de enviado, <b>não pode mais ser alterado</b> — para corrigir, só cancelando e refazendo.</div>'
        + '<table class="au-tab" style="margin-top:4px"><tbody>'
-       + '<tr><td>Itens</td><td class="r mono">'+(p.itens||[]).length+'</td></tr>'
+       + '<tr><td>Itens</td><td class="r mono">'+(p.itens||[]).filter(function(x){ return !itemFalta(x); }).length
+       +   ((p.itens||[]).some(itemFalta)?' <span style="color:var(--amber)">(+ '+(p.itens||[]).filter(itemFalta).length+' em falta)</span>':'')+'</td></tr>'
        + '<tr><td>Subtotal dos itens</td><td class="r mono">'+fmtR$(sub,2)+'</td></tr>'
        + '<tr><td>Frete</td><td class="r mono">'+(fr>0?fmtR$(fr,2):'sem frete')+'</td></tr>'
        + '<tr><td><b>Total para assinatura</b></td><td class="r mono"><b>'+fmtR$(sub+fr,2)+'</b></td></tr>'
@@ -1925,7 +2041,7 @@ window.receberPedido=function(id){
   var linhas=(p.itens||[]).map(function(it,i){
     var falta=pedidoPendente(it);
     return '<tr'+(falta?'':' class="pd-ok"')+'>'
-      + '<td>'+esc(it.nome||'')+'<div class="pd-cod">'+esc(it.codigo||'')+'</div></td>'
+      + '<td>'+esc(it.nome||'')+'<div class="pd-cod">'+esc(it.codigo||'')+(itemFalta(it)?' · <b style="color:var(--amber)">em falta no fornecedor</b>':'')+'</div></td>'
       + '<td class="r">'+fmtN(num(it.qtd),0)+'</td>'
       + '<td class="r">'+fmtN(num(it.recebido),0)+'</td>'
       + '<td><input type="number" min="0" step="1" class="pd-in" data-i="'+i+'" '
@@ -2043,7 +2159,7 @@ function renderPedidos(){
     var h0=h.length;
     var st=statusPedido(p);
     var itens=p.itens||[];
-    var totPed=itens.reduce(function(t,x){ return t+num(x.qtd); },0);
+    var totPed=itens.reduce(function(t,x){ return t+qtdEf(x); },0);
     var totRec=itens.reduce(function(t,x){ return t+num(x.recebido); },0);
     var pct=totPed>0 ? Math.round(totRec/totPed*100) : 0;
 
@@ -2059,11 +2175,12 @@ function renderPedidos(){
 
     h+='<div class="pd-itens">';
     itens.forEach(function(it){
-      var falta=pedidoPendente(it);
-      h+='<div class="pd-li'+(falta?'':' pd-li-ok')+'">'
+      var falta=pedidoPendente(it), fl=itemFalta(it), nota=notaItem(it);
+      h+='<div class="pd-li'+(fl?' pd-li-falta':(falta?'':' pd-li-ok'))+'">'
        + '<span>'+esc(it.nome||'')+'</span>'
-       + '<b>'+fmtN(num(it.recebido),0)+' / '+fmtN(num(it.qtd),0)+' '+esc(it.unidade||'un')+'</b>'
-       + '</div>';
+       + '<b>'+(fl?'em falta':fmtN(num(it.recebido),0)+' / '+fmtN(num(it.qtd),0)+' '+esc(it.unidade||'un'))+'</b>'
+       + '</div>'
+       + (nota?'<div class="pd-nota">↳ '+esc(nota)+'</div>':'');
     });
     h+='</div>';
 
@@ -2071,8 +2188,8 @@ function renderPedidos(){
       h+='<div class="pd-barra"><div class="pd-fill" style="width:'+pct+'%"></div></div>'
        + '<div class="pd-pct">'+fmtN(totRec,0)+' de '+fmtN(totPed,0)+' recebidos ('+pct+'%)</div>';
     var temFrete=(p.frete!=null && p.frete!=='');
-    var valPed=(p.itens||[]).reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0)+(temFrete?num(p.frete):0);
-    var semPr=(p.itens||[]).filter(function(x){ return !(num(x.precoUn)>0); }).length;
+    var valPed=(p.itens||[]).reduce(function(t,x){ return t+num(x.precoUn)*qtdEf(x); },0)+(temFrete?num(p.frete):0);
+    var semPr=(p.itens||[]).filter(function(x){ return !itemFalta(x) && !(num(x.precoUn)>0); }).length;
     h+='<div class="pd-pct" style="margin-top:2px">'
      + (valPed>0?'Valor: <b>'+fmtR$(valPed,2)+'</b>'+(temFrete?' <span style="color:var(--muted)">(frete '+(num(p.frete)>0?fmtR$(num(p.frete),2):'—')+')</span>':''):'<span style="color:var(--amber)">Sem valores informados</span>')
      + (valPed>0 && semPr?' · <span style="color:var(--amber)">'+semPr+(semPr===1?' item sem preço':' itens sem preço')+'</span>':'')
@@ -2162,7 +2279,7 @@ function linhaPedido(p, st, bloco){
   var id=p.firestoreId, aberto=!!pedidoAberto[id];
   var itens=p.itens||[];
   var temFr=(p.frete!=null && p.frete!=='');
-  var val=itens.reduce(function(t,x){ return t+num(x.precoUn)*num(x.qtd); },0)+(temFr?num(p.frete):0);
+  var val=itens.reduce(function(t,x){ return t+num(x.precoUn)*qtdEf(x); },0)+(temFr?num(p.frete):0);
   return '<div class="pl-item">'
     + '<div class="pl-lin pd-'+st+'" onclick="alternaPedido(\''+esc(id)+'\')" title="'+(aberto?'Fechar':'Abrir')+' o pedido">'
     +   '<span class="pl-data pl-mut mono">'+esc(dataBR(p.criadoEm))+'</span>'
@@ -2180,7 +2297,8 @@ window.textoPedidoSalvo=function(id){
   var p=pedidosCompra.filter(function(x){ return x.firestoreId===id; })[0];
   if(!p) return;
   var g={ fornecedor:p.fornecedor||'', valor:num(p.valorEstimado),
-          itens:(p.itens||[]).map(function(it){
+          /* o texto para o fornecedor não leva o que está em falta */
+          itens:(p.itens||[]).filter(function(it){ return !itemFalta(it); }).map(function(it){
             return { p:{ nome:it.nome, codigo:it.codigo, unidade:it.unidade }, qtd:num(it.qtd), obs:it.obs||'' };
           }) };
   var txt=textoDoFornecedor(g);
