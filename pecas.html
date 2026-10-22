@@ -259,6 +259,16 @@ tr.cp-zero td:nth-child(4){color:var(--red)}
 .pd-li-ok b{color:var(--green)}
 /* item em falta, quantidade alterada ou incluído pelo financeiro */
 .pd-li-falta span{text-decoration:line-through;opacity:.65}
+/* saída de peça: destino e peça velha */
+.mv-chips{display:flex;gap:6px;flex-wrap:wrap}
+.mv-chip{background:var(--card-2);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:12.5px;
+         font-weight:600;padding:7px 12px;border-radius:20px;cursor:pointer}
+.mv-chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.mv-dest{font-size:11.5px;color:var(--muted);margin-top:2px}
+#mv-d-comodato .fld,#mv-d-predial .fld,#mv-d-outro .fld,#mv-just-w{margin-top:12px}
+.mv-velha{display:inline-block;font-size:10.5px;font-weight:700;border-radius:20px;padding:1px 8px;margin-top:3px;
+          border:1px solid var(--border);color:var(--muted)}
+.mv-velha.ruim{color:var(--red);border-color:rgba(242,106,106,.5);background:rgba(242,106,106,.08)}
 .pd-li-falta b{color:var(--muted)}
 .pd-nota{font-size:11px;color:var(--amber);margin:-1px 0 4px}
 .ev-falta td{opacity:.55}
@@ -557,12 +567,13 @@ html[data-pal="vinho"][data-theme="light"]{
       <div class="grid kpis" id="mov-kpis"></div>
       <div class="sect">Histórico</div>
       <div class="tools">
-        <input type="text" id="mv-busca" placeholder="Buscar peça ou observação..." oninput="render()" />
+        <input type="text" id="mv-busca" placeholder="Buscar peça, observação ou patrimônio..." oninput="render()" />
         <select id="mv-tipo" onchange="render()">
           <option value="">Entradas e saídas</option>
           <option value="entrada">Só entradas</option>
           <option value="saida">Só saídas</option>
           <option value="ajuste">Só ajustes</option>
+          <option value="sem_velha">Saídas sem peça velha</option>
         </select>
         <select id="mv-per" onchange="render()">
           <option value="30">Últimos 30 dias</option>
@@ -666,7 +677,7 @@ html[data-pal="vinho"][data-theme="light"]{
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc, addDoc, updateDoc, deleteDoc, increment, query, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, addDoc, updateDoc, deleteDoc, increment, query, orderBy, limit, writeBatch, getDocs, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 /* ============ FIREBASE ============ */
@@ -2722,14 +2733,19 @@ function renderMov(){
     '<div class="card"><div class="klabel">Entradas</div><div class="kval" style="color:var(--green)">'+ent.length+'</div><div class="khint">no período</div></div>',
     '<div class="card"><div class="klabel">Saídas</div><div class="kval" style="color:var(--amber)">'+sai.length+'</div><div class="khint">no período</div></div>',
     '<div class="card"><div class="klabel">Comprado no período</div><div class="kval">'+fmtR$k(gasto)+'</div><div class="khint">soma das entradas</div></div>',
-    '<div class="card"><div class="klabel">Total de registros</div><div class="kval">'+base.length+'</div><div class="khint">'+(per?'últimos '+per+' dias':'histórico completo')+'</div></div>'
+    (function(){ var n=sai.filter(function(m){ return m.pecaVelha==='nao_devolvida'; }).length;
+      return '<div class="card" style="cursor:pointer" onclick="var t=document.getElementById(\'mv-tipo\'); t.value=\'sem_velha\'; render();">'
+        + '<div class="klabel">Saídas sem peça velha</div><div class="kval" style="color:'+(n?'var(--red)':'var(--muted)')+'">'+n+'</div>'
+        + '<div class="khint">peça nova sem devolver a velha · '+(per?'últimos '+per+' dias':'histórico completo')+'</div></div>'; })()
   ].join('');
 
   var q=norm(document.getElementById('mv-busca').value);
   var t=document.getElementById('mv-tipo').value;
   var lista=base.filter(function(m){
-    if(t && m.tipo!==t) return false;
-    if(q && norm(m.nome).indexOf(q)<0 && norm(m.obs).indexOf(q)<0 && String(m.codigo||'').indexOf(q)<0) return false;
+    if(t==='sem_velha'){ if(!(m.tipo==='saida' && m.pecaVelha==='nao_devolvida')) return false; }
+    else if(t && m.tipo!==t) return false;
+    if(q && norm(m.nome).indexOf(q)<0 && norm(m.obs).indexOf(q)<0 && String(m.codigo||'').indexOf(q)<0
+         && norm(mvDestTxt(m)).indexOf(q)<0) return false;
     return true;
   });
   ordenarPor(lista,'mov',COLS_MOV);
@@ -2747,7 +2763,11 @@ function renderMov(){
       '<td class="r num">'+(num(m.precoUn)>0?fmtR$(m.precoUn,2):'—')+'</td>'+
       '<td class="r num">'+(num(m.precoUn)>0?fmtR$(num(m.precoUn)*num(m.qtd),2):'—')+'</td>'+
       '<td style="font-size:11.5px;color:var(--muted)">'+esc((m.quem||'').split('@')[0])+'</td>'+
-      '<td style="font-size:12px;white-space:normal;max-width:260px">'+esc(m.obs||'')+'</td></tr>';
+      '<td style="font-size:12px;white-space:normal;max-width:300px">'+esc(m.obs||'')
+        +(mvDestTxt(m)?'<div class="mv-dest">→ '+esc(mvDestTxt(m))+'</div>':'')
+        +(m.pecaVelha?'<span class="mv-velha'+(m.pecaVelha==='nao_devolvida'?' ruim':'')+'" title="'+esc(m.pecaVelhaJust||'')+'">peça velha: '
+          +esc(MV_VELHA[m.pecaVelha]||m.pecaVelha)+(m.pecaVelhaJust?' — '+esc(m.pecaVelhaJust):'')+'</span>':'')
+        +'</td></tr>';
   });
   document.getElementById('tbl-mov').innerHTML=html+'</tbody>';
 }
@@ -2803,6 +2823,7 @@ window.fecharModal=function(){ document.getElementById('modal-host').innerHTML='
 
 window.abrirMov=function(id, tipo){
   if(!podeLancar){ alert('Você não tem permissão para lançar movimentos.'); return; }
+  if(tipo==='saida' && !abrirMov._pronto){ carregarEquipCasa().then(function(){ abrirMov._pronto=true; abrirMov(id, tipo); abrirMov._pronto=false; }); return; }
   var p=pecaPorId(id); if(!p) return;
   var ent=(tipo==='entrada');
   modal({
@@ -2814,7 +2835,8 @@ window.abrirMov=function(id, tipo){
         (ent?'<div><label>Preço unitário · R$</label><input type="number" id="mv-preco" step="0.01" value="'+(num(p.precoUn)>0?num(p.precoUn):'')+'" />'+
              '<div class="fhint">Atualiza o último preço pago da peça.</div></div>':'')+
       '</div>'+
-      '<div class="fld" style="margin-top:12px"><label>Observação'+(ent?' (nota, fornecedor)':' (para quê / quem levou)')+'</label>'+
+      (ent?'':mvHtmlSaida(p))+
+      '<div class="fld" style="margin-top:12px"><label>Observação'+(ent?' (nota, fornecedor)':' (o que foi feito / quem levou)')+'</label>'+
         '<input type="text" id="mv-obs" placeholder="'+(ent?'Ex: NF 1234 · Fornecedor X':'Ex: troca no compressor da câmara')+'" /></div>'+
       (!ent&&num(p.saldo)<=0?'<div class="alert a-warn" style="margin:13px 0 0">⚠ O saldo já está zerado. A saída vai deixar o saldo negativo — o que serve como aviso de que faltou registrar a entrada.</div>':''),
     ok:(ent?'Registrar entrada':'Registrar saída'),
@@ -2823,11 +2845,115 @@ window.abrirMov=function(id, tipo){
       if(!(q>0)){ alert('Informe uma quantidade maior que zero.'); return false; }
       var pr=ent?num((document.getElementById('mv-preco')||{}).value):0;
       var obs=document.getElementById('mv-obs').value||'';
-      lancarMov(p, tipo, q, pr, obs);
+      var extra=null;
+      if(!ent){ extra=mvLerSaida(p); if(!extra) return false; }
+      lancarMov(p, tipo, q, pr, obs, extra);
     }
   });
 };
-function lancarMov(p, tipo, qtd, precoUn, obs){
+/* ===== SAÍDA DE PEÇA: destino e peça velha =====
+   Regra da manutenção: peça nova só sai com a velha na mão. Toda saída diz
+   para onde a peça vai (equipamento de comodato pelo patrimônio, setor da
+   fábrica ou outro) e o que foi feito da peça que saiu do equipamento.
+   "Não devolvida" exige justificativa e aparece destacada nos Movimentos.
+   Material de consumo (marcado no cadastro da peça) não pede peça velha. */
+var MV_VELHA={ bancada:'Devolvida na bancada', conserto:'Vai para conserto', garantia:'Garantia (volta ao fornecedor)',
+               sucata:'Sucata (sem conserto)', nao_devolvida:'Não devolvida', consumo:'Material de consumo' };
+var MV_SETORES=['ADMINISTRATIVO','CONFEITARIA','COZINHA/CONF','DIRETORIA','EMBALAÇÃO','EXPEDIÇÃO','FROTA','LIMPEZA',
+                'PANIFICAÇÃO','PREDIAL','RECEBIMENTO','REFEITÓRIO','OUTRO'];
+var _equipCasa=null, _equipLidoEm=0;
+/* equipamentos que estão na manutenção do Comodato (ainda não saíram) */
+function carregarEquipCasa(){
+  if(_equipCasa && Date.now()-_equipLidoEm<5*60000) return Promise.resolve(_equipCasa);
+  return getDocs(query(collection(dbC,'equipamentosEstoque'), where('status','in',['aguardando','andamento','concluido'])))
+    .then(function(snap){
+      _equipCasa=snap.docs.map(function(d){ return Object.assign({ firestoreId:d.id }, d.data()); })
+        .filter(function(e){ return e.patrimonio; });
+      _equipLidoEm=Date.now(); return _equipCasa;
+    }).catch(function(e){ console.warn('equipamentosEstoque:', e); _equipCasa=[]; return _equipCasa; });
+}
+function equipPorPat(pat){
+  pat=String(pat||'').trim().toUpperCase(); if(!pat) return null;
+  return (_equipCasa||[]).filter(function(e){ return String(e.patrimonio||'').trim().toUpperCase()===pat; })[0]||null;
+}
+window.mvEscolhe=function(b, grupo){
+  b.parentNode.querySelectorAll('.mv-chip').forEach(function(x){ x.classList.toggle('on', x===b); });
+  var v=b.getAttribute('data-v');
+  if(grupo==='dest'){
+    ['comodato','predial','outro'].forEach(function(k){ var el=document.getElementById('mv-d-'+k); if(el) el.style.display=(k===v)?'':'none'; });
+    if(v==='comodato') setTimeout(function(){ var x=document.getElementById('mv-pat'); if(x) x.focus(); }, 0);
+  } else {
+    var j=document.getElementById('mv-just-w'); if(j) j.style.display=(v==='nao_devolvida')?'':'none';
+  }
+};
+window.mvPatMudou=function(){
+  var e=equipPorPat((document.getElementById('mv-pat')||{}).value), box=document.getElementById('mv-pat-info');
+  if(!box) return;
+  box.innerHTML=e ? '✓ '+esc(e.tipo||'')+' '+esc(e.modelo||'')+(e.problema?' · problema: '+esc(e.problema):'')
+                  : '<span style="color:var(--muted)">Patrimônio fora da lista de equipamentos na manutenção — confira o número (pode ser conserto no cliente).</span>';
+};
+function mvHtmlSaida(p){
+  var eqOps=(_equipCasa||[]).map(function(e){
+    return '<option value="'+esc(e.patrimonio)+'">'+esc((e.tipo||'')+' '+(e.modelo||''))+'</option>'; }).join('');
+  var chip=function(g,v,t){ return '<button type="button" class="mv-chip" data-v="'+v+'" onclick="mvEscolhe(this,\''+g+'\')">'+t+'</button>'; };
+  return '<div class="fld" style="margin-top:12px"><label>Para onde vai a peça *</label><div class="mv-chips" id="mv-dest">'
+    + chip('dest','comodato','Equipamento de comodato') + chip('dest','predial','Setor da fábrica') + chip('dest','outro','Outro')
+    + '</div></div>'
+    + '<div id="mv-d-comodato" style="display:none"><div class="fld"><label>Patrimônio do equipamento *</label>'
+    +   '<input type="text" id="mv-pat" list="mv-pats" placeholder="Ex: 0042" autocomplete="off" oninput="mvPatMudou()" />'
+    +   '<datalist id="mv-pats">'+eqOps+'</datalist><div class="fhint" id="mv-pat-info">'+((_equipCasa||[]).length?(_equipCasa.length+' equipamentos na manutenção agora — escolha na lista ou digite.'):'')+'</div></div></div>'
+    + '<div id="mv-d-predial" style="display:none"><div class="fld"><label>Setor *</label><select id="mv-setor"><option value="">Escolha…</option>'
+    +   MV_SETORES.map(function(x){ return '<option>'+esc(x)+'</option>'; }).join('')+'</select></div></div>'
+    + '<div id="mv-d-outro" style="display:none"><div class="fld"><label>Onde foi usada *</label><input type="text" id="mv-outro" placeholder="Ex: bancada de testes, veículo IVZ1398…" /></div></div>'
+    + (p.consumo
+        ? '<div class="fhint" style="margin-top:10px">Material de consumo: não precisa devolver peça velha.</div>'
+        : '<div class="fld" style="margin-top:12px"><label>E a peça velha (a que saiu do equipamento)? *</label><div class="mv-chips" id="mv-velha">'
+          + ['bancada','conserto','garantia','sucata','nao_devolvida'].map(function(k){ return chip('velha',k,MV_VELHA[k]); }).join('')
+          + '</div><div class="fhint">Regra da manutenção: peça nova sai com a velha na mão. Ela fica na bancada até decidir: conserto, garantia ou sucata.</div></div>'
+          + '<div class="fld" id="mv-just-w" style="display:none"><label>Por que a peça velha não voltou? *</label>'
+          + '<input type="text" id="mv-just" maxlength="160" placeholder="Ex: ficou no cliente, perdeu no transporte…" /></div>');
+}
+/* lê e confere o formulário da saída; devolve os campos ou null (já avisou) */
+function mvLerSaida(p){
+  var dest=(document.querySelector('#mv-dest .mv-chip.on')||{}).getAttribute ? document.querySelector('#mv-dest .mv-chip.on').getAttribute('data-v') : '';
+  if(!dest){ alert('Diga para onde vai a peça: equipamento de comodato, setor da fábrica ou outro.'); return null; }
+  var x={ destinoTipo:dest };
+  if(dest==='comodato'){
+    var pat=String((document.getElementById('mv-pat')||{}).value||'').trim();
+    if(!pat){ alert('Informe o patrimônio do equipamento.'); document.getElementById('mv-pat').focus(); return null; }
+    var e=equipPorPat(pat);
+    if(!e && !confirm('O patrimônio '+pat+' não está na lista de equipamentos na manutenção.\n\nRegistrar assim mesmo (ex.: conserto feito no cliente)?')) return null;
+    x.patrimonio=pat.toUpperCase();
+    if(e){ x.equipamentoId=e.firestoreId; x.equipamento=((e.tipo||'')+' '+(e.modelo||'')).trim(); }
+  } else if(dest==='predial'){
+    var st=(document.getElementById('mv-setor')||{}).value||'';
+    if(!st){ alert('Escolha o setor.'); return null; }
+    x.setor=st;
+  } else {
+    var o=String((document.getElementById('mv-outro')||{}).value||'').trim();
+    if(!o){ alert('Diga onde a peça foi usada.'); return null; }
+    x.destino=o;
+  }
+  if(p.consumo){ x.pecaVelha='consumo'; return x; }
+  var vb=document.querySelector('#mv-velha .mv-chip.on');
+  if(!vb){ alert('Diga o que foi feito da peça velha: bancada, conserto, garantia, sucata ou não devolvida.'); return null; }
+  x.pecaVelha=vb.getAttribute('data-v');
+  if(x.pecaVelha==='nao_devolvida'){
+    var j=String((document.getElementById('mv-just')||{}).value||'').trim();
+    if(!j){ alert('Explique por que a peça velha não voltou — fica registrado.'); document.getElementById('mv-just').focus(); return null; }
+    x.pecaVelhaJust=j;
+  }
+  return x;
+}
+/* texto curto do destino e da peça velha, para a lista de movimentos */
+function mvDestTxt(m){
+  if(m.destinoTipo==='comodato') return 'Patrimônio '+(m.patrimonio||'?')+(m.equipamento?' · '+m.equipamento:'');
+  if(m.destinoTipo==='predial') return 'Setor '+(m.setor||'?');
+  if(m.destinoTipo==='outro') return m.destino||'';
+  return '';
+}
+
+function lancarMov(p, tipo, qtd, precoUn, obs, extra){
   var delta=(tipo==='saida'?-qtd:qtd);
   var ts=agora();
   // increment é atômico: duas pessoas movimentando a mesma peça não se sobrescrevem
@@ -2835,11 +2961,11 @@ function lancarMov(p, tipo, qtd, precoUn, obs){
   if(tipo==='entrada' && precoUn>0){ upd.precoUn=precoUn; upd.precoAtualizadoEm=ts; }
   setDoc(doc(dbC,'estoquePecas',p.firestoreId), upd, { merge:true })
     .then(function(){
-      return addDoc(collection(dbC,'movPecas'), {
+      return addDoc(collection(dbC,'movPecas'), Object.assign({
         pecaId:p.firestoreId, codigo:p.codigo||'', nome:p.nome||'',
         tipo:tipo, qtd:qtd, precoUn:(tipo==='entrada'?precoUn:0),
         obs:obs, quem:sessaoEmail, em:ts
-      });
+      }, extra||{}));
     })
     .catch(function(e){ console.error('lancarMov:',e); alert('Erro ao registrar: '+(e.code||e.message)); });
 }
@@ -2898,6 +3024,9 @@ window.abrirPeca=function(id){
         '<div><label>Estoque mínimo</label><input type="number" id="pc-min" step="0.01" value="'+(p&&num(p.minimo)>0?num(p.minimo):'')+'" /></div>'+
         '<div><label>Último preço · R$</label><input type="number" id="pc-preco" step="0.01" value="'+(p&&num(p.precoUn)>0?num(p.precoUn):'')+'" /></div>'+
       '</div>'+
+      '<label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:13px;cursor:pointer">'+
+        '<input type="checkbox" id="pc-consumo"'+(p&&p.consumo?' checked':'')+' style="width:auto;margin-top:2px" />'+
+        '<span><b>Material de consumo</b> — fita, parafuso, abraçadeira… Na saída não pede a peça velha.</span></label>'+
       (novo
         ? '<div class="fld" style="margin-top:12px"><label>Saldo inicial</label><input type="number" id="pc-saldo" step="0.01" placeholder="0" />'+
           '<div class="fhint">Registrado como entrada de inventário, para ficar no histórico.</div></div>'
@@ -2917,6 +3046,7 @@ window.abrirPeca=function(id){
         local:(document.getElementById('pc-local').value||'').trim(),
         minimo:num(document.getElementById('pc-min').value),
         precoUn:num(document.getElementById('pc-preco').value),
+        consumo:!!(document.getElementById('pc-consumo')||{}).checked,
         atualizadoEm:agora(), atualizadoPor:sessaoEmail
       };
       if(novo){
@@ -3028,8 +3158,10 @@ window.exportarMov=function(){
     var rows=movs.map(function(m){ return {
       'Data':dataBR(m.em), 'Hora':horaBR(m.em), 'Codigo':String(m.codigo||''), 'Peca':m.nome||'',
       'Tipo':m.tipo||'', 'Qtd':num(m.qtd), 'Preco':(num(m.precoUn)>0?num(m.precoUn):''),
-      'Total':(num(m.precoUn)>0?num(m.precoUn)*num(m.qtd):''), 'Quem':m.quem||'', 'Observacao':m.obs||'' }; });
-    var ws=XLSX.utils.json_to_sheet(rows,{header:['Data','Hora','Codigo','Peca','Tipo','Qtd','Preco','Total','Quem','Observacao']});
+      'Total':(num(m.precoUn)>0?num(m.precoUn)*num(m.qtd):''), 'Quem':m.quem||'', 'Observacao':m.obs||'',
+      'Destino':mvDestTxt(m), 'Patrimonio':m.patrimonio||'', 'Setor':m.setor||'',
+      'PecaVelha':m.pecaVelha?(MV_VELHA[m.pecaVelha]||m.pecaVelha):'', 'Justificativa':m.pecaVelhaJust||'' }; });
+    var ws=XLSX.utils.json_to_sheet(rows,{header:['Data','Hora','Codigo','Peca','Tipo','Qtd','Preco','Total','Quem','Observacao','Destino','Patrimonio','Setor','PecaVelha','Justificativa']});
     ws['!cols']=[{wch:11},{wch:7},{wch:12},{wch:38},{wch:10},{wch:9},{wch:11},{wch:12},{wch:26},{wch:40}];
     var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'Movimentos');
