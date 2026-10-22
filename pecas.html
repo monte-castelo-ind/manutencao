@@ -347,7 +347,15 @@ button.fn-f:hover{border-color:var(--amber);color:var(--amber)}
 #au-print{display:none}
 @media print{
   @page{ size:A4 portrait; margin:12mm 11mm }
-  body *{ visibility:hidden !important }
+  /* Duas impressões diferentes:
+     - body.imp-aut  → a folha da autorização (botão "Autorização"): só ela sai;
+     - sem a classe  → Ctrl+P na página: sai o que está na tela, em fundo branco,
+       sem menu, botões e janelas. Antes, o Ctrl+P escondia tudo esperando a
+       folha da autorização, e a página saía em branco. */
+  body.imp-aut #app, body.imp-aut #modal-host, body.imp-aut #authOverlay, body.imp-aut #s-negado{ display:none !important }
+  body.imp-aut *{ visibility:hidden !important }
+  html, body.imp-aut{ background:#fff !important }
+  body:not(.imp-aut) #au-print{ display:none !important }
   #au-print, #au-print *{ visibility:visible !important }
   #au-print{ display:block !important; position:absolute; left:0; top:0; width:100%;
              color:#000; background:#fff; font-family:Arial, sans-serif; font-size:11px }
@@ -674,6 +682,24 @@ html[data-pal="vinho"][data-theme="light"]{
 
 <div id="modal-host"></div>
 <div id="au-print" aria-hidden="true"></div>
+<style>
+@media print{
+  body:not(.imp-aut){
+    --bg:#fff; --card:#fff; --card-2:#f4f4f4; --text:#000; --muted:#555; --border:#cfcfcf; --sidebar:#fff;
+    background:#fff !important; color:#000 !important;
+  }
+  body:not(.imp-aut) *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; box-shadow:none !important }
+  body:not(.imp-aut) #authOverlay, body:not(.imp-aut) #s-negado, body:not(.imp-aut) #modal-host,
+  body:not(.imp-aut) .side, body:not(.imp-aut) .btn, body:not(.imp-aut) .volta, body:not(.imp-aut) .pinbtn,
+  body:not(.imp-aut) .vbar, body:not(.imp-aut) button{ display:none !important }
+  body:not(.imp-aut) .shell{ display:block !important }
+  body:not(.imp-aut) main{ margin:0 !important; padding:0 !important; width:auto !important }
+  body:not(.imp-aut) .page:not(.on){ display:none !important }
+  body:not(.imp-aut) .tscroll, body:not(.imp-aut) .tw{ overflow:visible !important; max-height:none !important }
+  body:not(.imp-aut) .pd-card, body:not(.imp-aut) tr, body:not(.imp-aut) .card{ break-inside:avoid; page-break-inside:avoid }
+  body:not(.imp-aut) input, body:not(.imp-aut) select{ border:1px solid #ccc !important; background:#fff !important; color:#000 !important }
+}
+</style>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -1240,7 +1266,8 @@ window.recalcAut=function(){
    do app, para quase sempre já estar pronta no primeiro clique. */
 function imprimirComFonte(){
   var foi=false;
-  function vai(){ if(foi) return; foi=true; window.print(); }
+  /* marca que é a folha da autorização; ao terminar, a página volta a imprimir normal */
+  function vai(){ if(foi) return; foi=true; window._impAut=true; document.body.classList.add('imp-aut'); window.print(); }
   try{
     if(document.fonts && document.fonts.load){
       Promise.all([document.fonts.load('44px "Mrs Saint Delafield"'), document.fonts.ready])
@@ -1251,6 +1278,9 @@ function imprimirComFonte(){
   }catch(e){}
   setTimeout(vai,140);
 }
+/* fim da folha da autorização: a página volta a imprimir normal (Ctrl+P) */
+window.addEventListener('afterprint', function(){ window._impAut=false; document.body.classList.remove('imp-aut'); });
+window.addEventListener('beforeprint', function(){ if(!window._impAut) document.body.classList.remove('imp-aut'); });
 window.addEventListener('load', function(){
   try{ if(document.fonts && document.fonts.load) document.fonts.load('44px "Mrs Saint Delafield"').catch(function(){}); }catch(e){}
 });
@@ -1417,6 +1447,13 @@ function notaItem(it){
   if(it.incluidoEm) n.push('incluído'+(it.incluidoNome?' por '+it.incluidoNome:'')+' em '+dataBR(it.incluidoEm));
   return n.join(' · ');
 }
+/* Troca de fornecedor pelo financeiro (achou preço melhor): o pedido guarda
+   o fornecedor original, quem trocou e quando. */
+function fornTrocado(p){ return !!(p && p.fornecedorOriginal && p.fornecedorOriginal!==p.fornecedor); }
+function notaForn(p){
+  return fornTrocado(p) ? 'fornecedor trocado de '+p.fornecedorOriginal+' para '+(p.fornecedor||'')
+    +(p.fornecedorAlteradoNome?' por '+p.fornecedorAlteradoNome:'')+(p.fornecedorAlteradoEm?' em '+dataBR(p.fornecedorAlteradoEm):'') : '';
+}
 /* texto que vai junto na autorização, para a diretoria ver o que mudou */
 function resumoAlteracoes(itens){
   var f=[], q=[], inc=[];
@@ -1572,7 +1609,9 @@ function autorizacaoDoPedido(p, itens, aut, total, obs, frete){
     frete:num(frete),
     tipo:'Autorização de Compra', tipoId:'', modelo:'compra',
     setor:'Manutenção', titulo:'Peças · '+(p.fornecedor||''),
-    descricao:[obs||'', resumoAlteracoes(itens)].filter(Boolean).join(' — '), prazo:'',
+    descricao:[obs||'', fornTrocado(p)?'Fornecedor trocado pelo financeiro: de '+p.fornecedorOriginal+' para '+p.fornecedor
+                 +(p.fornecedorAlteradoNome?' ('+p.fornecedorAlteradoNome+(p.fornecedorAlteradoEm?', '+dataBR(p.fornecedorAlteradoEm):'')+')':'')+'.':'',
+               resumoAlteracoes(itens)].filter(Boolean).join(' — '), prazo:'',
     fornecedor:{ razao:aut.razao||p.fornecedor||'', cnpj:aut.cnpj||'', endereco:aut.endereco||'',
                  municipio:aut.municipio||'', pagamento:aut.pagamento||'', entrega:aut.entrega||'' },
     itens:itens.filter(function(it){ return !itemFalta(it); }).map(function(it){
@@ -1654,6 +1693,23 @@ window.editarValores=function(id){
     inp.value=''; qi.value='1';
     evPintar();
   };
+  /* troca de fornecedor: lista do cadastro; ao escolher, mostra os dados do novo */
+  function evFornHtml(){
+    var nomes={}; (fornecedores||[]).forEach(function(f){ if(f.nome) nomes[f.nome]=1; });
+    nomes[p.fornecedor||'']=1;
+    var ops=Object.keys(nomes).filter(Boolean).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+    return '<div class="fld" style="margin:0 0 10px"><label>Fornecedor do pedido</label>'
+      + '<select id="ev-forn" onchange="evTrocaForn(this)">'
+      + ops.map(function(n){ return '<option value="'+esc(n)+'"'+(n===p.fornecedor?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+'</select>'
+      + '<div class="fhint" id="ev-forn-av">'+(fornTrocado(p)?'↳ '+esc(notaForn(p)):'Achou preço melhor em outro fornecedor? Troque aqui — fica registrado quem trocou e quando.')+'</div></div>';
+  }
+  window.evTrocaForn=function(sel){
+    var novo=sel.value, av=document.getElementById('ev-forn-av'), cad=document.getElementById('ev-cad');
+    if(cad) cad.innerHTML=quadroCadastro({ fornecedor:novo });
+    if(av) av.innerHTML = novo===p.fornecedor ? (fornTrocado(p)?'↳ '+esc(notaForn(p)):'')
+      : '<span style="color:var(--amber)">⚠ Trocando de <b>'+esc(p.fornecedor||'')+'</b> para <b>'+esc(novo)+'</b>. Ao salvar, fica registrado: '
+        + 'trocado por '+esc(sessaoNomeCurto())+' em '+esc(dataBR(agora()))+'. Confira os preços — eles não mudam sozinhos.</span>';
+  };
   var linhas=EV.map(evLinha).join('');
   var opPecas=fin ? (pecas||[]).filter(function(x){ return x.ativo!==false; }).map(function(x){
       return '<option value="'+esc((x.codigo?x.codigo+' · ':'')+(x.nome||''))+'">'; }).join('') : '';
@@ -1674,7 +1730,7 @@ window.editarValores=function(id){
                 ? 'Confira os preços e as condições. Ao confirmar, o pedido vai para a <b>diretoria assinar</b> '
                   + 'no app de Autorizações e <b>não pode mais ser alterado</b> — para corrigir depois, só cancelando e fazendo outro.'
                 : 'Os valores daqui saem na autorização de compra impressa.')+'</div>'))
-       + (fin ? quadroCadastro(p) + '<div class="klabel" style="margin:12px 0 6px">Condições da compra</div>' : '')
+       + (fin ? evFornHtml() + '<div id="ev-cad">'+quadroCadastro(p)+'</div>' + '<div class="klabel" style="margin:12px 0 6px">Condições da compra</div>' : '')
        + '<div class="au-grid">'
        +   '<div class="fld"><label>Comprador *</label>'
        +     '<input type="text" id="ev-comp" value="'+esc(a.comprador||sessaoNomeCurto())+'"></div>'
@@ -1733,15 +1789,31 @@ window.editarValores=function(id){
         return c;
       });
       if(erroQtd){ alert('Quantidade inválida em: '+erroQtd+'.\n\nSe o item não vem, marque "Falta" em vez de zerar.'); return false; }
+      /* troca de fornecedor */
+      var fornNovo=fin ? (((document.getElementById('ev-forn')||{}).value)||p.fornecedor) : p.fornecedor;
+      var trocaForn=null;
+      if(fin && fornNovo!==p.fornecedor){
+        var orig=p.fornecedorOriginal||p.fornecedor;
+        trocaForn = (fornNovo===orig)
+          ? { fornecedor:fornNovo, fornecedorOriginal:null, fornecedorAlteradoPor:null, fornecedorAlteradoNome:null, fornecedorAlteradoEm:null }
+          : { fornecedor:fornNovo, fornecedorOriginal:orig, fornecedorAlteradoPor:sessaoEmail, fornecedorAlteradoNome:nm, fornecedorAlteradoEm:ts };
+      }
       var total=novos.reduce(function(t,x){ return t+num(x.precoUn)*qtdEf(x); },0);
       var aut={}; for(var k in a) aut[k]=a[k];
       aut.comprador=comprador;
+      if(trocaForn){
+        /* os dados fiscais congelados eram do fornecedor antigo: passam a ser os do novo */
+        var fcN=fornPorNome(fornNovo);
+        if(fcN) aut=autDoCadastro(aut, fcN);
+        else { aut.razao=fornNovo; aut.cnpj=''; aut.endereco=''; aut.municipio=''; aut.pagamento=''; aut.contato=''; }
+      }
       aut.entrega=String((document.getElementById('ev-ent')||{}).value||'').trim();
       var dados={
         itens:novos, aut:aut, valorEstimado:total,
         obs:String((document.getElementById('ev-obs')||{}).value||'').trim(),
         precoEditadoPor:sessaoEmail, precoEditadoNome:sessaoNomeCurto(), precoEditadoEm:agora()
       };
+      if(trocaForn) for(var kf in trocaForn) dados[kf]=trocaForn[kf];
       var elFr=document.getElementById('ev-frete');
       if(elFr){
         var txtFr=String(elFr.value||'').trim();
@@ -1765,7 +1837,7 @@ window.editarValores=function(id){
       var semPreco=novos.filter(function(x){ return !itemFalta(x) && !(num(x.precoUn)>0); }).length;
       if(semPreco){ alert(semPreco+(semPreco===1?' item está':' itens estão')+' sem preço.'); return false; }
       if(!aut.entrega){ alert('Informe a data de entrega.'); return false; }
-      var fc=fornPorNome(p.fornecedor), faltaForn=faltaCadastro(fc, p.fornecedor);
+      var fc=fornPorNome(fornNovo), faltaForn=faltaCadastro(fc, fornNovo);
       if(faltaForn.length){
         alert('O cadastro do fornecedor está incompleto:\n\n• '+faltaForn.join('\n• ')
             + '\n\nOs valores foram guardados? Use "Salvar" antes, complete o cadastro e envie de novo.');
@@ -1776,7 +1848,8 @@ window.editarValores=function(id){
          Autorizações, numa gravação só. writeBatch é atômico — ou as duas
          coisas entram, ou nenhuma. Não existe pedido "enviado" sem autorização
          do outro lado, nem autorização órfã. */
-      mandarParaAssinatura(p, novos, aut, dados.obs, dados.frete, dados);
+      /* com a troca de fornecedor, a autorização já nasce com o novo e com o rastro */
+      mandarParaAssinatura(trocaForn?Object.assign({}, p, trocaForn):p, novos, aut, dados.obs, dados.frete, dados);
       fecharModal();
       return false;   /* o modal já foi fechado aqui */
   };
@@ -2183,6 +2256,7 @@ function renderPedidos(){
      + '</div>';
 
     if(p.obs) h+='<div class="pd-obs">'+esc(p.obs)+'</div>';
+    if(fornTrocado(p)) h+='<div class="pd-nota" style="margin:-4px 0 8px">↳ '+esc(notaForn(p))+'</div>';
 
     h+='<div class="pd-itens">';
     itens.forEach(function(it){
