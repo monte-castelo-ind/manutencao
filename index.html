@@ -508,6 +508,12 @@
 .sc-b{width:auto;flex:1 1 140px;padding:10px 12px;font-size:13px;margin:0}
 .sc-g{background:transparent!important;border:1px solid var(--border)!important;color:inherit!important}
 .sc-hist{display:flex;flex-direction:column;gap:6px;font-size:12px}
+/* patrimônio: a manutenção informa ou corrige depois que o pedido chega */
+.sc-pat{border:1px dashed var(--border);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:10px;cursor:default}
+.sc-pat-in{position:relative}
+.sc-pat-in input{width:100%}
+.sc-pat-in input:not(:last-child){padding-right:52px}
+.sc-pat .sc-b{flex:0 0 auto;width:100%}
 .sc-h span{display:block;font-size:11px;opacity:.65}
 #s-solic .chip{white-space:nowrap;flex:0 0 auto}
 .sc-vazio{padding:30px 14px;text-align:center;color:var(--text-secondary);font-size:13px}
@@ -3606,7 +3612,9 @@ function scAtualizar(){
   var ab=scLista.filter(function(s){ return scEmAberto(s.status); }).length;
   var b=document.getElementById('sc-home-n'); if(b){ b.textContent=ab?ab:''; b.style.display=ab?'':'none'; }
   var dn=document.getElementById('dSolN'); if(dn){ dn.textContent=ab?ab:''; dn.style.display=ab?'':'none'; }
-  var t=document.querySelector('.screen.active'); if(t && t.id==='s-solic') scRenderMob();
+  var t=document.querySelector('.screen.active'), ae=document.activeElement;
+  var digitando=!!(ae && ae.tagName==='INPUT' && ae.closest && ae.closest('#sc-lista'));
+  if(t && t.id==='s-solic' && !digitando) scRenderMob();
   if(typeof dPag!=='undefined' && dPag==='solic' && document.body.classList.contains('desk-ok')) dRenderSol();
 }
 function scToast(msg, erro){
@@ -3843,6 +3851,50 @@ function scBotoes(s, cls){
   return b.join('');
 }
 
+/* ---------- patrimônio: a manutenção informa ou corrige ----------
+   O comercial pede sem saber qual unidade vai sair; quem separa escolhe e
+   anota o número. Vale com o pedido aberto, em separação ou já entregue
+   (correção), e cada mudança fica no andamento com nome e hora. Pedido com
+   vários equipamentos (campo itens) tem um patrimônio por linha. */
+function scPodePat(s){ return !!s && podeEscrever() && (s.status==='aberta'||s.status==='separacao'||s.status==='entregue'); }
+function scItensDe(s){
+  if(s && s.itens && s.itens.length) return s.itens;
+  return [{ equipamento:(s&&s.equipamento)||'', modelo:(s&&s.modelo)||'', quantidade:(s&&s.quantidade)||1, patrimonio:(s&&s.patrimonio)||'' }];
+}
+function scPatEditorHtml(s, p){
+  var cel=(p==='scp');
+  return scItensDe(s).map(function(x,i){
+    var id=p+'-'+i, q=x.quantidade||1;
+    return '<div class="sc-f"><label>'+esc(q+'× '+(x.equipamento||'')+(x.modelo?' · '+x.modelo:''))+'</label>'
+      +'<div class="sc-pat-in"><input type="text" id="'+id+'" value="'+esc(x.patrimonio||'')+'" autocomplete="off" placeholder="Nº do patrimônio'+(q>1?' — vários: separe por vírgula':'')+'">'
+      +(cel && typeof abrirScanner==='function' ? '<button type="button" class="scan-btn" onclick="abrirScanner(\''+id+'\')" title="Escanear">📷</button>' : '')
+      +'</div></div>';
+  }).join('');
+}
+function scPatLimpo(v){ return String(v||'').trim().toUpperCase().replace(/\s*[,;]\s*/g,', ').replace(/^,\s*|,\s*$/g,''); }
+function scSalvarPat(id, p, depois){
+  var s=scLista.filter(function(x){ return x.id===id; })[0]; if(!s) return;
+  if(!scPodePat(s)){ scToast('Este pedido não aceita mais mudança de patrimônio.', true); return; }
+  var it=scItensDe(s);
+  var antes=it.map(function(x){ return String(x.patrimonio||''); });
+  var novos=it.map(function(x,i){ var e=document.getElementById(p+'-'+i); return e?scPatLimpo(e.value):String(x.patrimonio||''); });
+  if(novos.join('|')===antes.join('|')){ scToast('Nada mudou no patrimônio.'); if(depois) depois(); return; }
+  var agora=Date.now(), up={ atualizadoEm:agora, atualizadoPor:sessaoEmail, atualizadoNome:scNome() };
+  if(s.itens && s.itens.length){
+    up.itens=s.itens.map(function(x,i){ return Object.assign({}, x, { patrimonio:novos[i] }); });
+    up.patrimonio=novos.filter(Boolean).join(', ');
+  } else up.patrimonio=novos[0];
+  var tinha=antes.some(Boolean);
+  var txt=it.length>1
+    ? it.map(function(x,i){ return (x.equipamento||('item '+(i+1)))+': '+(novos[i]||'—'); }).join(' · ')
+    : (tinha?(antes[0]||'—')+' → ':'')+(novos[0]||'(apagado)');
+  up.historico=(s.historico||[]).concat([{ em:agora, por:sessaoEmail, nome:scNome(), acao:tinha?'alterou o patrimônio':'informou o patrimônio', txt:txt }]);
+  updateDoc(doc(db,'comodatoSolicitacoes',id), up).then(function(){ scToast('Patrimônio salvo.'); if(depois) depois(); })
+    .catch(function(e){ console.error(e); scToast(e.code==='permission-denied'?'Sem permissão para alterar o patrimônio (regra do banco).':'Não foi possível salvar ('+(e.code||e.message)+').', true); });
+}
+function dPatSol(){ scDeskModo='pat'; dPintarSol(); }
+function dSalvarPatSol(){ var id=scDeskId; scSalvarPat(id, 'scdp', function(){ if(scDeskId===id) dAbrirSol(id); }); }
+
 /* ---------- folha (mesmo modelo da Autorização de Compra) ----------
    O modelo mora em folha-solicitacao.js, na raiz do hub, e é o MESMO que o
    Comercial usa: os dois apps leem o mesmo pedido e montam a mesma folha. */
@@ -3879,6 +3931,8 @@ function scRenderMob(){
         ? '<div class="sc-det">'+(s.contato?'<div><span>Contato</span>'+esc(s.contato)+'</div>':'')
           +(s.obs?'<div><span>Observações</span>'+esc(s.obs)+'</div>':'')
           +(s.obsManut?'<div><span>Manutenção</span>'+esc(s.obsManut)+'</div>':'')
+          +(scPodePat(s)?'<div class="sc-pat" onclick="event.stopPropagation()"><span>Patrimônio — preenchido pela manutenção</span>'+scPatEditorHtml(s,'scp')
+            +'<button class="btn btn-primary sc-b" onclick="scSalvarPat(\''+s.id+'\',\'scp\')">Salvar patrimônio</button></div>':'')
           +'<div class="sc-acts"><button class="btn btn-secondary sc-b" onclick="event.stopPropagation();scImprimir(\''+s.id+'\')">🖨 Folha / PDF</button>'+scBotoes(s,'btn btn-primary sc-b')
             +(scPodeEditarPedido(s)?'<button class="btn btn-secondary sc-b" onclick="event.stopPropagation();scEditarMob(\''+s.id+'\')">Corrigir pedido</button>':'')+'</div>'
           +'<div class="sc-hist">'+scLinhaHist(s)+'</div></div>'
@@ -3933,15 +3987,24 @@ function dPintarSol(){
     return;
   }
   if(!s){ dFecharSol(); return; }
+  if(scDeskModo==='pat'){
+    tit.textContent='Patrimônio · '+scCodigo(s); sub.textContent=(s.cliente||'')+' · fica registrado no andamento, com seu nome e a hora';
+    body.innerHTML='<div class="sc-grid">'+scPatEditorHtml(s,'scdp')+'</div>';
+    foot.innerHTML='<button class="d-btn d-ghost" onclick="dAbrirSol(\''+s.id+'\')">Cancelar</button><button class="d-btn" onclick="dSalvarPatSol()">Salvar patrimônio</button>';
+    setTimeout(function(){ var e=document.getElementById('scdp-0'); if(e) e.focus(); },40);
+    return;
+  }
   tit.textContent='Solicitação '+scCodigo(s); sub.innerHTML=scPill(s.status)+' &nbsp;'+esc(s.cliente||'')+(scQuando(s)?' · entrega '+scQuando(s):'');
   body.innerHTML=scFolhaHtml(s);
   foot.innerHTML='<button class="d-btn d-ghost" onclick="scImprimir(\''+s.id+'\')" style="margin-right:auto">🖨 Imprimir / PDF</button>'
-    +(scPodeEditarPedido(s)?'<button class="d-btn d-ghost" onclick="dEditarSol()">Corrigir pedido</button>':'')+scBotoes(s,'d-btn');
+    +(scPodeEditarPedido(s)?'<button class="d-btn d-ghost" onclick="dEditarSol()">Corrigir pedido</button>':'')
+    +(scPodePat(s)?'<button class="d-btn d-ghost" onclick="dPatSol()">✎ Patrimônio</button>':'')+scBotoes(s,'d-btn');
 }
 
 Object.assign(window,{ scNovoMudou:scNovoMudou, scImprimir:scImprimir, scCliBusca:scCliBusca, scCliEscolher:scCliEscolher, scCliFechar:scCliFechar, scFiltrar:scFiltrar, scToggle:scToggle, scNovoMob:scNovoMob, scEditarMob:scEditarMob, scSalvarMob:scSalvarMob,
   scEqMudou:scEqMudou, scMudar:scMudar, scSalvarPedido:scSalvarPedido, scRenderMob:scRenderMob,
-  dRenderSol:dRenderSol, dNovaSol:dNovaSol, dAbrirSol:dAbrirSol, dEditarSol:dEditarSol, dFecharSol:dFecharSol });
+  dRenderSol:dRenderSol, dNovaSol:dNovaSol, dAbrirSol:dAbrirSol, dEditarSol:dEditarSol, dFecharSol:dFecharSol,
+  scSalvarPat:scSalvarPat, dPatSol:dPatSol, dSalvarPatSol:dSalvarPatSol });
 
 // ===== INIT =====
 setTimeout(()=>{
