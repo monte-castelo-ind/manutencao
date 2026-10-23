@@ -514,6 +514,14 @@
 .sc-pat-in input{width:100%}
 .sc-pat-in input:not(:last-child){padding-right:52px}
 .sc-pat .sc-b{flex:0 0 auto;width:100%}
+/* vários equipamentos no mesmo pedido: uma caixa por equipamento */
+.sc-itens{display:flex;flex-direction:column;gap:10px}
+.sc-it{border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+.sc-it-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:12.5px}
+.sc-it-x{background:none;border:1px solid var(--border);color:inherit;opacity:.8;font-family:inherit;font-size:12px;border-radius:8px;padding:4px 9px;cursor:pointer}
+.sc-add{margin-top:10px;width:100%;background:none;border:1px dashed var(--border);color:inherit;font-family:inherit;font-size:13.5px;font-weight:600;
+  border-radius:12px;padding:11px;cursor:pointer}
+.sc-add:hover,.sc-it-x:hover{border-color:currentColor}
 .sc-h span{display:block;font-size:11px;opacity:.65}
 #s-solic .chip{white-space:nowrap;flex:0 0 auto}
 .sc-vazio{padding:30px 14px;text-align:center;color:var(--text-secondary);font-size:13px}
@@ -3659,9 +3667,7 @@ function scLinhaHist(s){
 /* ---------- formulário (mesmos campos no celular e no computador) ---------- */
 function scFormHtml(s, pre){
   s=s||{}; var p=pre||'sc';
-  var tipos=(typeof D_TIPOS!=='undefined'?D_TIPOS:[]), eq=s.equipamento||'', outro=eq && tipos.indexOf(eq)<0;
-  var opT='<option value="">Escolha…</option>'+tipos.map(function(t){ return '<option'+(eq===t?' selected':'')+'>'+esc(t)+'</option>'; }).join('')
-    +'<option value="__outro"'+(outro?' selected':'')+'>Outro…</option>';
+  var its=s.id ? scItensDe(s) : [{}];
   var opS=Object.keys(SC_SERV).map(function(k){ return '<option value="'+k+'"'+((s.servico||'entregar')===k?' selected':'')+'>'+SC_SERV[k]+'</option>'; }).join('');
   return '<div class="sc-grid">'
     +'<div class="sc-f sc-w2 sc-cli-f"><label>Cliente *</label>'
@@ -3670,12 +3676,9 @@ function scFormHtml(s, pre){
       +'<div class="sc-end" id="'+p+'-cli-end">'+esc(s.endereco||'')+'</div></div>'
     +'<div class="sc-f"><label>Cidade</label><input type="text" id="'+p+'-cid" value="'+esc(s.cidade||'')+'"></div>'
     +'<div class="sc-f"><label>Contato / telefone</label><input type="text" id="'+p+'-ctt" value="'+esc(s.contato||'')+'"></div>'
-    +'<div class="sc-f"><label>Equipamento *</label><select id="'+p+'-eq" onchange="scEqMudou(\''+p+'\')">'+opT+'</select></div>'
-    +'<div class="sc-f" id="'+p+'-outro-w" style="'+(outro?'':'display:none')+'"><label>Qual equipamento? *</label><input type="text" id="'+p+'-outro" value="'+esc(outro?eq:'')+'"></div>'
-    +'<div class="sc-f"><label>Modelo / detalhe</label><input type="text" id="'+p+'-mod" value="'+esc(s.modelo||'')+'" placeholder="ex.: 2 portas, 220V"></div>'
-    +'<div class="sc-f"><label>Nº do patrimônio</label><div style="display:flex;gap:6px"><input type="text" id="'+p+'-pat" value="'+esc(s.patrimonio||'')+'" placeholder="ex.: 0042 (vários: separe por vírgula)">'
-      +(p==='scm' && typeof abrirScanner==='function' ? '<button type="button" class="scan-btn" onclick="abrirScanner(\''+p+'-pat\')" title="Escanear">📷</button>' : '')+'</div></div>'
-    +'<div class="sc-f"><label>Quantidade *</label><input type="number" min="1" step="1" inputmode="numeric" id="'+p+'-qtd" value="'+(s.quantidade||1)+'"></div>'
+    +'<div class="sc-f sc-w2"><div class="sc-itens" id="'+p+'-itens" data-prox="'+its.length+'">'
+      +its.map(function(x,i){ return scItRowHtml(p, i, x, its.length); }).join('')+'</div>'
+      +'<button type="button" class="sc-add" onclick="scItemAdd(\''+p+'\')">+ Adicionar outro equipamento</button></div>'
     +'<div class="sc-f"><label>Serviço *</label><select id="'+p+'-serv">'+opS+'</select></div>'
     +'<div class="sc-f"><label>Data programada para entrega *</label><input type="date" id="'+p+'-data" value="'+esc(s.dataProgramada||'')+'"></div>'
     +'<div class="sc-f sc-w2"><label>Observações</label><textarea id="'+p+'-obs" placeholder="Endereço de entrega, horário, quem recebe…">'+esc(s.obs||'')+'</textarea></div>'
@@ -3747,20 +3750,76 @@ function scCliPreparar(p, s){
 function scNovoMudou(p){ var c=document.getElementById(p+'-novo'), w=document.getElementById(p+'-novo-w'); if(w) w.style.display=(c&&c.checked)?'':'none'; }
 function scNum(v){ v=String(v||'').replace(/[^\d,.-]/g,''); if(v.indexOf(',')>=0) v=v.replace(/\./g,'').replace(',','.'); else if(/^\d{1,3}(\.\d{3})+$/.test(v)) v=v.replace(/\./g,''); var n=parseFloat(v); return isFinite(n)?n:0; }
 function scR$(n){ return 'R$ '+Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-function scEqMudou(p){ var v=document.getElementById(p+'-eq').value, w=document.getElementById(p+'-outro-w'); if(w) w.style.display=v==='__outro'?'':'none'; }
+/* ---------- vários equipamentos no mesmo pedido ----------
+   Cada equipamento é uma linha (equipamento, modelo, quantidade, patrimônio).
+   Cliente, serviço e data valem para o pedido todo. Pedido de UM equipamento
+   continua gravado como sempre (campos soltos); com mais de um, vai também a
+   lista itens, e os campos soltos ficam com o resumo, para quem lê o pedido
+   num app ainda não atualizado. */
+var SC_MSG_VARIOS='O banco ainda não aceita vários equipamentos no mesmo pedido (falta publicar a regra). Por enquanto, faça um pedido por equipamento.';
+function scItRowHtml(p, i, x, tot){
+  x=x||{};
+  var tipos=(typeof D_TIPOS!=='undefined'?D_TIPOS:[]), eq=x.equipamento||'', outro=!!eq && tipos.indexOf(eq)<0;
+  var opT='<option value="">Escolha…</option>'+tipos.map(function(t){ return '<option'+(eq===t?' selected':'')+'>'+esc(t)+'</option>'; }).join('')
+    +'<option value="__outro"'+(outro?' selected':'')+'>Outro…</option>';
+  var id=function(k){ return p+'-'+k+'-'+i; };
+  return '<div class="sc-it" data-i="'+i+'">'
+    +'<div class="sc-it-h"><b>Equipamento <span class="sc-it-n">'+(tot>1?(i+1):'')+'</span></b>'
+    +  '<button type="button" class="sc-it-x" onclick="scItemTirar(\''+p+'\','+i+')" style="'+(tot>1?'':'display:none')+'">✕ Tirar</button></div>'
+    +'<div class="sc-grid">'
+    +'<div class="sc-f"><label>Equipamento *</label><select id="'+id('eq')+'" onchange="scEqMudou(\''+p+'\','+i+')">'+opT+'</select></div>'
+    +'<div class="sc-f" id="'+id('outro-w')+'" style="'+(outro?'':'display:none')+'"><label>Qual equipamento? *</label><input type="text" id="'+id('outro')+'" value="'+esc(outro?eq:'')+'"></div>'
+    +'<div class="sc-f"><label>Modelo / detalhe</label><input type="text" id="'+id('mod')+'" value="'+esc(x.modelo||'')+'" placeholder="ex.: 2 portas, 220V"></div>'
+    +'<div class="sc-f"><label>Quantidade *</label><input type="number" min="1" step="1" inputmode="numeric" id="'+id('qtd')+'" value="'+(x.quantidade||1)+'"></div>'
+    +'<div class="sc-f"><label>Nº do patrimônio</label><div class="sc-pat-in"><input type="text" id="'+id('pat')+'" value="'+esc(x.patrimonio||'')+'" placeholder="vários: separe por vírgula">'
+    +  (p==='scm' && typeof abrirScanner==='function' ? '<button type="button" class="scan-btn" onclick="abrirScanner(\''+id('pat')+'\')" title="Escanear">📷</button>' : '')+'</div></div>'
+    +'</div></div>';
+}
+function scItensNum(p){
+  var box=document.getElementById(p+'-itens'); if(!box) return;
+  var l=box.querySelectorAll('.sc-it');
+  l.forEach(function(el,k){ var n=el.querySelector('.sc-it-n'); if(n) n.textContent=l.length>1?(k+1):'';
+    var x=el.querySelector('.sc-it-x'); if(x) x.style.display=l.length>1?'':'none'; });
+}
+function scItemAdd(p){
+  var box=document.getElementById(p+'-itens'); if(!box) return;
+  var i=+(box.getAttribute('data-prox')||0); box.setAttribute('data-prox', i+1);
+  box.insertAdjacentHTML('beforeend', scItRowHtml(p, i, null, 2)); scItensNum(p);
+  var e=document.getElementById(p+'-eq-'+i); if(e) e.focus();
+}
+function scItemTirar(p, i){
+  var box=document.getElementById(p+'-itens'); if(!box || box.querySelectorAll('.sc-it').length<=1) return;
+  var el=box.querySelector('.sc-it[data-i="'+i+'"]'); if(el) el.parentNode.removeChild(el); scItensNum(p);
+}
+function scEqMudou(p, i){ var k=(i==null?'':'-'+i), v=document.getElementById(p+'-eq'+k).value, w=document.getElementById(p+'-outro-w'+k); if(w) w.style.display=v==='__outro'?'':'none'; }
+/* resumo nos campos soltos: um equipamento = como sempre; vários = "2× Freezer + 1× Armário" */
+function scResumoItens(its){
+  if(its.length===1){ var x=its[0]; return { equipamento:x.equipamento, modelo:x.modelo||'', quantidade:x.quantidade, patrimonio:x.patrimonio||'' }; }
+  return { equipamento:its.map(function(x){ return x.quantidade+'× '+x.equipamento; }).join(' + '), modelo:'',
+    quantidade:its.reduce(function(a,x){ return a+(x.quantidade||0); },0),
+    patrimonio:its.map(function(x){ return x.patrimonio; }).filter(Boolean).join(', ') };
+}
+function scItensTxt(s){ return scItensDe(s).map(function(x){ return (x.quantidade||1)+'× '+(x.equipamento||'')+(x.modelo?' · '+x.modelo:''); }).join(' + '); }
 function scLerForm(p){
   var g=function(id){ var e=document.getElementById(p+'-'+id); return e?String(e.value||'').trim():''; };
-  var eq=g('eq'); if(eq==='__outro') eq=g('outro');
   var sel=scCliSel[p], nomeCli=g('cli');
   var doErp=!!(sel && sel.nome===nomeCli);
-  var f={ cliente:nomeCli, clienteId:doErp?sel.id:'', endereco:doErp?(sel.end||''):'', patrimonio:g('pat'),
-          cidade:g('cid'), contato:g('ctt'), equipamento:eq, modelo:g('mod'),
-          quantidade:parseInt(g('qtd'),10), servico:g('serv')||'entregar', dataProgramada:g('data'), obs:g('obs') };
+  var f={ cliente:nomeCli, clienteId:doErp?sel.id:'', endereco:doErp?(sel.end||''):'',
+          cidade:g('cid'), contato:g('ctt'), servico:g('serv')||'entregar', dataProgramada:g('data'), obs:g('obs') };
   var falta=function(id,msg){ scToast(msg,true); var e=document.getElementById(p+'-'+id); if(e) e.focus(); return null; };
   if(!f.cliente) return falta('cli','Informe o cliente.');
-  if(!f.equipamento) return falta(g('eq')==='__outro'?'outro':'eq','Escolha o equipamento.');
-  if(!(f.quantidade>0)) return falta('qtd','Informe a quantidade (1 ou mais).');
+  var box=document.getElementById(p+'-itens'), linhas=box?Array.prototype.slice.call(box.querySelectorAll('.sc-it')):[], its=[];
+  for(var k=0;k<linhas.length;k++){
+    var i=linhas[k].getAttribute('data-i'), qual=(linhas.length>1?' (equipamento '+(k+1)+')':'');
+    var eq=g('eq-'+i); if(eq==='__outro') eq=g('outro-'+i);
+    var q=parseInt(g('qtd-'+i),10);
+    if(!eq) return falta(g('eq-'+i)==='__outro'?'outro-'+i:'eq-'+i,'Escolha o equipamento'+qual+'.');
+    if(!(q>0)) return falta('qtd-'+i,'Informe a quantidade'+qual+' (1 ou mais).');
+    its.push({ equipamento:eq, modelo:g('mod-'+i), quantidade:q, patrimonio:scPatLimpo(g('pat-'+i)) });
+  }
+  if(!its.length){ scToast('Inclua ao menos um equipamento.', true); return null; }
   if(!f.dataProgramada) return falta('data','Informe a data programada para entrega.');
+  Object.assign(f, scResumoItens(its)); f.itens=its;
   return f;
 }
 function scNome(){ return (currentDoc && currentDoc.nome && currentDoc.nome!==sessaoEmail) ? currentDoc.nome : String(sessaoEmail||'').split('@')[0]; }
@@ -3772,9 +3831,10 @@ function scSalvarPedido(p, id, depois){
     var cNovo=document.getElementById(p+'-novo'), ehNovo=!!(cNovo && cNovo.checked);
     var d=Object.assign({}, f, { status:ehNovo?'autorizacao':'aberta', solicitadoPor:sessaoEmail, solicitadoNome:scNome(), solicitadoUid:sessaoUid,
       criadoEm:agora, atualizadoEm:agora, historico:[{ em:agora, por:sessaoEmail, nome:scNome(), acao:ehNovo?'pediu equipamento novo (vai para a autorização da diretoria)':'pediu' }] });
+    if(d.itens.length<2) delete d.itens;
     if(!ehNovo){
       addDoc(collection(db,'comodatoSolicitacoes'), d).then(function(){ scToast('Solicitação enviada para a manutenção.'); if(depois) depois(); })
-        .catch(function(e){ console.error(e); scToast(e.code==='permission-denied'?'Sem permissão para pedir equipamento.':'Não foi possível salvar ('+(e.code||e.message)+').', true); });
+        .catch(function(e){ console.error(e); scToast(e.code==='permission-denied'?(d.itens?SC_MSG_VARIOS:'Sem permissão para pedir equipamento.'):'Não foi possível salvar ('+(e.code||e.message)+').', true); });
       return;
     }
     scGravarNovo(d, scNum((document.getElementById(p+'-val')||{}).value), depois);
@@ -3783,25 +3843,28 @@ function scSalvarPedido(p, id, depois){
   var s=scLista.filter(function(x){ return x.id===id; })[0]; if(!s) return;
   var up=Object.assign({}, f, { atualizadoEm:agora, atualizadoPor:sessaoEmail, atualizadoNome:scNome(),
     historico:(s.historico||[]).concat([{ em:agora, por:sessaoEmail, nome:scNome(), acao:'corrigiu o pedido' }]) });
+  if(up.itens.length<2 && !(s.itens && s.itens.length)) delete up.itens;
   updateDoc(doc(db,'comodatoSolicitacoes',id), up).then(function(){ scToast('Solicitação atualizada.'); if(depois) depois(); })
-    .catch(function(e){ console.error(e); scToast('Não foi possível salvar ('+(e.code||e.message)+').', true); });
+    .catch(function(e){ console.error(e); scToast(e.code==='permission-denied'&&up.itens?SC_MSG_VARIOS:'Não foi possível salvar ('+(e.code||e.message)+').', true); });
 }
 /* Equipamento NOVO: o pedido e a autorização (app de Autorizações) nascem no
    mesmo lote — ou os dois gravam, ou nenhum. O pedido fica em "autorizacao"
    até a diretoria assinar (vira "aberta" para a manutenção) ou recusar. */
 function scAutDados(sol, solId, valor){
+  var its=scItensDe(sol), varios=its.length>1;
   var linhas=[
     'Cliente: '+sol.cliente+(sol.cidade?' ('+sol.cidade+')':''),
     sol.endereco?'Endereço: '+sol.endereco:'',
-    'Equipamento NOVO: '+sol.quantidade+'× '+sol.equipamento+(sol.modelo?' · '+sol.modelo:''),
+    varios ? 'Equipamentos NOVOS:\n'+its.map(function(x){ return '• '+x.quantidade+'× '+x.equipamento+(x.modelo?' · '+x.modelo:'')+(x.patrimonio?' (patrimônio '+x.patrimonio+')':''); }).join('\n')
+           : 'Equipamento NOVO: '+sol.quantidade+'× '+sol.equipamento+(sol.modelo?' · '+sol.modelo:''),
     'Serviço: '+(SC_SERV[sol.servico]||sol.servico||''),
     'Entrega programada: '+scDataBR(sol.dataProgramada),
-    sol.patrimonio?'Patrimônio: '+sol.patrimonio:'',
+    (!varios && sol.patrimonio)?'Patrimônio: '+sol.patrimonio:'',
     sol.obs?'Observações: '+sol.obs:'',
     'Pedido por '+sol.solicitadoNome+' no Manut. Comodato.'
   ].filter(Boolean);
   return { tipo:'Equipamento novo (comodato)', modelo:'simples', setor:'Comercial',
-    titulo:'Equipamento novo: '+sol.quantidade+'× '+sol.equipamento+' — '+sol.cliente,
+    titulo:'Equipamento novo: '+(varios?scItensTxt(sol):sol.quantidade+'× '+sol.equipamento)+' — '+sol.cliente,
     descricao:linhas.join('\n'), valor:valor||0, prazo:sol.dataProgramada||'', pix:false, pixChave:'',
     status:'pendente', criadoPor:sol.solicitadoPor, criadoNome:sol.solicitadoNome, criadoEm:new Date(sol.criadoEm).toISOString(),
     origem:{ app:'comodato', solicitacaoId:solId, cliente:sol.cliente, solicitadoPor:sol.solicitadoPor } };
@@ -3813,7 +3876,7 @@ function scGravarNovo(d, valor, depois){
   lote.set(solRef, d);
   lote.set(autRef, scAutDados(d, solRef.id, valor));
   lote.commit().then(function(){ scToast('Pedido enviado. Aguarda a autorização da diretoria no app de Autorizações.'); if(depois) depois(); })
-    .catch(function(e){ console.error(e); scToast(e.code==='permission-denied'?'Sem permissão para pedir equipamento novo (regras do Firestore publicadas?).':'Não foi possível salvar ('+(e.code||e.message)+').', true); });
+    .catch(function(e){ console.error(e); scToast(e.code==='permission-denied'?(d.itens?SC_MSG_VARIOS:'Sem permissão para pedir equipamento novo (regras do Firestore publicadas?).'):'Não foi possível salvar ('+(e.code||e.message)+').', true); });
 }
 /* andamento: separar, entregar, reprogramar, cancelar */
 function scMudar(id, acao){
@@ -3821,7 +3884,7 @@ function scMudar(id, acao){
   var agora=Date.now(), up={ atualizadoEm:agora, atualizadoPor:sessaoEmail, atualizadoNome:scNome() }, txt='', rot='';
   if(acao==='separacao'){ up.status='separacao'; rot='começou a separar'; }
   else if(acao==='entregue'){
-    if(!confirm('Confirmar a entrega de '+(s.quantidade||1)+'× '+s.equipamento+' para '+s.cliente+'?')) return;
+    if(!confirm('Confirmar a entrega de '+scItensTxt(s)+' para '+s.cliente+'?')) return;
     up.status='entregue'; up.entregueEm=agora; up.entreguePor=sessaoEmail; rot='marcou como entregue';
   } else if(acao==='reprogramar'){
     var nv=prompt('Nova data programada (dd/mm/aaaa):', scDataBR(s.dataProgramada)); if(!nv) return;
@@ -3924,7 +3987,7 @@ function scRenderMob(){
     return '<div class="card sc-card'+(atras?' sc-atras':'')+'" onclick="scToggle(\''+s.id+'\')">'
       +'<div class="sc-top"><div class="sc-cli">'+esc(s.cliente)+scNovoTag(s)+'</div>'+scPill(s.status)+'</div>'
       +(s.endereco?'<div class="sc-endl">'+esc(s.endereco)+'</div>':'')
-      +'<div class="sc-eq">'+esc((s.quantidade||1)+'× '+s.equipamento+(s.modelo?' · '+s.modelo:''))+' · '+esc(scServTxt(s))+(s.patrimonio?' · Pat. '+esc(s.patrimonio):'')+'</div>'
+      +'<div class="sc-eq">'+esc(scItensTxt(s))+' · '+esc(scServTxt(s))+(s.patrimonio?' · Pat. '+esc(s.patrimonio):'')+'</div>'
       +'<div class="sc-meta">📅 '+scDataBR(s.dataProgramada)+(qd?' · <b'+(atras?' style="color:#ef4444"':'')+'>'+qd+'</b>':'')
         +(s.cidade?' · '+esc(s.cidade):'')+' · por '+esc(s.solicitadoNome||s.solicitadoPor||'')+'</div>'
       +(aberto
@@ -3962,7 +4025,9 @@ function dRenderSol(){
       return '<tr class="clk" onclick="dAbrirSol(\''+s.id+'\')">'
         +'<td><b>'+scDataBR(s.dataProgramada)+'</b>'+(qd?'<div class="d-mut" style="font-size:11.5px'+(atras?';color:var(--red)':'')+'">'+qd+'</div>':'')+'</td>'
         +'<td style="white-space:normal;max-width:320px"><b>'+esc(s.cliente)+'</b>'+scNovoTag(s)+((s.endereco||s.cidade)?'<div class="d-mut" style="font-size:11.5px">'+esc(s.endereco||s.cidade)+'</div>':'')+'</td>'
-        +'<td>'+esc(s.equipamento)+((s.modelo||s.patrimonio)?'<div class="d-mut" style="font-size:11.5px">'+esc([s.modelo, s.patrimonio?'Pat. '+s.patrimonio:''].filter(Boolean).join(' · '))+'</div>':'')+'</td>'
+        +'<td>'+(scItensDe(s).length>1 ? scItensDe(s).map(function(x){ return '<div><b>'+(x.quantidade||1)+'×</b> '+esc(x.equipamento||'')
+            +((x.modelo||x.patrimonio)?' <span class="d-mut" style="font-size:11.5px">'+esc([x.modelo, x.patrimonio?'Pat. '+x.patrimonio:''].filter(Boolean).join(' · '))+'</span>':'')+'</div>'; }).join('')
+          : esc(s.equipamento)+((s.modelo||s.patrimonio)?'<div class="d-mut" style="font-size:11.5px">'+esc([s.modelo, s.patrimonio?'Pat. '+s.patrimonio:''].filter(Boolean).join(' · '))+'</div>':''))+'</td>'
         +'<td class="r"><b>'+(s.quantidade||1)+'</b></td>'
         +'<td>'+esc(scServTxt(s))+'</td>'
         +'<td>'+esc(s.solicitadoNome||s.solicitadoPor||'')+'</td>'
@@ -4004,7 +4069,7 @@ function dPintarSol(){
 Object.assign(window,{ scNovoMudou:scNovoMudou, scImprimir:scImprimir, scCliBusca:scCliBusca, scCliEscolher:scCliEscolher, scCliFechar:scCliFechar, scFiltrar:scFiltrar, scToggle:scToggle, scNovoMob:scNovoMob, scEditarMob:scEditarMob, scSalvarMob:scSalvarMob,
   scEqMudou:scEqMudou, scMudar:scMudar, scSalvarPedido:scSalvarPedido, scRenderMob:scRenderMob,
   dRenderSol:dRenderSol, dNovaSol:dNovaSol, dAbrirSol:dAbrirSol, dEditarSol:dEditarSol, dFecharSol:dFecharSol,
-  scSalvarPat:scSalvarPat, dPatSol:dPatSol, dSalvarPatSol:dSalvarPatSol });
+  scSalvarPat:scSalvarPat, dPatSol:dPatSol, dSalvarPatSol:dSalvarPatSol, scItemAdd:scItemAdd, scItemTirar:scItemTirar });
 
 // ===== INIT =====
 setTimeout(()=>{
@@ -4108,7 +4173,7 @@ onAuthStateChanged(auth, (user) => {
   // logout de verdade pro botão "Sair"
   window.sairApp = () => signOut(auth).then(()=>location.reload());
 </script>
-<script src="https://monte-castelo-ind.github.io/folha-solicitacao.js?v=2"></script>
+<script src="https://monte-castelo-ind.github.io/folha-solicitacao.js?v=3"></script>
 <script src="https://monte-castelo-ind.github.io/voltar.js"></script>
 </body>
 </html>
