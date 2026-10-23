@@ -265,6 +265,9 @@ tr.cp-zero td:nth-child(4){color:var(--red)}
          font-weight:600;padding:7px 12px;border-radius:20px;cursor:pointer}
 .mv-chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
 .mv-dest{font-size:11.5px;color:var(--muted);margin-top:2px}
+/* tipo do item: peça (padrão) ou consumível — etiqueta neutra, com rótulo */
+.tag-cons{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;border-radius:20px;
+          padding:1px 7px;margin-left:6px;vertical-align:1px;border:1px dashed var(--muted);color:var(--muted);white-space:nowrap}
 #mv-d-comodato .fld,#mv-d-predial .fld,#mv-d-outro .fld,#mv-just-w{margin-top:12px}
 .mv-velha{display:inline-block;font-size:10.5px;font-weight:700;border-radius:20px;padding:1px 8px;margin-top:3px;
           border:1px solid var(--border);color:var(--muted)}
@@ -565,6 +568,11 @@ html[data-pal="vinho"][data-theme="light"]{
         </select>
         <select id="es-forn" onchange="render()"><option value="">Todos os fornecedores</option></select>
         <select id="es-cat" onchange="render()"><option value="">Todas as categorias</option></select>
+        <select id="es-tipo" onchange="render()">
+          <option value="">Peças e consumíveis</option>
+          <option value="peca">Só peças</option>
+          <option value="consumo">Só consumíveis</option>
+        </select>
         <button class="btn btn-sm admin-mov" onclick="abrirPeca(null)" style="margin-left:auto">+ Nova peça</button>
       </div>
       <div class="tw"><div class="tscroll"><table id="tbl-est"></table></div></div>
@@ -664,7 +672,7 @@ html[data-pal="vinho"][data-theme="light"]{
       <div class="alert a-info">◇ Cadastro das peças e importação por planilha. O saldo não é editado aqui — ele vem dos movimentos, em <strong>Estoque</strong>.</div>
       <div class="card" style="margin-bottom:13px">
         <div class="klabel">Planilha</div>
-        <div class="fhint" style="margin:6px 0 10px">Colunas aceitas: <strong>Código</strong> (ou ID), <strong>Peça</strong> (ou Item), Unidade, Fornecedor, Categoria, Local, Estoque Mínimo, Preço e <strong>Estoque Atual</strong> (saldo). O cabeçalho pode estar em qualquer uma das 10 primeiras linhas. Coluna em branco não apaga o que já existe.</div>
+        <div class="fhint" style="margin:6px 0 10px">Colunas aceitas: <strong>Código</strong> (ou ID), <strong>Peça</strong> (ou Item), Unidade, Fornecedor, Categoria, Local, Estoque Mínimo, Preço, <strong>Estoque Atual</strong> (saldo) e Tipo (Peça ou Consumível). O cabeçalho pode estar em qualquer uma das 10 primeiras linhas. Coluna em branco não apaga o que já existe.</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <label class="btn btn-sm admin-mov" style="cursor:pointer">📥 Importar planilha<input type="file" id="cad-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarPecas(this)"></label>
           <button class="btn btn-sm btn-ghost" onclick="exportarPecas()">📤 Baixar planilha atual</button>
@@ -2759,9 +2767,12 @@ function renderEstoque(){
   var f=document.getElementById('es-filtro').value;
   var cat=document.getElementById('es-cat').value;
   var forn=document.getElementById('es-forn').value;
+  var tipoF=(document.getElementById('es-tipo')||{}).value||'';
   var lista=pecas.filter(function(p){
     if(q && norm(p.nome).indexOf(q)<0 && String(p.codigo||'').indexOf(q)<0) return false;
     if(cat && p.categoria!==cat) return false;
+    if(tipoF==='consumo' && !p.consumo) return false;
+    if(tipoF==='peca' && p.consumo) return false;
     if(forn && p.fornecedor!==forn) return false;
     if(f==='abaixo') return abaixoMin(p);
     if(f==='zerado') return num(p.saldo)<=0;
@@ -2778,7 +2789,7 @@ function renderEstoque(){
     var s=num(p.saldo), baixo=abaixoMin(p);
     html+='<tr>'+
       '<td class="mono" style="font-size:11.5px;color:var(--muted)">'+esc(p.codigo||'—')+'</td>'+
-      '<td><div class="nm">'+esc(p.nome||'—')+
+      '<td><div class="nm">'+esc(p.nome||'—')+tagConsumo(p)+
         (pendEst[p.firestoreId]
           ? '<span class="pd-flag" title="'+esc(Object.keys(pendEst[p.firestoreId].fornecedores).join(', '))+'">'
             + '📦 '+fmtN(pendEst[p.firestoreId].qtd,0)+' a caminho</span>'
@@ -2890,7 +2901,7 @@ function renderCad(){
   lista.forEach(function(p){
     html+='<tr>'+
       '<td class="mono" style="font-size:11.5px;color:var(--muted)">'+esc(p.codigo||'—')+'</td>'+
-      '<td><div class="nm">'+esc(p.nome||'—')+'</div></td>'+
+      '<td><div class="nm">'+esc(p.nome||'—')+tagConsumo(p)+'</div></td>'+
       '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.unidade||'un')+'</td>'+
       '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.fornecedor||'—')+'</td>'+
       '<td style="font-size:11.5px;color:var(--muted)">'+esc(p.categoria||'—')+'</td>'+
@@ -2990,6 +3001,7 @@ window.mvPatMudou=function(){
                   : '<span style="color:var(--muted)">Patrimônio fora da lista de equipamentos na manutenção — confira o número (pode ser conserto no cliente).</span>';
 };
 function mvHtmlSaida(p){
+  if(p.consumo) return '<div class="alert a-info" style="margin:13px 0 0">◇ <strong>Consumível</strong>: não precisa dizer para onde vai nem devolver peça velha. Se quiser, anote na observação.</div>';
   var eqOps=(_equipCasa||[]).map(function(e){
     return '<option value="'+esc(e.patrimonio)+'">'+esc((e.tipo||'')+' '+(e.modelo||''))+'</option>'; }).join('');
   var chip=function(g,v,t){ return '<button type="button" class="mv-chip" data-v="'+v+'" onclick="mvEscolhe(this,\''+g+'\')">'+t+'</button>'; };
@@ -3012,6 +3024,7 @@ function mvHtmlSaida(p){
 }
 /* lê e confere o formulário da saída; devolve os campos ou null (já avisou) */
 function mvLerSaida(p){
+  if(p.consumo) return { destinoTipo:'consumo', pecaVelha:'consumo' };
   var dest=(document.querySelector('#mv-dest .mv-chip.on')||{}).getAttribute ? document.querySelector('#mv-dest .mv-chip.on').getAttribute('data-v') : '';
   if(!dest){ alert('Diga para onde vai a peça: equipamento de comodato, setor da fábrica ou outro.'); return null; }
   var x={ destinoTipo:dest };
@@ -3047,8 +3060,21 @@ function mvDestTxt(m){
   if(m.destinoTipo==='comodato') return 'Patrimônio '+(m.patrimonio||'?')+(m.equipamento?' · '+m.equipamento:'');
   if(m.destinoTipo==='predial') return 'Setor '+(m.setor||'?');
   if(m.destinoTipo==='outro') return m.destino||'';
+  if(m.destinoTipo==='consumo') return 'Consumível';
   return '';
 }
+/* Peça x Consumível (campo consumo da peça). Consumível — querosene, fita,
+   parafuso — sai sem destino e sem peça velha; peça segue a regra de sempre. */
+function tagConsumo(p){ return p && p.consumo ? '<span class="tag-cons">consumível</span>' : ''; }
+function dicaTipo(cons){
+  return cons ? 'Consumível — querosene, fita, parafuso, abraçadeira… Na saída não pede para onde vai nem a peça velha.'
+              : 'Peça — na saída pede para onde vai (patrimônio, setor ou outro) e o que foi feito da peça velha.';
+}
+function pcTipoSel(){ var b=document.querySelector('#pc-tipo .mv-chip.on'); return b?b.getAttribute('data-v'):'peca'; }
+window.pcTipo=function(b){
+  b.parentNode.querySelectorAll('.mv-chip').forEach(function(x){ x.classList.toggle('on', x===b); });
+  var d=document.getElementById('pc-tipo-dica'); if(d) d.textContent=dicaTipo(b.getAttribute('data-v')==='consumo');
+};
 
 function lancarMov(p, tipo, qtd, precoUn, obs, extra){
   var delta=(tipo==='saida'?-qtd:qtd);
@@ -3121,9 +3147,10 @@ window.abrirPeca=function(id){
         '<div><label>Estoque mínimo</label><input type="number" id="pc-min" step="0.01" value="'+(p&&num(p.minimo)>0?num(p.minimo):'')+'" /></div>'+
         '<div><label>Último preço · R$</label><input type="number" id="pc-preco" step="0.01" value="'+(p&&num(p.precoUn)>0?num(p.precoUn):'')+'" /></div>'+
       '</div>'+
-      '<label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:13px;cursor:pointer">'+
-        '<input type="checkbox" id="pc-consumo"'+(p&&p.consumo?' checked':'')+' style="width:auto;margin-top:2px" />'+
-        '<span><b>Material de consumo</b> — fita, parafuso, abraçadeira… Na saída não pede a peça velha.</span></label>'+
+      '<div class="fld" style="margin-top:12px"><label>Tipo</label><div class="mv-chips" id="pc-tipo">'+
+        '<button type="button" class="mv-chip'+(p&&p.consumo?'':' on')+'" data-v="peca" onclick="pcTipo(this)">Peça</button>'+
+        '<button type="button" class="mv-chip'+(p&&p.consumo?' on':'')+'" data-v="consumo" onclick="pcTipo(this)">Consumível</button></div>'+
+        '<div class="fhint" id="pc-tipo-dica">'+dicaTipo(!!(p&&p.consumo))+'</div></div>'+
       (novo
         ? '<div class="fld" style="margin-top:12px"><label>Saldo inicial</label><input type="number" id="pc-saldo" step="0.01" placeholder="0" />'+
           '<div class="fhint">Registrado como entrada de inventário, para ficar no histórico.</div></div>'
@@ -3143,7 +3170,7 @@ window.abrirPeca=function(id){
         local:(document.getElementById('pc-local').value||'').trim(),
         minimo:num(document.getElementById('pc-min').value),
         precoUn:num(document.getElementById('pc-preco').value),
-        consumo:!!(document.getElementById('pc-consumo')||{}).checked,
+        consumo:pcTipoSel()==='consumo',
         atualizadoEm:agora(), atualizadoPor:sessaoEmail
       };
       if(novo){
@@ -3242,9 +3269,9 @@ window.exportarPecas=function(){
         'Codigo':String(p.codigo||''), 'Peca':p.nome||'', 'Unidade':p.unidade||'un',
         'Fornecedor':p.fornecedor||'', 'Categoria':p.categoria||'', 'Local':p.local||'',
         'Minimo':(num(p.minimo)>0?num(p.minimo):''), 'Preco':(num(p.precoUn)>0?num(p.precoUn):''),
-        'Saldo':num(p.saldo) }; });
-    var ws=XLSX.utils.json_to_sheet(rows,{header:['Codigo','Peca','Unidade','Fornecedor','Categoria','Local','Minimo','Preco','Saldo']});
-    ws['!cols']=[{wch:12},{wch:42},{wch:10},{wch:22},{wch:20},{wch:18},{wch:10},{wch:12},{wch:10}];
+        'Saldo':num(p.saldo), 'Tipo':(p.consumo?'Consumível':'Peça') }; });
+    var ws=XLSX.utils.json_to_sheet(rows,{header:['Codigo','Peca','Unidade','Fornecedor','Categoria','Local','Minimo','Preco','Saldo','Tipo']});
+    ws['!cols']=[{wch:12},{wch:42},{wch:10},{wch:22},{wch:20},{wch:18},{wch:10},{wch:12},{wch:10},{wch:12}];
     var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'Pecas');
     XLSX.writeFile(wb,'pecas-'+new Date().toISOString().slice(0,10)+'.xlsx');
@@ -3303,6 +3330,7 @@ window.importarPecas=function(input){
     var cForn=acha('fornecedor','loja','onde_comprar','estoque');
     var cCat=acha('categoria','grupo','familia');
     var cLoc=acha('local','prateleira','endereco','localizacao');
+    var cTipo=acha('tipo');  /* Peça ou Consumível */
     if(cNome<0 && cCod<0){ alert('Não achei coluna de peça nem de código.\n\nA planilha precisa de ao menos uma delas.'); input.value=''; return; }
 
     var porCod={}, porNome={};
@@ -3325,6 +3353,7 @@ window.importarPecas=function(input){
       if(cForn>=0 && String(r[cForn]||'').trim()) campos.fornecedor=String(r[cForn]).trim();
       if(cCat>=0 && String(r[cCat]||'').trim()) campos.categoria=String(r[cCat]).trim();
       if(cLoc>=0 && String(r[cLoc]||'').trim()) campos.local=String(r[cLoc]).trim();
+      if(cTipo>=0 && String(r[cTipo]||'').trim()) campos.consumo=/consum/i.test(String(r[cTipo]));
       // linha de rodapé tipo "ESTOQUE ATUALIZADO EM: 21/08/2026" não é peça
       if(!nome && cod && !/^[0-9A-Za-z._\-\/]{1,20}$/.test(cod)) continue;
       var mn=cMin>=0?numBR(r[cMin]):null; if(mn!=null) campos.minimo=mn;
@@ -3336,8 +3365,8 @@ window.importarPecas=function(input){
       } else {
         var muda={};
         Object.keys(campos).forEach(function(k){
-          var atual=(k==='minimo'||k==='precoUn')?num(ex[k]):String(ex[k]||'');
-          var novoV=(k==='minimo'||k==='precoUn')?num(campos[k]):String(campos[k]);
+          var atual=(k==='minimo'||k==='precoUn')?num(ex[k]):(k==='consumo'?!!ex[k]:String(ex[k]||''));
+          var novoV=(k==='minimo'||k==='precoUn')?num(campos[k]):(k==='consumo'?!!campos[k]:String(campos[k]));
           if(String(atual)!==String(novoV)) muda[k]=campos[k];
         });
         if(Object.keys(muda).length) atualizar.push({ p:ex, campos:muda });
@@ -3359,6 +3388,7 @@ window.importarPecas=function(input){
     if(cForn>=0) achou.push('Fornecedor');
     if(cCat>=0)  achou.push('Categoria');
     if(cLoc>=0)  achou.push('Local');
+    if(cTipo>=0) achou.push('Tipo');
     var msg='Confirmar?\n\nCabeçalho na linha '+(linhaCab+1)+'\nColunas lidas: '+achou.join(', ')+'\n\n';
     if(criar.length) msg+='CRIAR '+criar.length+' peça(s):\n'+criar.slice(0,8).map(function(c){ return '· '+c.campos.nome+(c.saldo?'  (saldo '+c.saldo+')':''); }).join('\n')+(criar.length>8?'\n...':'')+'\n\n';
     if(atualizar.length) msg+='ATUALIZAR '+atualizar.length+' peça(s)\n\n';
