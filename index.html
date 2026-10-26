@@ -1762,8 +1762,9 @@ function renderDashboard(){
   document.querySelectorAll('#dash-chips .chip').forEach(function(c){ c.classList.toggle('active', c.dataset.p===dashPeriodo); });
   var noPeriodo=function(dt){ return dt && dt>=r.de && dt<=r.ate; };
 
-  var reformados=equipamentosEstoque.filter(function(e){ return noPeriodo(dataConclusaoDe(e)); });
-  var saidas=equipamentosEstoque.filter(function(e){ return e.status==='saiu' && noPeriodo(parseBR(e.dataSaida)); });
+  var base=equipamentosEstoque.filter(noPainel);
+  var reformados=base.filter(function(e){ return noPeriodo(dataConclusaoDe(e)); });
+  var saidas=base.filter(function(e){ return e.status==='saiu' && noPeriodo(parseBR(e.dataSaida)); });
 
   document.getElementById('dash-prontos').textContent=reformados.length;
   document.getElementById('dash-saidas').textContent=saidas.length;
@@ -1789,12 +1790,12 @@ function renderDashboard(){
   document.getElementById('dash-servicos').innerHTML = barsHTML(servs);
 
   var ag=0,an=0;
-  equipamentosEstoque.forEach(function(e){ if(e.status==='aguardando')ag++; else if(e.status==='andamento')an++; });
+  base.forEach(function(e){ if(e.status==='aguardando')ag++; else if(e.status==='andamento')an++; });
   document.getElementById('dash-now-aguardando').textContent=ag;
   document.getElementById('dash-now-andamento').textContent=an;
 
   var fmt=function(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); };
-  document.getElementById('dash-sub').textContent = dashPeriodo==='tudo' ? 'Todo o período' : (fmt(r.de)+' – '+fmt(r.ate));
+  document.getElementById('dash-sub').textContent = (dashPeriodo==='tudo' ? 'Todo o período' : (fmt(r.de)+' – '+fmt(r.ate)))+' · sem esteiras e latas';
 }
 
 function donutHTML(itens, total){
@@ -1892,7 +1893,13 @@ async function excluirModelo(fid){
 // ===== ENTRADA =====
 let entradaTipoAtivo = '';
 let entradaModeloSel = null;
-const TIPOS_SEM_PATRIMONIO = ['Esteira'];
+/* Entram em lote, sem patrimônio: um registro de 20 latas conta 20. */
+const TIPOS_SEM_PATRIMONIO = ['Esteira','Lata'];
+/* Fora do painel (números e gráficos): esteira e lata entram às dezenas e
+   enchem os números de reforma e de saída. Continuam nas listas (Em casa,
+   Saídas, Histórico) e no estoque normalmente. */
+const TIPOS_FORA_PAINEL = ['Esteira','Lata'];
+function noPainel(e){ return TIPOS_FORA_PAINEL.indexOf(e && e.tipo)<0; }
 
 function selecionarTipoEntrada(tipo){
   entradaTipoAtivo=tipo;
@@ -2771,7 +2778,7 @@ var D_ST_ORD = {concluido:0, andamento:1, aguardando:2, saiu:3};
 var D_CORES = ['#1f9d6b','#3b6ef5','#f5b013','#12b3a6','#8b7fe8','#6bbf8f','#f08a5d','#a7c4b5','#e66b9a'];
 var D_MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 var D_TITULOS = {
-  painel:['Painel','Reformas, estoque e saídas da oficina'],
+  painel:['Painel','Reformas, estoque e saídas da oficina · sem esteiras e latas'],
   casa:['Em casa','Tudo o que está na oficina agora: pronto e em manutenção'],
   saidas:['Saídas','O que já saiu: remessas e trocas'],
   hist:['Histórico','Todos os equipamentos que passaram pela oficina'],
@@ -3029,7 +3036,7 @@ function dBarras(itens, vazio, suf, cor){
 
 // =================== PAINEL ===================
 function dRenderPainel(){
-  var L=equipamentosEstoque, r=dRange(), ra=dRangeAnterior(r);
+  var L=equipamentosEstoque.filter(noPainel), r=dRange(), ra=dRangeAnterior(r);
   var emCasa=L.filter(function(e){ return e.status!=='saiu'; });
   var prontos=emCasa.filter(function(e){ return e.status==='concluido'; });
   var ag=emCasa.filter(function(e){ return e.status==='aguardando'; });
