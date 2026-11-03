@@ -1129,7 +1129,8 @@
     <button class="d-nav d-op" data-p="casa"     onclick="dNav('casa')"><span class="d-ico">▤</span><span class="lbl">Em casa</span></button>
     <button class="d-nav d-op" data-p="saidas"   onclick="dNav('saidas')"><span class="d-ico">⇱</span><span class="lbl">Saídas</span></button>
     <button class="d-nav" data-p="hist"     onclick="dNav('hist')"><span class="d-ico">☰</span><span class="lbl">Histórico</span></button>
-    <button class="d-nav d-sol" data-p="solic" onclick="dNav('solic')" style="display:none"><span class="d-ico">✉</span><span class="lbl">Solicitações do comercial<span class="sc-n" id="dSolN" style="display:none"></span></span></button>
+    <button class="d-nav d-sol" data-p="solrem" onclick="dNav('solrem')" style="display:none"><span class="d-ico">⇅</span><span class="lbl">Remessa Comodato<span class="sc-n" id="dSolNrem" style="display:none"></span></span></button>
+    <button class="d-nav d-sol" data-p="solext" onclick="dNav('solext')" style="display:none"><span class="d-ico">⚒</span><span class="lbl">Manutenção Externa<span class="sc-n" id="dSolNext" style="display:none"></span></span></button>
     <div class="d-sep d-op"></div>
     <button class="d-nav d-op" data-p="entrada" onclick="dNav('entrada')"><span class="d-ico">⊕</span><span class="lbl">Registrar entrada</span></button>
     <button class="d-nav d-op" data-p="base"    onclick="dNav('base')"><span class="d-ico">◇</span><span class="lbl">Base de equipamentos</span></button>
@@ -1340,6 +1341,9 @@
       <div class="d-tw"><div class="d-tscroll" id="dUsersTab"></div></div>
     </section>
     <!-- SOLICITAÇÕES DE EQUIPAMENTO (Comercial) -->
+    <!-- Remessa Comodato e Manutenção Externa: a lista vem de pedidos-equipamento.js (a mesma do Comercial) -->
+    <section class="d-page" id="dp-solrem"><div id="dPedRem"></div></section>
+    <section class="d-page" id="dp-solext"><div id="dPedExt"></div></section>
     <section class="d-page" id="dp-solic">
       <div class="d-tools">
         <input class="d-srch" id="dSolQ" placeholder="Buscar cliente, equipamento, cidade, quem pediu…" oninput="dRenderSol()">
@@ -2786,7 +2790,9 @@ var D_TITULOS = {
   base:['Base de equipamentos','Modelos cadastrados por tipo'],
   pres:['Presença','Registro diário da equipe'],
   users:['Usuários','Acessos e permissões'],
-  solic:['Solicitações do comercial','Pedidos de equipamento: cliente, quantidade e data de entrega']
+  solic:['Solicitações do comercial','Pedidos de equipamento: cliente, quantidade e data de entrega'],
+  solrem:['Remessa Comodato','Envio e retorno de equipamentos em comodato (entregar, retirar, trocar) — pedidos do comercial'],
+  solext:['Manutenção Externa','Conserto dos equipamentos nos clientes — pedidos do comercial']
 };
 
 // ---------- utilidades ----------
@@ -2858,15 +2864,17 @@ function dAplicar(){
   document.getElementById('dUrole').textContent=adm?'Administrador':(leitura?'Somente leitura':'Operador');
   // quem é só leitura, no celular, vê só o Histórico. Aqui também.
   document.querySelectorAll('#desk .d-sol').forEach(function(x){ x.style.display=podeSolicitar()?'':'none'; });
-  if(leitura && dPag!=='hist' && !(dPag==='solic' && podeSolicitar())) dPag='hist';
+  if(dPag==='solic') dPag='solrem';
+  if(leitura && dPag!=='hist' && !(dPedPag(dPag) && podeSolicitar())) dPag='hist';
   if(!adm && dPag==='users') dPag='painel';
   if(!dIniciado){ dIniciado=true; dPreencherSelects(); }
   dNav(dPag);
 }
 
 function dNav(p){
-  if(p==='solic' && !podeSolicitar()) p=ehLeitura()?'hist':'painel';
-  if(ehLeitura() && p!=='hist' && p!=='solic') p='hist';
+  if(p==='solic') p='solrem';
+  if(dPedPag(p) && !podeSolicitar()) p=ehLeitura()?'hist':'painel';
+  if(ehLeitura() && p!=='hist' && !dPedPag(p)) p='hist';
   if(p==='users' && !ehAdmin()) p='painel';
   dPag=p;
   document.querySelectorAll('#desk .d-nav[data-p]').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-p')===p); });
@@ -2875,7 +2883,7 @@ function dNav(p){
   document.getElementById('dTit').textContent=t[0];
   document.getElementById('dSub').textContent=t[1];
   document.getElementById('dPer').style.display=(p==='painel'||p==='saidas')?'':'none';
-  document.getElementById('dBtnNova').style.display=(ehLeitura()||p==='entrada'||p==='solic')?'none':'';
+  document.getElementById('dBtnNova').style.display=(ehLeitura()||p==='entrada'||dPedPag(p))?'none':'';
   if(p==='users') renderUsuarios();
   if(p==='entrada'){ var d=document.getElementById('dEnData'); if(d && !d.value) d.value=dIsoHoje(); }
   dRender();
@@ -2944,6 +2952,8 @@ function dRender(){
   else if(dPag==='pres') dRenderPres();
   else if(dPag==='users') dRenderUsers();
   else if(dPag==='solic') dRenderSol();
+  else if(dPag==='solrem') dRenderPed('remessa');
+  else if(dPag==='solext') dRenderPed('externa');
   if(dEqId) dRenderEq(true);
 }
 
@@ -3626,11 +3636,16 @@ function scIniciar(){
 function scAtualizar(){
   var ab=scLista.filter(function(s){ return scEmAberto(s.status); }).length;
   var b=document.getElementById('sc-home-n'); if(b){ b.textContent=ab?ab:''; b.style.display=ab?'':'none'; }
-  var dn=document.getElementById('dSolN'); if(dn){ dn.textContent=ab?ab:''; dn.style.display=ab?'':'none'; }
+  if(window.MCPedidos){ [['remessa','dSolNrem'],['externa','dSolNext']].forEach(function(c){
+    var n=MCPedidos.contar(scLista, c[0]), e=document.getElementById(c[1]); if(e){ e.textContent=n?n:''; e.style.display=n?'':'none'; } }); }
   var t=document.querySelector('.screen.active'), ae=document.activeElement;
   var digitando=!!(ae && ae.tagName==='INPUT' && ae.closest && ae.closest('#sc-lista'));
   if(t && t.id==='s-solic' && !digitando) scRenderMob();
-  if(typeof dPag!=='undefined' && dPag==='solic' && document.body.classList.contains('desk-ok')) dRenderSol();
+  if(typeof dPag!=='undefined' && document.body.classList.contains('desk-ok')){
+    if(dPag==='solic') dRenderSol();
+    else if(dPag==='solrem') dRenderPed('remessa');
+    else if(dPag==='solext') dRenderPed('externa');
+  }
 }
 function scToast(msg, erro){
   var t=document.getElementById('scToast');
@@ -3657,12 +3672,18 @@ function scDoFiltro(lista, f, q){
   }).sort(function(a,b){
     var ab=scEmAberto(a.status), bb=scEmAberto(b.status);
     if(ab!==bb) return ab?-1:1;
+    if(ab && window.MCPedidos){ var ca=MCPedidos.categoria(a), cb=MCPedidos.categoria(b);
+      if(ca!==cb) return ca==='remessa'?-1:1;
+      return MCPedidos.ordem(a,b); }
     if(ab) return String(a.dataProgramada||'9').localeCompare(String(b.dataProgramada||'9'));
     return (b.atualizadoEm||b.criadoEm||0)-(a.atualizadoEm||a.criadoEm||0);
   });
 }
 function scMeu(s){ return s && s.solicitadoPor===sessaoEmail; }
-function scPodeEditarPedido(s){ return s && s.status==='aberta' && (scMeu(s) || podeEscrever()); }
+function scPodeEditarPedido(s){ return !!s && ((s.status==='aberta' && (scMeu(s) || podeEscrever())) || (scGere() && (s.status==='aberta'||s.status==='separacao'))); }
+/* chave "Gerencia pedidos de equipamento" (comodatoGerencia, ligada no Comercial →
+   Usuários e níveis) e a diretoria: mudam a prioridade, corrigem e excluem */
+function scGere(){ return ehAdmin() || !!(currentDoc && currentDoc.comodatoGerencia===true); }
 function scLinhaHist(s){
   return (s.historico||[]).slice().reverse().map(function(h){
     var d=h.em?new Date(h.em):null;
@@ -3675,8 +3696,13 @@ function scLinhaHist(s){
 function scFormHtml(s, pre){
   s=s||{}; var p=pre||'sc';
   var its=s.id ? scItensDe(s) : [{}];
-  var opS=Object.keys(SC_SERV).map(function(k){ return '<option value="'+k+'"'+((s.servico||'entregar')===k?' selected':'')+'>'+SC_SERV[k]+'</option>'; }).join('');
+  var servPad=s.servico||((!s.id && scCatNovo==='externa')?'consertar':'entregar');
+  var opS=Object.keys(SC_SERV).map(function(k){ return '<option value="'+k+'"'+(servPad===k?' selected':'')+'>'+SC_SERV[k]+'</option>'; }).join('');
+  var cat=s.id ? (window.MCPedidos?MCPedidos.categoria(s):(s.categoria||'remessa')) : (scCatNovo||'remessa');
   return '<div class="sc-grid">'
+    +'<div class="sc-f sc-w2"><label>Tipo do pedido *</label><select id="'+p+'-cat" onchange="scCatMudou(\''+p+'\')">'
+      +'<option value="remessa"'+(cat==='remessa'?' selected':'')+'>Remessa Comodato — entregar, retirar ou trocar</option>'
+      +'<option value="externa"'+(cat==='externa'?' selected':'')+'>Manutenção Externa — consertar no cliente</option></select></div>'
     +'<div class="sc-f sc-w2 sc-cli-f"><label>Cliente *</label>'
       +'<input type="text" id="'+p+'-cli" value="'+esc(s.cliente||'')+'" placeholder="Buscar cliente do ERP pelo nome…" autocomplete="off" oninput="scCliBusca(\''+p+'\',true)" onfocus="scCliBusca(\''+p+'\',false)" onblur="setTimeout(function(){scCliFechar(\''+p+'\')},180)">'
       +'<div class="sc-res" id="'+p+'-cli-res"></div>'
@@ -3687,7 +3713,7 @@ function scFormHtml(s, pre){
       +its.map(function(x,i){ return scItRowHtml(p, i, x, its.length); }).join('')+'</div>'
       +'<button type="button" class="sc-add" onclick="scItemAdd(\''+p+'\')">+ Adicionar outro equipamento</button></div>'
     +'<div class="sc-f"><label>Serviço *</label><select id="'+p+'-serv">'+opS+'</select></div>'
-    +'<div class="sc-f"><label>Data programada para entrega *</label><input type="date" id="'+p+'-data" value="'+esc(s.dataProgramada||'')+'"></div>'
+    +'<div class="sc-f"><label>Data programada <span style="font-weight:400;opacity:.7">(opcional)</span></label><input type="date" id="'+p+'-data" value="'+esc(s.dataProgramada||'')+'"></div>'
     +'<div class="sc-f sc-w2"><label>Observações</label><textarea id="'+p+'-obs" placeholder="Endereço de entrega, horário, quem recebe…">'+esc(s.obs||'')+'</textarea></div>'
     +(s.id ? (s.novo?'<div class="sc-f sc-w2 sc-novo-info">🆕 Equipamento novo — passou pela autorização da diretoria.</div>':'')
       : '<div class="sc-f sc-w2 sc-novo"><label class="sc-chk"><input type="checkbox" id="'+p+'-novo" onchange="scNovoMudou(\''+p+'\')"> '
@@ -3813,6 +3839,7 @@ function scLerForm(p){
   var doErp=!!(sel && sel.nome===nomeCli);
   var f={ cliente:nomeCli, clienteId:doErp?sel.id:'', endereco:doErp?(sel.end||''):'',
           cidade:g('cid'), contato:g('ctt'), servico:g('serv')||'entregar', dataProgramada:g('data'), obs:g('obs') };
+  var cat=g('cat'); if(cat==='remessa'||cat==='externa') f.categoria=cat;
   var falta=function(id,msg){ scToast(msg,true); var e=document.getElementById(p+'-'+id); if(e) e.focus(); return null; };
   if(!f.cliente) return falta('cli','Informe o cliente.');
   var box=document.getElementById(p+'-itens'), linhas=box?Array.prototype.slice.call(box.querySelectorAll('.sc-it')):[], its=[];
@@ -3825,7 +3852,7 @@ function scLerForm(p){
     its.push({ equipamento:eq, modelo:g('mod-'+i), quantidade:q, patrimonio:scPatLimpo(g('pat-'+i)) });
   }
   if(!its.length){ scToast('Inclua ao menos um equipamento.', true); return null; }
-  if(!f.dataProgramada) return falta('data','Informe a data programada para entrega.');
+  /* data programada é opcional: a manutenção programa depois */
   Object.assign(f, scResumoItens(its)); f.itens=its;
   return f;
 }
@@ -3865,7 +3892,7 @@ function scAutDados(sol, solId, valor){
     varios ? 'Equipamentos NOVOS:\n'+its.map(function(x){ return '• '+x.quantidade+'× '+x.equipamento+(x.modelo?' · '+x.modelo:'')+(x.patrimonio?' (patrimônio '+x.patrimonio+')':''); }).join('\n')
            : 'Equipamento NOVO: '+sol.quantidade+'× '+sol.equipamento+(sol.modelo?' · '+sol.modelo:''),
     'Serviço: '+(SC_SERV[sol.servico]||sol.servico||''),
-    'Entrega programada: '+scDataBR(sol.dataProgramada),
+    'Entrega programada: '+(sol.dataProgramada?scDataBR(sol.dataProgramada):'a combinar'),
     (!varios && sol.patrimonio)?'Patrimônio: '+sol.patrimonio:'',
     sol.obs?'Observações: '+sol.obs:'',
     'Pedido por '+sol.solicitadoNome+' no Manut. Comodato.'
@@ -3989,12 +4016,16 @@ function scRenderMob(){
   document.getElementById('sc-sub').textContent=ab+' em aberto';
   if(scErro){ el.innerHTML='<div class="sc-vazio">'+esc(scErro)+'</div>'; return; }
   if(!l.length){ el.innerHTML='<div class="sc-vazio">Nenhuma solicitação aqui.</div>'; return; }
+  dPedConfigurar();
+  var POS=window.MCPedidos ? { remessa:MCPedidos.posicoes('remessa'), externa:MCPedidos.posicoes('externa') } : null;
   el.innerHTML=l.map(function(s){
     var qd=scQuando(s), atras=/atrasada/.test(qd), aberto=scAberta===s.id;
+    var ct=POS?MCPedidos.categoria(s):'', nP=POS?POS[ct][s.id]:0;
     return '<div class="card sc-card'+(atras?' sc-atras':'')+'" onclick="scToggle(\''+s.id+'\')">'
       +'<div class="sc-top"><div class="sc-cli">'+esc(s.cliente)+scNovoTag(s)+'</div>'+scPill(s.status)+'</div>'
       +(s.endereco?'<div class="sc-endl">'+esc(s.endereco)+'</div>':'')
       +'<div class="sc-eq">'+esc(scItensTxt(s))+' · '+esc(scServTxt(s))+(s.patrimonio?' · Pat. '+esc(s.patrimonio):'')+'</div>'
+      +(POS?'<div class="sc-meta"><b>'+MCPedidos.CAT[ct].nome+(nP?' · prioridade '+nP:'')+'</b></div>':'')
       +'<div class="sc-meta">📅 '+scDataBR(s.dataProgramada)+(qd?' · <b'+(atras?' style="color:#ef4444"':'')+'>'+qd+'</b>':'')
         +(s.cidade?' · '+esc(s.cidade):'')+' · por '+esc(s.solicitadoNome||s.solicitadoPor||'')+'</div>'
       +(aberto
@@ -4016,6 +4047,61 @@ function scNovoMob(){ scEditId=null; scCliPreparar('scm',null); document.getElem
 function scEditarMob(id){ var s=scLista.filter(function(x){ return x.id===id; })[0]; if(!s) return; scEditId=id;
   scCliPreparar('scm',s); document.getElementById('sc-form-tit').textContent='Corrigir solicitação'; document.getElementById('sc-form').innerHTML=scFormHtml(s,'scm'); goTo('s-solic-form'); }
 function scSalvarMob(){ scSalvarPedido('scm', scEditId, function(){ goTo('s-solic'); }); }
+
+/* ---------- Remessa Comodato / Manutenção Externa (computador) ----------
+   A lista é montada por pedidos-equipamento.js (raiz do hub), o MESMO arquivo
+   do app Comercial: as duas telas ficam iguais nos dois apps. Aqui fica o que
+   é do Comodato: abrir a folha (com Começar a separar, Entregar…), corrigir,
+   excluir e o pedido novo. */
+var scCatNovo='', dPedConf=false;
+function dPedPag(p){ return p==='solrem' || p==='solext'; }
+function dPedConfigurar(){
+  if(dPedConf || !window.MCPedidos) return;
+  dPedConf=true;
+  MCPedidos.configurar({
+    lista:function(){ return scLista; },
+    podeGerir:scGere,
+    eu:function(){ return sessaoEmail; },
+    ver:function(id){ dAbrirSol(id); },
+    editar:function(id){ dAbrirSol(id); dEditarSol(); },
+    podeEditar:function(x){ return scPodeEditarPedido(x); },
+    excluir:function(id){ dExcluirPed(id); },
+    podeExcluir:function(x){ return x.status!=='autorizacao'; },
+    gravarOrdem:function(up){
+      var lote=writeBatch(db);
+      up.forEach(function(u){ lote.update(doc(db,'comodatoSolicitacoes',u.id), { prioridade:u.prioridade }); });
+      return lote.commit();
+    },
+    novo:function(cat){ if(!podeSolicitar()) return; scCatNovo=cat; dNovaSol(); },
+    aviso:function(m,e){ dToast(m,e); }
+  });
+}
+function dRenderPed(cat){
+  var el=document.getElementById(cat==='remessa'?'dPedRem':'dPedExt'); if(!el) return;
+  if(!window.MCPedidos){ el.innerHTML='<div class="d-empty">Não foi possível carregar as listas (pedidos-equipamento.js). Recarregue a página.</div>'; return; }
+  dPedConfigurar();
+  if(scErro){ el.innerHTML='<div class="d-empty">'+esc(scErro)+'</div>'; return; }
+  MCPedidos.render(el, cat);
+  var ab=MCPedidos.contar(scLista, cat);
+  document.getElementById('dSub').textContent=(D_TITULOS[cat==='remessa'?'solrem':'solext']||['',''])[1]+' · '+ab+' em aberto';
+}
+function dExcluirPed(id){
+  if(!scGere()) return;
+  var s=scLista.filter(function(x){ return x.id===id; })[0]; if(!s) return;
+  if(s.status==='autorizacao'){ dToast('Este pedido espera a autorização da diretoria: a diretoria recusa no app de Autorizações.', true); return; }
+  if(!confirm('Excluir de vez o pedido de '+scItensTxt(s)+' para '+(s.cliente||'')+'?\n\nNão dá para desfazer. Se for só desistir do pedido, prefira cancelar.')) return;
+  var cat=MCPedidos.categoria(s), resto=MCPedidos.abertos(scLista, cat).filter(function(x){ return x.id!==id; }).map(function(x){ return x.id; });
+  deleteDoc(doc(db,'comodatoSolicitacoes',id)).then(function(){
+    dToast('Pedido excluído.'); if(scDeskId===id) dFecharSol();
+    MCPedidos.reordenar(cat, resto);                         /* renumera os que ficaram */
+  }).catch(function(e){ dToast(e.code==='permission-denied'?'Sem permissão para excluir (chave "Gerencia pedidos de equipamento" ou regra do banco).':'Não foi possível excluir ('+(e.code||e.message)+').', true); });
+}
+/* tipo do pedido mudou no formulário: sugere o serviço que combina */
+function scCatMudou(p){
+  var c=(document.getElementById(p+'-cat')||{}).value, s=document.getElementById(p+'-serv'); if(!s) return;
+  if(c==='externa' && s.value!=='consertar') s.value='consertar';
+  else if(c==='remessa' && s.value==='consertar') s.value='entregar';
+}
 
 /* ---------- computador ---------- */
 function dRenderSol(){
@@ -4044,7 +4130,7 @@ function dRenderSol(){
 function dNovaSol(){ scDeskModo='novo'; scDeskId=null; dPintarSol(); document.getElementById('dMaskSol').classList.add('on'); }
 function dAbrirSol(id){ scDeskModo='ver'; scDeskId=id; dPintarSol(); document.getElementById('dMaskSol').classList.add('on'); }
 function dEditarSol(){ scDeskModo='editar'; dPintarSol(); }
-function dFecharSol(){ document.getElementById('dMaskSol').classList.remove('on'); scDeskModo=''; scDeskId=null; }
+function dFecharSol(){ document.getElementById('dMaskSol').classList.remove('on'); scDeskModo=''; scDeskId=null; scCatNovo=''; }
 function dPintarSol(){
   var s=scDeskId?scLista.filter(function(x){ return x.id===scDeskId; })[0]:null;
   var tit=document.getElementById('dSolTit'), sub=document.getElementById('dSolSub'), body=document.getElementById('dSolBody'), foot=document.getElementById('dSolFoot');
@@ -4070,12 +4156,13 @@ function dPintarSol(){
   body.innerHTML=scFolhaHtml(s);
   foot.innerHTML='<button class="d-btn d-ghost" onclick="scImprimir(\''+s.id+'\')" style="margin-right:auto">🖨 Imprimir / PDF</button>'
     +(scPodeEditarPedido(s)?'<button class="d-btn d-ghost" onclick="dEditarSol()">Corrigir pedido</button>':'')
-    +(scPodePat(s)?'<button class="d-btn d-ghost" onclick="dPatSol()">✎ Patrimônio</button>':'')+scBotoes(s,'d-btn');
+    +(scPodePat(s)?'<button class="d-btn d-ghost" onclick="dPatSol()">✎ Patrimônio</button>':'')
+    +(scGere() && s.status!=='autorizacao'?'<button class="d-btn d-ghost" onclick="dExcluirPed(\''+s.id+'\')">🗑 Excluir</button>':'')+scBotoes(s,'d-btn');
 }
 
 Object.assign(window,{ scNovoMudou:scNovoMudou, scImprimir:scImprimir, scCliBusca:scCliBusca, scCliEscolher:scCliEscolher, scCliFechar:scCliFechar, scFiltrar:scFiltrar, scToggle:scToggle, scNovoMob:scNovoMob, scEditarMob:scEditarMob, scSalvarMob:scSalvarMob,
   scEqMudou:scEqMudou, scMudar:scMudar, scSalvarPedido:scSalvarPedido, scRenderMob:scRenderMob,
-  dRenderSol:dRenderSol, dNovaSol:dNovaSol, dAbrirSol:dAbrirSol, dEditarSol:dEditarSol, dFecharSol:dFecharSol,
+  dRenderSol:dRenderSol, dNovaSol:dNovaSol, dRenderPed:dRenderPed, dExcluirPed:dExcluirPed, scCatMudou:scCatMudou, dAbrirSol:dAbrirSol, dEditarSol:dEditarSol, dFecharSol:dFecharSol,
   scSalvarPat:scSalvarPat, dPatSol:dPatSol, dSalvarPatSol:dSalvarPatSol, scItemAdd:scItemAdd, scItemTirar:scItemTirar });
 
 // ===== INIT =====
@@ -4181,6 +4268,7 @@ onAuthStateChanged(auth, (user) => {
   window.sairApp = () => signOut(auth).then(()=>location.reload());
 </script>
 <script src="https://monte-castelo-ind.github.io/folha-solicitacao.js?v=3"></script>
+<script src="https://monte-castelo-ind.github.io/pedidos-equipamento.js?v=1"></script>
 <script src="https://monte-castelo-ind.github.io/voltar.js"></script>
 </body>
 </html>
