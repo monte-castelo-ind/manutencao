@@ -240,61 +240,11 @@
   --primary:#1f8a5f; --amber:#d99a06; --green:#16b364; --red:#ef4444; --blue:#3b6ef5; --purple:#7c6ee0;
   --shadow:0 1px 2px rgba(20,25,45,.05), 0 10px 30px rgba(20,25,45,.045); --track:rgba(20,25,45,.06);
 }
-#desk[data-pal="mc"]{
-  --bg:#141414; --card:#1E1E1E; --card-2:#282828; --text:#EDEDED; --muted:#8C8C8C;
-  --border:rgba(255,255,255,.08); --sidebar:#1A1A1A; --side-active:#3A2113; --side-active-text:#F58B4C;
-  --primary:#F26B1F; --amber:#E8A33D; --green:#4CAF6A; --red:#E05252; --blue:#5B8FB9; --purple:#9B7FD4;
-}
-#desk[data-pal="mc"][data-theme="light"]{
-  --bg:#F2F0ED; --card:#FFFFFF; --card-2:#F7F5F2; --text:#1F1D1B; --muted:#7A756F;
-  --border:#E4E0DA; --sidebar:#FFFFFF; --side-active:#FCEDE2; --side-active-text:#C04E0C;
-  --primary:#D9550F; --amber:#C98A21; --green:#2E8B4F; --red:#C93F3F; --blue:#3C6E94; --purple:#7A5FBF;
-}
-#desk[data-pal="aco"]{
-  --bg:#12161C; --card:#1A2029; --card-2:#232B36; --text:#E4E9F0; --muted:#8494A6;
-  --border:rgba(255,255,255,.07); --sidebar:#161C24; --side-active:#16303F; --side-active-text:#6FB6DE;
-  --primary:#4C8FBF; --amber:#E3AE4A; --green:#3FB68A; --red:#E06B6B; --blue:#5B9BD5; --purple:#8A86D6;
-}
-#desk[data-pal="aco"][data-theme="light"]{
-  --bg:#EDF1F5; --card:#FFFFFF; --card-2:#F5F8FB; --text:#16202B; --muted:#78879A;
-  --border:#E1E7EE; --sidebar:#FFFFFF; --side-active:#E3F0F8; --side-active-text:#1E6A96;
-  --primary:#2A76A8; --amber:#C8912C; --green:#249A72; --red:#CC5151; --blue:#3B7FBE; --purple:#6F6AC4;
-}
-#desk[data-pal="ambar"]{
-  --bg:#16130F; --card:#201C16; --card-2:#2A241C; --text:#EFE9DF; --muted:#998F80;
-  --border:rgba(255,255,255,.08); --sidebar:#1A1611; --side-active:#3B2E16; --side-active-text:#E6BC63;
-  --primary:#D9A441; --amber:#E8B84D; --green:#6FA86A; --red:#D96A5A; --blue:#6A93B8; --purple:#A088C4;
-}
-#desk[data-pal="ambar"][data-theme="light"]{
-  --bg:#F5F1E8; --card:#FFFFFF; --card-2:#FAF7F0; --text:#221D15; --muted:#8A8070;
-  --border:#E8E1D4; --sidebar:#FFFFFF; --side-active:#F7EDD6; --side-active-text:#9A6F12;
-  --primary:#B0812A; --amber:#C08F1E; --green:#4F8A4A; --red:#C05242; --blue:#4E7A9E; --purple:#7E66A8;
-}
-#desk[data-pal="indigo"]{
-  --bg:#101120; --card:#191B2E; --card-2:#22253C; --text:#E7E7F2; --muted:#8B8CA8;
-  --border:rgba(255,255,255,.07); --sidebar:#151629; --side-active:#272552; --side-active-text:#A99BF5;
-  --primary:#7B6CF0; --amber:#F0B84A; --green:#3FC08A; --red:#EE6B7E; --blue:#5C8BF0; --purple:#9A8AF5;
-}
-#desk[data-pal="indigo"][data-theme="light"]{
-  --bg:#EFEFF7; --card:#FFFFFF; --card-2:#F6F6FC; --text:#181A2E; --muted:#7D7F9B;
-  --border:#E5E5F0; --sidebar:#FFFFFF; --side-active:#ECEAFB; --side-active-text:#5344C4;
-  --primary:#5D4FD6; --amber:#C99320; --green:#22A06B; --red:#D6465C; --blue:#3E6FD4; --purple:#7566DC;
-}
-#desk[data-pal="vinho"]{
-  --bg:#181113; --card:#221A1C; --card-2:#2C2225; --text:#EDE4E4; --muted:#9A8A8C;
-  --border:rgba(255,255,255,.08); --sidebar:#1C1416; --side-active:#3E1F24; --side-active-text:#E0837E;
-  --primary:#C4544F; --amber:#DFA653; --green:#5FA678; --red:#E0645F; --blue:#6B8EB5; --purple:#A183C0;
-}
-#desk[data-pal="vinho"][data-theme="light"]{
-  --bg:#F5EFEF; --card:#FFFFFF; --card-2:#FBF6F6; --text:#241A1C; --muted:#8B7B7D;
-  --border:#EBE0E0; --sidebar:#FFFFFF; --side-active:#F8E8E7; --side-active-text:#A33B36;
-  --primary:#A8413C; --amber:#BC8828; --green:#3F8659; --red:#C24B46; --blue:#4F7399; --purple:#7F639E;
-}
 
 #desk *{box-sizing:border-box}
 #desk .mono,#desk .num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
 #desk button{font-family:inherit;cursor:pointer}
-#desk input,#desk select,#desk textarea{font-family:inherit;font-size:13px;background:var(--card-2);color:var(--text);
+#desk input,#desk select,#desk textarea{font-family:inherit;font-size:13px;background:var(--campo,var(--card-2));color:var(--text);
   border:1px solid var(--border);border-radius:8px;padding:8px 10px;width:100%;min-height:0;margin:0}
 #desk textarea{min-height:84px;resize:vertical;line-height:1.45}
 #desk input:focus,#desk select:focus,#desk textarea:focus{outline:none;border-color:var(--primary)}
@@ -306,27 +256,37 @@
 
 /* sidebar recolhível, igual ao Peças */
 .d-shell{display:flex;min-height:100vh}
-.d-side{width:56px;background:var(--sidebar);border-right:1px solid var(--border);padding:18px 8px;display:flex;flex-direction:column;gap:3px;
-  position:fixed;left:0;top:0;height:100vh;overflow-x:hidden;overflow-y:auto;z-index:60;transition:width .16s ease;white-space:nowrap}
-.d-side:hover,.d-side.pin{width:212px;padding:18px 12px;box-shadow:6px 0 24px rgba(0,0,0,.28)}
+/* molde dos apps (igual à Logística): fixo 225px; suspenso = faixa de 64px que abre por cima ao passar o mouse */
+.d-side{width:64px;background:var(--sidebar);border-right:1px solid var(--border);padding:22px 10px;display:flex;flex-direction:column;gap:3px;
+  position:fixed;left:0;top:0;height:100vh;overflow-x:hidden;overflow-y:auto;z-index:60;transition:width .16s ease;white-space:nowrap;scrollbar-width:none}
+.d-side::-webkit-scrollbar{display:none}
+.d-side>*{flex-shrink:0}
+.d-side:hover,.d-side.pin{width:225px;padding:22px 12px;box-shadow:14px 0 40px rgba(0,0,0,.45)}
+#desk[data-theme="light"] .d-side:hover:not(.pin){box-shadow:14px 0 40px rgba(20,20,40,.14)}
 .d-side.pin{box-shadow:none}
 .d-side .lbl{opacity:0;transition:opacity .12s}
 .d-side:hover .lbl,.d-side.pin .lbl{opacity:1}
-.d-main{flex:1;min-width:0;margin-left:56px;padding:22px 26px 60px;transition:margin-left .16s}
-.d-side.pin ~ .d-main{margin-left:212px}
+.d-main{flex:1;min-width:0;margin-left:64px;padding:22px 26px 60px;transition:margin-left .16s}
+.d-side.pin ~ .d-main{margin-left:225px}
 .d-ico{display:inline-block;width:22px;flex:0 0 22px;text-align:center;font-size:15px}
-.d-logo{padding:0 6px 14px;overflow:hidden}
+.d-logo{padding:0 4px 12px;overflow:hidden;cursor:pointer}
+.d-logo .d-brand{width:auto;margin:0 26px}
 .d-logo .d-brand,.d-logo .d-cap{display:none}
 .d-side:hover .d-logo .d-brand,.d-side.pin .d-logo .d-brand{display:block}
-.d-side:hover .d-logo .d-cap,.d-side.pin .d-logo .d-cap{display:block;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:10px;padding-left:2px}
+.d-side:hover .d-logo .d-cap,.d-side.pin .d-logo .d-cap{display:block;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:4px;padding-left:4px;text-align:left}
+.d-logo .d-mini{display:block;font-size:20px;text-align:center;width:auto}
 .d-side:hover .d-logo .d-mini,.d-side.pin .d-logo .d-mini{display:none}
-.d-pinbtn{position:absolute;top:14px;right:9px;background:none;border:none;color:var(--muted);font-size:14px;padding:2px 5px;border-radius:6px;opacity:0;transition:opacity .12s}
-.d-side:hover .d-pinbtn,.d-side.pin .d-pinbtn{opacity:1}
-.d-side.pin .d-pinbtn{color:var(--primary)}
-.d-nav{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;background:none;border:none;color:var(--muted);
+.d-pinbtn{position:absolute;top:20px;right:12px;width:30px;height:30px;padding:0;font-size:16px;border-radius:8px;background:none;border:none;color:var(--muted);
+  display:none;align-items:center;justify-content:center;z-index:1}
+.d-side:hover .d-pinbtn,.d-side.pin .d-pinbtn{display:flex}
+.d-pinbtn:hover{background:var(--card-2);color:var(--text)}
+.d-nav{display:flex;align-items:center;gap:12px;min-height:38px;padding:8px 12px;border-radius:10px;background:none;border:none;color:var(--muted);
   font-size:13.5px;font-weight:500;text-align:left;width:100%;text-decoration:none;position:relative}
 .d-nav:hover{background:var(--card-2);color:var(--text)}
-.d-nav.on{background:var(--side-active);color:var(--side-active-text);font-weight:600}
+.d-nav.on{background:var(--side-active);color:var(--side-active-text);font-weight:600;box-shadow:0 6px 20px var(--prim-sombra,rgba(0,0,0,.2))}
+.d-sec{display:flex;align-items:center;gap:10px;padding:12px 8px 4px;font-size:12px;color:var(--muted);white-space:nowrap}
+.d-sec::after{content:'';flex:1;height:1px;background:var(--border)}
+.d-side:not(.pin):not(:hover) .d-sec{font-size:0;gap:0;padding:12px 6px 4px}
 .d-nav .d-dot{position:absolute;left:28px;top:7px;width:7px;height:7px;border-radius:50%;background:var(--amber);display:none}
 .d-nav.alerta .d-dot{display:block}
 .d-sep{height:1px;background:var(--border);margin:8px 4px}
@@ -335,14 +295,10 @@
 .d-uav{width:29px;height:29px;flex:0 0 29px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
 .d-uname{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .d-urole{font-size:10.5px;color:var(--muted)}
-.d-pal-lab{font-size:9.5px;font-weight:700;letter-spacing:.7px;color:var(--muted);text-transform:uppercase;margin:8px 0 7px;padding-left:2px}
-.d-pal-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;padding-left:2px}
-.d-pbola{width:22px;height:22px;border-radius:50%;padding:0;border:2px solid transparent;background:linear-gradient(135deg,var(--a) 0 50%,var(--b) 50% 100%)}
-.d-pbola:hover{transform:scale(1.12)}
-.d-pbola.on{border-color:var(--text);box-shadow:0 0 0 2px var(--bg)}
 
 /* topo de página */
-.d-top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.d-top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.d-top-r{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
 .d-h1{font-size:21px;font-weight:700;letter-spacing:-.4px}
 .d-h1sub{font-size:12px;color:var(--muted);margin-top:2px}
 .d-page{display:none}.d-page.on{display:block}
@@ -532,6 +488,8 @@
 #scToast.on{opacity:1;transform:translate(-50%,0)}
 #scToast.erro{background:#b91c1c}
 </style>
+<!-- base visual comum dos apps (cores, fonte, aviso ⚠): raiz do hub. Vale para a versão PC (#desk). -->
+<link rel="stylesheet" href="https://monte-castelo-ind.github.io/mc-base.css?v=1">
 
 </head>
 <body>
@@ -1116,46 +1074,36 @@
 
 <!-- ================= VERSÃO PC (tela larga) ================= -->
 <button id="dMobBtn" onclick="dModo('pc')">🖥 Versão PC</button>
-<div id="desk" data-theme="dark">
+<div id="desk" data-mc="manutencao" data-theme="dark">
 <div class="d-shell">
   <nav class="d-side" id="dSide">
-    <button class="d-pinbtn" onclick="dTogglePin(event)" title="Fixar menu aberto">◨</button>
-    <div class="d-logo">
+    <button class="d-pinbtn" id="dPinBtn" onclick="dTogglePin(event)" title="Menu suspenso">⇤</button>
+    <div class="d-logo" onclick="location.href='https://monte-castelo-ind.github.io/'" title="Voltar para a lista de apps">
       <span class="d-ico d-mini">🔧</span>
       <div class="d-brand"></div>
       <div class="d-cap">Manut. Comodato</div>
     </div>
+    <div class="d-sec lbl-sec">Menu</div>
     <button class="d-nav d-op" data-p="painel"   onclick="dNav('painel')"><span class="d-ico">◫</span><span class="lbl">Painel</span></button>
     <button class="d-nav d-op" data-p="casa"     onclick="dNav('casa')"><span class="d-ico">▤</span><span class="lbl">Em casa</span></button>
     <button class="d-nav d-op" data-p="saidas"   onclick="dNav('saidas')"><span class="d-ico">⇱</span><span class="lbl">Saídas</span></button>
     <button class="d-nav" data-p="hist"     onclick="dNav('hist')"><span class="d-ico">☰</span><span class="lbl">Histórico</span></button>
+    <div class="d-sec d-sol" style="display:none">Pedidos de equipamento</div>
     <button class="d-nav d-sol" data-p="solrem" onclick="dNav('solrem')" style="display:none"><span class="d-ico">⇅</span><span class="lbl">Remessa Comodato<span class="sc-n" id="dSolNrem" style="display:none"></span></span></button>
     <button class="d-nav d-sol" data-p="solext" onclick="dNav('solext')" style="display:none"><span class="d-ico">⚒</span><span class="lbl">Manutenção Externa<span class="sc-n" id="dSolNext" style="display:none"></span></span></button>
-    <div class="d-sep d-op"></div>
+    <div class="d-sec d-op">Oficina</div>
     <button class="d-nav d-op" data-p="entrada" onclick="dNav('entrada')"><span class="d-ico">⊕</span><span class="lbl">Registrar entrada</span></button>
     <button class="d-nav d-op" data-p="base"    onclick="dNav('base')"><span class="d-ico">◇</span><span class="lbl">Base de equipamentos</span></button>
     <button class="d-nav d-op" data-p="pres"    onclick="dNav('pres')"><span class="d-ico">◷</span><span class="lbl">Presença</span></button>
     <a class="d-nav d-op" id="dNavPecas" href="pecas.html?de=comodato" title="Estoque de Peças"><span class="d-dot"></span><span class="d-ico">⚙</span><span class="lbl">Estoque de peças</span></a>
-    <div class="d-sep d-adm"></div>
+    <div class="d-sec d-adm">Ajustes</div>
     <button class="d-nav d-adm" data-p="users" onclick="dNav('users')"><span class="d-ico">👤</span><span class="lbl">Usuários</span></button>
     <div class="d-foot">
       <div class="d-uline">
         <div class="d-uav" id="dUav">?</div>
         <div class="lbl" style="min-width:0"><div class="d-uname" id="dUname">—</div><div class="d-urole" id="dUrole">—</div></div>
       </div>
-      <div class="lbl">
-        <div class="d-pal-lab">Paleta</div>
-        <div class="d-pal-row">
-          <button class="d-pbola" data-pal=""       onclick="dPaleta('')"       title="Verde (original)" style="--a:#2fae7d;--b:#0f111a"></button>
-          <button class="d-pbola" data-pal="mc"     onclick="dPaleta('mc')"     title="Monte Castelo" style="--a:#F26B1F;--b:#1A1A1A"></button>
-          <button class="d-pbola" data-pal="aco"    onclick="dPaleta('aco')"    title="Aço" style="--a:#4C8FBF;--b:#12161C"></button>
-          <button class="d-pbola" data-pal="ambar"  onclick="dPaleta('ambar')"  title="Âmbar" style="--a:#D9A441;--b:#16130F"></button>
-          <button class="d-pbola" data-pal="indigo" onclick="dPaleta('indigo')" title="Índigo" style="--a:#7B6CF0;--b:#101120"></button>
-          <button class="d-pbola" data-pal="vinho"  onclick="dPaleta('vinho')"  title="Vinho" style="--a:#C4544F;--b:#181113"></button>
-        </div>
-      </div>
       <div style="display:flex;gap:6px;padding:0 2px">
-        <button class="d-btn d-sm d-ghost" onclick="dTema()" style="flex:1;padding:7px 0" title="Tema claro/escuro">◐</button>
         <button class="d-btn d-sm d-ghost lbl" onclick="dModo('cel')" style="flex:1;padding:7px 0" title="Usar a versão de celular">📱</button>
         <button class="d-btn d-sm d-ghost lbl" onclick="sairApp()" style="flex:2">Sair</button>
       </div>
@@ -1165,9 +1113,14 @@
   <main class="d-main">
     <div class="d-top">
       <div><div class="d-h1" id="dTit">Painel</div><div class="d-h1sub" id="dSub">—</div></div>
-      <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+      <div class="d-top-r">
         <div class="d-chips" id="dPer"></div>
         <button class="d-btn d-op" id="dBtnNova" onclick="dNav('entrada')">+ Registrar entrada</button>
+        <div class="warnwrap" id="dWarnWrap">
+          <button class="warnbtn" id="dWarnBtn" onclick="dToggleAvisos(event)" title="Pendências">&#9888;<span class="warnbadge" id="dWarnBadge">0</span></button>
+          <div class="warnpop" id="dWarnPop"></div>
+        </div>
+        <button class="luabtn" id="dLua" onclick="dTema()" title="Claro ou escuro" aria-label="Claro ou escuro">☀</button>
       </div>
     </div>
 
@@ -2828,27 +2781,32 @@ function dModo(m){
   document.body.classList.toggle('force-mob', m==='cel');
   if(m==='pc') dRender(); else goTo('s-home');
 }
+function dTemaIcone(){
+  var el=document.getElementById('desk'), b=document.getElementById('dLua'); if(!el||!b) return;
+  var claro=el.getAttribute('data-theme')==='light';
+  b.textContent=claro?'☾':'☀'; b.title=claro?'Modo escuro':'Modo claro';
+}
 function dTema(){
   var el=document.getElementById('desk');
   var t=(el.getAttribute('data-theme')==='dark')?'light':'dark';
-  el.setAttribute('data-theme',t); dLs('mc_comodato_theme',t);
+  el.setAttribute('data-theme',t); dLs('mc_comodato_theme',t); dTemaIcone();
 }
-function dPaleta(p){
-  var el=document.getElementById('desk');
-  if(p) el.setAttribute('data-pal',p); else el.removeAttribute('data-pal');
-  dLs('mc_comodato_pal', p||'');
-  document.querySelectorAll('.d-pbola').forEach(function(b){ b.classList.toggle('on',(b.getAttribute('data-pal')||'')===(p||'')); });
-}
+/* seletor de paletas retirado (molde dos apps): a cor é a da Manutenção, verde */
+function dPaleta(){ var el=document.getElementById('desk'); if(el) el.removeAttribute('data-pal'); }
 function dTogglePin(ev){
   if(ev) ev.stopPropagation();
   var s=document.getElementById('dSide'); s.classList.toggle('pin');
-  dLs('mc_comodato_pin', s.classList.contains('pin')?'1':'0');
+  var fixo=s.classList.contains('pin');
+  dLs('mc_comodato_pin', fixo?'1':'0');
+  var b=document.getElementById('dPinBtn'); if(b){ b.textContent=fixo?'⇤':'⇥'; b.title=fixo?'Menu suspenso':'Fixar o menu aberto'; }
 }
 (function(){
   var el=document.getElementById('desk'); if(!el) return;
   el.setAttribute('data-theme', dLs('mc_comodato_theme')==='light'?'light':'dark');
-  dPaleta(dLs('mc_comodato_pal')||'');
-  if(dLs('mc_comodato_pin')==='1') document.getElementById('dSide').classList.add('pin');
+  dPaleta(); dTemaIcone();
+  /* menu fixo aberto é o padrão (como na Logística); só fica suspenso se a pessoa escolheu */
+  if(dLs('mc_comodato_pin')!=='0') document.getElementById('dSide').classList.add('pin');
+  else { var pb=document.getElementById('dPinBtn'); if(pb){ pb.textContent='⇥'; pb.title='Fixar o menu aberto'; } }
   if(dLs('mc_comodato_modo')==='cel') document.body.classList.add('force-mob');
 })();
 
@@ -2943,6 +2901,7 @@ function dRender(){
   if(!document.body.classList.contains('desk-ok')) return;
   dRenderPer();
   dPecasNav();
+  dRenderAvisos();
   if(dPag==='painel') dRenderPainel();
   else if(dPag==='casa') dRenderCasa();
   else if(dPag==='saidas') dRenderSaidas();
@@ -2959,7 +2918,52 @@ function dRender(){
 
 // ---------- atalho do estoque de peças ----------
 var dPecasRes = null;
-function dPecasSnap(d){ dPecasRes=d; dPecasNav(); }
+function dPecasSnap(d){ dPecasRes=d; dPecasNav(); dRenderAvisos(); }
+
+// ---------- aviso ⚠ do topo (molde dos apps): o que pede atenção agora ----------
+function dDiagnosticos(){
+  var out=[], leitura=ehLeitura();
+  if(window.MCPedidos && podeSolicitar() && scLista.length){
+    var hj=dIsoHoje();
+    [['remessa','solrem','Remessa Comodato'],['externa','solext','Manutenção Externa']].forEach(function(c){
+      var at=MCPedidos.abertos(scLista, c[0]).filter(function(x){ return x.dataProgramada && String(x.dataProgramada).slice(0,10)<hj; });
+      if(at.length) out.push({ sev:'bad', titulo:at.length+' pedido'+(at.length>1?'s':'')+' de '+c[2]+' atrasado'+(at.length>1?'s':''),
+        sub:at.slice(0,3).map(function(x){ return x.cliente||'—'; }).join(', ')+(at.length>3?'…':'')+' · data programada passou',
+        ir:function(){ dNav(c[1]); } });
+    });
+  }
+  if(!leitura){
+    var par=equipamentosEstoque.filter(function(e){ return noPainel(e) && e.status!=='saiu' && e.status!=='concluido'; })
+      .map(function(e){ return dDias(parseBR(e.dataEntrada)); }).filter(function(d){ return d!=null && d>=15; });
+    if(par.length) out.push({ sev:'warn', titulo:par.length+' equipamento'+(par.length>1?'s':'')+' parado'+(par.length>1?'s':'')+' há 15 dias ou mais',
+      sub:'Na oficina, ainda não prontos. O mais antigo está há '+Math.max.apply(null,par)+' dias.', ir:function(){ dNav('casa'); } });
+    var d=dPecasRes||{}, ab=Number(d.abaixoMinimo)||0, neg=Number(d.negativos)||0;
+    if(ab||neg) out.push({ sev:'info', titulo:'Estoque de peças: '+(ab?ab+' abaixo do mínimo':'')+(ab&&neg?' · ':'')+(neg?neg+' com saldo negativo':''),
+      sub:'Abre o Estoque de Peças.', ir:function(){ location.href='pecas.html?de=comodato'; } });
+  }
+  var ordem={bad:0,warn:1,info:2};
+  return out.sort(function(a,b){ return ordem[a.sev]-ordem[b.sev]; });
+}
+var dAvisos=[];
+function dRenderAvisos(){
+  var wrap=document.getElementById('dWarnWrap'); if(!wrap) return;
+  var lista=dDiagnosticos(); dAvisos=lista;
+  if(!lista.length){ wrap.classList.remove('has','open'); return; }
+  wrap.classList.add('has');
+  var graves=lista.some(function(x){ return x.sev==='bad'; }), medios=lista.some(function(x){ return x.sev==='warn'; });
+  var cor=graves?'var(--red)':(medios?'var(--amber)':'var(--blue)'), b=document.getElementById('dWarnBadge');
+  b.textContent=lista.length; b.style.background=cor; b.style.color=(!graves&&medios)?'#1a1400':'#fff';
+  document.getElementById('dWarnBtn').style.color=cor;
+  document.getElementById('dWarnPop').innerHTML='<div class="warnpop-h">'+lista.length+' ponto'+(lista.length>1?'s':'')+' de atenção</div>'+
+    lista.map(function(x,i){
+      var c=x.sev==='bad'?'var(--red)':(x.sev==='warn'?'var(--amber)':'var(--blue)');
+      return '<div class="warnitem" onclick="dIrAviso('+i+')"><div class="warndot" style="background:'+c+'"></div>'+
+        '<div style="min-width:0"><div class="warntit">'+esc(x.titulo)+'</div><div class="warnsub">'+esc(x.sub)+'</div></div></div>';
+    }).join('');
+}
+function dIrAviso(i){ var a=dAvisos[i]; if(!a) return; document.getElementById('dWarnWrap').classList.remove('open'); a.ir(); }
+function dToggleAvisos(e){ if(e) e.stopPropagation(); document.getElementById('dWarnWrap').classList.toggle('open'); }
+document.addEventListener('click', function(e){ var w=document.getElementById('dWarnWrap'); if(w && !w.contains(e.target)) w.classList.remove('open'); });
 function dPecasNav(){
   var a=document.getElementById('dNavPecas'); if(!a) return;
   var d=dPecasRes||{}, ab=Number(d.abaixoMinimo)||0, neg=Number(d.negativos)||0, tot=Number(d.total)||0;
@@ -3599,7 +3603,7 @@ document.addEventListener('keydown', function(ev){
   else if(document.getElementById('dMaskEq').classList.contains('on')) dFecharEq();
 });
 
-Object.assign(window,{dNav:dNav,dModo:dModo,dTema:dTema,dPaleta:dPaleta,dTogglePin:dTogglePin,dSetPer:dSetPer,dIrCasa:dIrCasa,
+Object.assign(window,{dIrAviso:dIrAviso,dToggleAvisos:dToggleAvisos,dNav:dNav,dModo:dModo,dTema:dTema,dPaleta:dPaleta,dTogglePin:dTogglePin,dSetPer:dSetPer,dIrCasa:dIrCasa,
   dOrd:dOrd,dRenderCasa:dRenderCasa,dCasaTipoCard:dCasaTipoCard,dLimparCasa:dLimparCasa,dRenderSaidas:dRenderSaidas,dRenderHist:dRenderHist,
   dLimparHist:dLimparHist,dCsv:dCsv,dAbrirEq:dAbrirEq,dFecharEq:dFecharEq,dToggleServ:dToggleServ,dSalvarServ:dSalvarServ,dStatus:dStatus,
   dSaida:dSaida,dExcluirEq:dExcluirEq,dEnTipoMudou:dEnTipoMudou,dLimparEntrada:dLimparEntrada,dSalvarEntrada:dSalvarEntrada,
@@ -3645,6 +3649,7 @@ function scAtualizar(){
     if(dPag==='solic') dRenderSol();
     else if(dPag==='solrem') dRenderPed('remessa');
     else if(dPag==='solext') dRenderPed('externa');
+    dRenderAvisos();
   }
 }
 function scToast(msg, erro){
