@@ -1143,7 +1143,7 @@
       <div><div class="d-h1" id="dTit">Painel</div><div class="d-h1sub" id="dSub">—</div></div>
       <div class="d-top-r">
         <div class="d-chips" id="dPer"></div>
-        <button class="d-btn d-op" id="dBtnNova" onclick="dNav('entrada')">+ Registrar entrada</button>
+        <button class="d-btn d-op" id="dBtnNova" onclick="dBtnNovaClick()">+ Registrar entrada</button>
         <div class="warnwrap" id="dWarnWrap">
           <button class="warnbtn" id="dWarnBtn" onclick="dToggleAvisos(event)" title="Pendências">&#9888;<span class="warnbadge" id="dWarnBadge">0</span></button>
           <div class="warnpop" id="dWarnPop"></div>
@@ -1362,6 +1362,21 @@
     </div>
     <div class="d-mbody" id="dEqBody"></div>
     <div class="d-mfoot" id="dEqFoot"></div>
+  </div>
+</div>
+
+<!-- janela "Registrar saída": escolher o equipamento pronto que vai sair -->
+<div class="d-mask" id="dMaskEscSai" onclick="if(event.target===this)dFecharEscSai()">
+  <div class="d-modal">
+    <div class="d-mhead">
+      <div><div class="d-mtit">Registrar saída</div><div class="d-msub">Escolha o equipamento pronto que vai sair</div></div>
+      <button class="d-x" onclick="dFecharEscSai()">×</button>
+    </div>
+    <div class="d-mbody">
+      <input id="dEscSaiQ" placeholder="Buscar tipo, modelo, patrimônio, NF de entrada…" oninput="dRenderEscSai()" autocomplete="off" style="width:100%;margin-bottom:12px">
+      <div id="dEscSaiLista"></div>
+    </div>
+    <div class="d-mfoot"><span class="d-mut" id="dEscSaiRod" style="margin-right:auto;font-size:12px"></span><button class="d-btn d-sm d-ghost" onclick="dFecharEscSai()">Fechar</button></div>
   </div>
 </div>
 
@@ -2119,6 +2134,11 @@ function renderDetalhe(){
           <div class="card-label">NF de saída</div>
           <input type="text" id="saida-nf" placeholder="Ex: 005678" />
         </div>
+        ${eqEhLote(e)?`<div style="margin-bottom:10px;">
+          <div class="card-label">Quantidade que sai (de ${dQ(e)} no lote)</div>
+          <input type="number" id="saida-qtd" min="1" max="${dQ(e)}" step="1" value="${dQ(e)}" />
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Se sair menos que o lote, o resto continua na oficina como pronto.</div>
+        </div>`:''}
         <button class="btn" style="background:rgba(59,130,246,0.15);color:var(--azul);border:1px solid rgba(59,130,246,0.4);" onclick="registrarSaida()">🚚 Confirmar saída</button>
       </div>
       <button class="btn" style="background:rgba(245,158,11,0.1);color:var(--amarelo);border:1px solid rgba(245,158,11,0.3);margin-bottom:8px;" onclick="alterarStatus('andamento')">🔧 Voltar para andamento</button>`;
@@ -2195,17 +2215,23 @@ async function registrarSaida(){
   if(!dataRaw){alert('Informe a data de saída.');return;}
   if(!nf){alert('Informe a NF de saída.');return;}
   if(!cliente){alert('Informe o nome do cliente.');return;}
-  if(!confirm('Confirmar '+tipoSaida.toLowerCase()+' para '+cliente+' com NF '+nf+'?\nO equipamento sairá do estoque.'))return;
+  const q=eqQtdSaida(equipAtivo, document.getElementById('saida-qtd')?.value); if(!q)return;
+  const total=dQ(equipAtivo), parcial=q<total;
+  if(!confirm('Confirmar '+tipoSaida.toLowerCase()+' para '+cliente+' com NF '+nf+'?\n'
+    +(parcial?q+' de '+total+' un. saem do estoque; '+(total-q)+' continuam na oficina.':'O equipamento sairá do estoque.')))return;
   const dataSaida=isoToDisplay(dataRaw);
-  const historico=[...(equipAtivo.historico||[])];
-  historico.push({acao:'Saída registrada ('+tipoSaida+')',data:dataSaida,hora:agora(),obs:'Cliente: '+cliente+' · NF Saída: '+nf});
   try{
-    await updateDoc(doc(db,'equipamentosEstoque',equipAtivo.firestoreId),{
-      status:'saiu', dataSaida, nfSaida:nf, tipoSaida:tipoSaida, cliente:cliente, historico
-    });
-    equipAtivo={...equipAtivo,status:'saiu',dataSaida,nfSaida:nf,tipoSaida:tipoSaida,cliente:cliente,historico};
+    await eqGravarSaida(equipAtivo,{tipoSaida:tipoSaida,cliente:cliente,nf:nf,dataSaida:dataSaida,qtd:q});
+    if(parcial){
+      const h=(equipAtivo.historico||[]).concat([{acao:'Saída parcial ('+tipoSaida+')',data:dataSaida,hora:agora(),obs:q+' un. saíram · restam '+(total-q)+' · Cliente: '+cliente+' · NF Saída: '+nf}]);
+      equipAtivo={...equipAtivo,quantidade:total-q,historico:h};
+      alert('Saída de '+q+' un. registrada. Restam '+(total-q)+' na oficina.');
+    } else {
+      const h=(equipAtivo.historico||[]).concat([{acao:'Saída registrada ('+tipoSaida+')',data:dataSaida,hora:agora(),obs:'Cliente: '+cliente+' · NF Saída: '+nf}]);
+      equipAtivo={...equipAtivo,status:'saiu',dataSaida,nfSaida:nf,tipoSaida:tipoSaida,cliente:cliente,historico:h};
+    }
     renderDetalhe();
-  }catch(e){alert('Erro: '+e.message);}
+  }catch(e){alert('Erro ao registrar saída: '+e.message);}
 }
 
 async function excluirEstoque(fid){
@@ -2869,7 +2895,9 @@ function dNav(p){
   document.getElementById('dTit').textContent=t[0];
   document.getElementById('dSub').textContent=t[1];
   document.getElementById('dPer').style.display=(p==='painel'||p==='saidas')?'':'none';
-  document.getElementById('dBtnNova').style.display=(ehLeitura()||p==='entrada'||dPedPag(p))?'none':'';
+  var bNova=document.getElementById('dBtnNova');
+  bNova.style.display=(ehLeitura()||p==='entrada'||dPedPag(p))?'none':'';
+  bNova.textContent=(p==='saidas')?'+ Registrar saída':'+ Registrar entrada';
   if(p==='users') renderUsuarios();
   if(p==='entrada'){ var d=document.getElementById('dEnData'); if(d && !d.value) d.value=dIsoHoje(); }
   dRender();
@@ -3317,7 +3345,7 @@ function dRenderEq(manter){
   if(!e){ if(dEqId) dFecharEq(); return; }
   // ao chegar atualização do banco com a janela aberta, guarda o que já foi digitado
   var keep={};
-  if(manter){ ['dEqObs','dSaiCli','dSaiData','dSaiNf'].forEach(function(id){ var x=document.getElementById(id); if(x) keep[id]=x.value; });
+  if(manter){ ['dEqObs','dSaiCli','dSaiData','dSaiNf','dSaiQtd'].forEach(function(id){ var x=document.getElementById(id); if(x) keep[id]=x.value; });
     var rr=document.querySelector('input[name="dSaiOp"]:checked'); if(rr) keep.op=rr.value; }
   var pode=dPodeEditar(), saiu=e.status==='saiu';
   var serv=dEqServ||(e.servicos||[]);
@@ -3361,12 +3389,15 @@ function dRenderEq(manter){
     ac+='</div></div>';
     if(e.status==='concluido'){
       var op=keep.op||'Remessa';
-      ac+='<div class="d-box" style="margin-top:12px;border-left:3px solid var(--blue)"><div class="d-boxtit">Registrar saída</div>'+
+      var lote=eqEhLote(e);
+      ac+='<div class="d-box" id="dSaiBox" style="margin-top:12px;border-left:3px solid var(--blue)"><div class="d-boxtit">Registrar saída</div>'+
         '<div class="d-radio" style="margin-bottom:10px"><label><input type="radio" name="dSaiOp" value="Remessa"'+(op==='Remessa'?' checked':'')+'> 📤 Remessa</label><label><input type="radio" name="dSaiOp" value="Troca"'+(op==='Troca'?' checked':'')+'> 🔄 Troca</label></div>'+
         '<div class="d-fgrid" style="grid-template-columns:1fr 1fr">'+
         '<div class="d-fld" style="grid-column:1 / -1"><label>Cliente</label><input id="dSaiCli" placeholder="Ex: Padaria do João" value="'+esc(keep.dSaiCli||'')+'"></div>'+
         '<div class="d-fld"><label>Data de saída</label><input id="dSaiData" type="date" value="'+esc(keep.dSaiData||dIsoHoje())+'"></div>'+
-        '<div class="d-fld"><label>NF de saída</label><input id="dSaiNf" placeholder="Ex: 005678" value="'+esc(keep.dSaiNf||'')+'"></div></div>'+
+        '<div class="d-fld"><label>NF de saída</label><input id="dSaiNf" placeholder="Ex: 005678" value="'+esc(keep.dSaiNf||'')+'"></div>'+
+        (lote?'<div class="d-fld" style="grid-column:1 / -1"><label>Quantidade que sai (de '+dQ(e)+' no lote)</label><input id="dSaiQtd" type="number" min="1" max="'+dQ(e)+'" step="1" value="'+esc(keep.dSaiQtd||String(dQ(e)))+'">'+
+          '<div class="d-mut" style="font-size:11.5px;margin-top:4px">Se sair menos que o lote, o resto continua na oficina como pronto.</div></div>':'')+'</div>'+
         '<div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="d-btn d-sm d-st" style="--c:var(--blue)" onclick="dSaida()">🚚 Confirmar saída</button></div></div>';
     }
   }
@@ -3416,13 +3447,82 @@ function dSaida(){
   if(!cliente){ alert('Informe o nome do cliente.'); return; }
   if(!dataRaw){ alert('Informe a data de saída.'); return; }
   if(!nf){ alert('Informe a NF de saída.'); return; }
-  if(!confirm('Confirmar '+tipoSaida.toLowerCase()+' para '+cliente+' com NF '+nf+'?\nO equipamento sai do estoque.')) return;
-  var dataSaida=dBRdeIso(dataRaw), historico=(e.historico||[]).slice();
-  historico.push({acao:'Saída registrada ('+tipoSaida+')',data:dataSaida,hora:agora(),obs:'Cliente: '+cliente+' · NF Saída: '+nf});
-  updateDoc(doc(db,'equipamentosEstoque',e.firestoreId),{status:'saiu', dataSaida:dataSaida, nfSaida:nf, tipoSaida:tipoSaida, cliente:cliente, historico:historico})
-    .then(function(){ dToast('Saída registrada'); })
+  var q=eqQtdSaida(e, (document.getElementById('dSaiQtd')||{}).value); if(!q) return;
+  var total=dQ(e), parcial=q<total;
+  if(!confirm('Confirmar '+tipoSaida.toLowerCase()+' para '+cliente+' com NF '+nf+'?\n'
+    +(parcial?q+' de '+total+' un. saem do estoque; '+(total-q)+' continuam na oficina.':(eqEhLote(e)?total+' un. saem do estoque.':'O equipamento sai do estoque.')))) return;
+  eqGravarSaida(e, { tipoSaida:tipoSaida, cliente:cliente, nf:nf, dataSaida:dBRdeIso(dataRaw), qtd:q })
+    .then(function(){ dToast(parcial?'Saída de '+q+' un. registrada · restam '+(total-q)+' na oficina':'Saída registrada'); })
     .catch(function(err){ console.error(err); dToast('Erro ao registrar saída: '+err.message, true); });
 }
+/* ---------- saída de lote (esteiras e latas) ----------
+   Lote = registro sem patrimônio com mais de 1 unidade. Dá para tirar só
+   parte: o que sai vira um registro novo com status "saiu" (cópia do lote,
+   com a quantidade que saiu e loteOrigem = id do lote) e o lote continua na
+   oficina com o resto. As duas gravações vão no mesmo writeBatch (tudo ou
+   nada), e a soma das quantidades continua igual à da entrada. */
+function eqEhLote(e){ return !!e && !e.patrimonio && dQ(e)>1; }
+function eqQtdSaida(e, v){
+  var total=dQ(e); if(!eqEhLote(e)) return total;
+  var q=parseInt(v,10);
+  if(!(q>=1) || String(v).trim()!==String(q)){ alert('Informe a quantidade que sai (número inteiro, 1 ou mais).'); return 0; }
+  if(q>total){ alert('O lote tem só '+total+' unidade(s).'); return 0; }
+  return q;
+}
+function eqGravarSaida(e, sai){
+  var total=dQ(e), q=sai.qtd||total, hora=agora();
+  var obs='Cliente: '+sai.cliente+' · NF Saída: '+sai.nf;
+  var base={ status:'saiu', dataSaida:sai.dataSaida, nfSaida:sai.nf, tipoSaida:sai.tipoSaida, cliente:sai.cliente };
+  if(q>=total){
+    var h=(e.historico||[]).concat([{acao:'Saída registrada ('+sai.tipoSaida+')',data:sai.dataSaida,hora:hora,obs:obs+(eqEhLote(e)?' · Quantidade: '+total:'')}]);
+    return updateDoc(doc(db,'equipamentosEstoque',e.firestoreId), Object.assign({}, base, { historico:h }));
+  }
+  var resta=total-q;
+  var novo=Object.assign({}, e); delete novo.firestoreId;
+  Object.keys(novo).forEach(function(k){ if(novo[k]===undefined) delete novo[k]; });
+  Object.assign(novo, base, { quantidade:q, loteOrigem:e.firestoreId,
+    historico:(e.historico||[]).concat([{acao:'Saída parcial registrada ('+sai.tipoSaida+')',data:sai.dataSaida,hora:hora,obs:q+' de '+total+' un. do lote · '+obs}]) });
+  var lote=writeBatch(db);
+  lote.set(doc(collection(db,'equipamentosEstoque')), novo);
+  lote.update(doc(db,'equipamentosEstoque',e.firestoreId), { quantidade:resta,
+    historico:(e.historico||[]).concat([{acao:'Saída parcial ('+sai.tipoSaida+')',data:sai.dataSaida,hora:hora,obs:q+' un. saíram · restam '+resta+' · '+obs}]) });
+  return lote.commit();
+}
+
+/* botão verde do topo: na página Saídas registra saída; nas outras, entrada */
+function dBtnNovaClick(){ if(dPag==='saidas') dAbrirEscSai(); else dNav('entrada'); }
+function dAbrirEscSai(){
+  if(!podeEscrever()){ alert('Você não tem permissão para esta ação.'); return; }
+  var q=document.getElementById('dEscSaiQ'); if(q) q.value='';
+  dRenderEscSai(); document.getElementById('dMaskEscSai').classList.add('on');
+  setTimeout(function(){ if(q) q.focus(); },40);
+}
+function dFecharEscSai(){ document.getElementById('dMaskEscSai').classList.remove('on'); }
+function dRenderEscSai(){
+  var el=document.getElementById('dEscSaiLista'); if(!el) return;
+  var q=String((document.getElementById('dEscSaiQ')||{}).value||'').toLowerCase().trim();
+  var prontos=equipamentosEstoque.filter(function(e){ return e.status==='concluido'; });
+  var naOfic=equipamentosEstoque.filter(function(e){ return e.status==='aguardando'||e.status==='andamento'; });
+  var l=prontos.filter(function(e){ return !q || ((e.tipo||'')+' '+(e.modelo||'')+' '+(e.descricao||'')+' '+(e.patrimonio||'')+' '+(e.nfEntrada||'')).toLowerCase().indexOf(q)>=0; });
+  l.sort(function(a,b){ return (parseBR(a.dataEntrada)||0)-(parseBR(b.dataEntrada)||0); });
+  var nPr=prontos.reduce(function(t,e){ return t+dQ(e); },0), nOf=naOfic.reduce(function(t,e){ return t+dQ(e); },0);
+  document.getElementById('dEscSaiRod').textContent=nPr+' un. pronta(s) para sair'+(nOf?' · '+nOf+' un. ainda em manutenção (marque como pronto para aparecer aqui)':'');
+  if(!prontos.length){ el.innerHTML='<div class="d-empty">Nenhum equipamento pronto na oficina. Marque como pronto em "Em casa" para poder registrar a saída.</div>'; return; }
+  if(!l.length){ el.innerHTML='<div class="d-empty">Nada encontrado com essa busca.</div>'; return; }
+  el.innerHTML='<table><thead><tr><th>Tipo</th><th>Modelo</th><th>Patrimônio / qtd</th><th>Entrada</th><th>NF entrada</th></tr></thead><tbody>'
+    +l.map(function(e){ var d=dDias(parseBR(e.dataEntrada));
+      return '<tr class="clk" onclick="dEscolherSai(\''+esc(e.firestoreId)+'\')">'
+        +'<td>'+dTipoTxt(e.tipo)+'</td><td>'+esc(e.modelo||e.descricao||'')+'</td>'
+        +'<td>'+(e.patrimonio?'<span class="num">'+esc(e.patrimonio)+'</span>':'<b class="num">'+dQ(e)+'</b> un. (lote)')+'</td>'
+        +'<td>'+esc(e.dataEntrada||'')+(d!=null?' <span class="d-mut" style="font-size:11.5px">· '+d+' dia(s)</span>':'')+'</td>'
+        +'<td><span class="num">'+esc(e.nfEntrada||'')+'</span></td></tr>'; }).join('')+'</tbody></table>';
+}
+function dEscolherSai(fid){
+  dFecharEscSai(); dAbrirEq(fid);
+  setTimeout(function(){ var b=document.getElementById('dSaiBox'); if(b) b.scrollIntoView({block:'center',behavior:'smooth'});
+    var c=document.getElementById('dSaiCli'); if(c) c.focus({preventScroll:true}); },60);
+}
+
 function dExcluirEq(){
   var e=dEqAtual(); if(!e) return;
   if(!podeEscrever()){ alert('Você não tem permissão para esta ação.'); return; }
@@ -3629,6 +3729,7 @@ document.addEventListener('keydown', function(ev){
   if(document.getElementById('dMaskSol').classList.contains('on')) dFecharSol();
   else if(document.getElementById('dMaskPres').classList.contains('on')) dFecharPres();
   else if(document.getElementById('dMaskEq').classList.contains('on')) dFecharEq();
+  else if(document.getElementById('dMaskEscSai').classList.contains('on')) dFecharEscSai();
 });
 
 Object.assign(window,{dIrAviso:dIrAviso,dToggleAvisos:dToggleAvisos,dNav:dNav,dModo:dModo,dTema:dTema,dPaleta:dPaleta,dTogglePin:dTogglePin,dSetPer:dSetPer,dIrCasa:dIrCasa,
@@ -3671,7 +3772,7 @@ function scAtualizar(){
   if(window.MCPedidos){ [['remessa','dSolNrem'],['externa','dSolNext']].forEach(function(c){
     var n=MCPedidos.contar(scLista, c[0]), e=document.getElementById(c[1]); if(e){ e.textContent=n?n:''; e.style.display=n?'':'none'; } }); }
   var t=document.querySelector('.screen.active'), ae=document.activeElement;
-  var digitando=!!(ae && ae.tagName==='INPUT' && ae.closest && ae.closest('#sc-lista'));
+  var digitando=!!(ae && (ae.tagName==='INPUT'||ae.tagName==='TEXTAREA') && ae.closest && ae.closest('#sc-lista'));
   if(t && t.id==='s-solic' && !digitando) scRenderMob();
   if(typeof dPag!=='undefined' && document.body.classList.contains('desk-ok')){
     if(dPag==='solic') dRenderSol();
@@ -4025,6 +4126,45 @@ function scSalvarPat(id, p, depois){
 function dPatSol(){ scDeskModo='pat'; dPintarSol(); }
 function dSalvarPatSol(){ var id=scDeskId; scSalvarPat(id, 'scdp', function(){ if(scDeskId===id) dAbrirSol(id); }); }
 
+/* ---------- serviço executado: o supervisor da manutenção registra ----------
+   O que o técnico fez DE FATO no cliente (pode ser diferente do pedido):
+   técnico, data e descrição. Quem edita no Comodato (operador ou admin, ex.:
+   Anderson) preenche ou corrige com o pedido aberto, em separação ou já
+   entregue; cada mudança fica no andamento com nome e hora e aparece na
+   folha, para o Comercial também. Campos exec* no próprio pedido. */
+function scPodeExec(s){ return scPodePat(s); }
+function scHojeYmd(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function scTecnicos(){
+  var v={}; scLista.forEach(function(x){ var t=String(x.execTecnico||'').trim(); if(t) v[t.toUpperCase()]=t; });
+  return Object.keys(v).sort().map(function(k){ return v[k]; });
+}
+function scExecEditorHtml(s, p){
+  return '<div class="sc-grid">'
+    +'<div class="sc-f"><label>Técnico que executou</label><input type="text" id="'+p+'-tec" list="'+p+'-tecs" value="'+esc(s.execTecnico||'')+'" autocomplete="off" placeholder="Nome do técnico">'
+      +'<datalist id="'+p+'-tecs">'+scTecnicos().map(function(t){ return '<option value="'+esc(t)+'">'; }).join('')+'</datalist></div>'
+    +'<div class="sc-f"><label>Data do serviço</label><input type="date" id="'+p+'-dt" value="'+esc(s.execData||scHojeYmd())+'"></div>'
+    +'<div class="sc-f sc-w2"><label>O que foi feito</label><textarea id="'+p+'-txt" placeholder="Ex.: trocou a mangueira do gás por uma de 2 m, regulou o queimador e testou o forno com o cliente">'+esc(s.execTexto||'')+'</textarea></div>'
+    +'</div>';
+}
+function scSalvarExec(id, p, depois){
+  var s=scLista.filter(function(x){ return x.id===id; })[0]; if(!s) return;
+  if(!scPodeExec(s)){ scToast('Este pedido não aceita mais registro de serviço.', true); return; }
+  var g=function(k){ var e=document.getElementById(p+'-'+k); return e?String(e.value||'').trim():''; };
+  var tec=g('tec'), dt=g('dt'), txt=g('txt');
+  if(!txt && !s.execTexto){ scToast('Escreva o que foi feito.', true); var e=document.getElementById(p+'-txt'); if(e) e.focus(); return; }
+  if(txt && !tec){ scToast('Informe o técnico que executou.', true); var e2=document.getElementById(p+'-tec'); if(e2) e2.focus(); return; }
+  if(tec===String(s.execTecnico||'') && dt===String(s.execData||'') && txt===String(s.execTexto||'')){ scToast('Nada mudou no serviço executado.'); if(depois) depois(); return; }
+  var agora=Date.now(), tinha=!!s.execTexto;
+  var up={ execTecnico:tec, execData:dt, execTexto:txt, execPor:sessaoEmail, execNome:scNome(), execEm:agora,
+    atualizadoEm:agora, atualizadoPor:sessaoEmail, atualizadoNome:scNome() };
+  var resumo=txt ? (tec?tec+(dt?' em '+scDataBR(dt):'')+' — ':'')+(txt.length>140?txt.slice(0,140)+'…':txt) : '(apagado)';
+  up.historico=(s.historico||[]).concat([{ em:agora, por:sessaoEmail, nome:scNome(), acao:tinha?'corrigiu o serviço executado':'registrou o serviço executado', txt:resumo }]);
+  updateDoc(doc(db,'comodatoSolicitacoes',id), up).then(function(){ scToast('Serviço executado salvo.'); if(depois) depois(); })
+    .catch(function(e){ console.error(e); scToast(e.code==='permission-denied'?'Sem permissão para registrar o serviço (regra do banco).':'Não foi possível salvar ('+(e.code||e.message)+').', true); });
+}
+function dExecSol(){ scDeskModo='exec'; dPintarSol(); }
+function dSalvarExecSol(){ var id=scDeskId; scSalvarExec(id, 'scde', function(){ if(scDeskId===id) dAbrirSol(id); }); }
+
 /* ---------- folha (mesmo modelo da Autorização de Compra) ----------
    O modelo mora em folha-solicitacao.js, na raiz do hub, e é o MESMO que o
    Comercial usa: os dois apps leem o mesmo pedido e montam a mesma folha. */
@@ -4065,6 +4205,9 @@ function scRenderMob(){
         ? '<div class="sc-det">'+(s.contato?'<div><span>Contato</span>'+esc(s.contato)+'</div>':'')
           +(s.obs?'<div><span>Observações</span>'+esc(s.obs)+'</div>':'')
           +(s.obsManut?'<div><span>Manutenção</span>'+esc(s.obsManut)+'</div>':'')
+          +(s.execTexto && !scPodeExec(s)?'<div><span>Serviço executado'+(s.execTecnico?' · '+esc(s.execTecnico):'')+(s.execData?' · '+scDataBR(s.execData):'')+'</span>'+esc(s.execTexto)+'</div>':'')
+          +(scPodeExec(s)?'<div class="sc-pat" onclick="event.stopPropagation()"><span>Serviço executado — preenchido pelo supervisor</span>'+scExecEditorHtml(s,'sce')
+            +'<button class="btn btn-primary sc-b" onclick="scSalvarExec(\''+s.id+'\',\'sce\')">Salvar serviço executado</button></div>':'')
           +(scPodePat(s)?'<div class="sc-pat" onclick="event.stopPropagation()"><span>Patrimônio — preenchido pela manutenção</span>'+scPatEditorHtml(s,'scp')
             +'<button class="btn btn-primary sc-b" onclick="scSalvarPat(\''+s.id+'\',\'scp\')">Salvar patrimônio</button></div>':'')
           +'<div class="sc-acts"><button class="btn btn-secondary sc-b" onclick="event.stopPropagation();scImprimir(\''+s.id+'\')">🖨 Folha / PDF</button>'+scBotoes(s,'btn btn-primary sc-b')
@@ -4185,18 +4328,26 @@ function dPintarSol(){
     setTimeout(function(){ var e=document.getElementById('scdp-0'); if(e) e.focus(); },40);
     return;
   }
+  if(scDeskModo==='exec'){
+    tit.textContent='Serviço executado · '+scCodigo(s); sub.textContent=(s.cliente||'')+' · o que o técnico fez de fato — fica no andamento e na folha';
+    body.innerHTML=scExecEditorHtml(s,'scde');
+    foot.innerHTML='<button class="d-btn d-ghost" onclick="dAbrirSol(\''+s.id+'\')">Cancelar</button><button class="d-btn" onclick="dSalvarExecSol()">Salvar serviço executado</button>';
+    setTimeout(function(){ var e=document.getElementById(s.execTecnico?'scde-txt':'scde-tec'); if(e) e.focus(); },40);
+    return;
+  }
   tit.textContent='Solicitação '+scCodigo(s); sub.innerHTML=scPill(s.status)+' &nbsp;'+esc(s.cliente||'')+(scQuando(s)?' · entrega '+scQuando(s):'');
   body.innerHTML=scFolhaHtml(s);
   foot.innerHTML='<button class="d-btn d-ghost" onclick="scImprimir(\''+s.id+'\')" style="margin-right:auto">🖨 Imprimir / PDF</button>'
     +(scPodeEditarPedido(s)?'<button class="d-btn d-ghost" onclick="dEditarSol()">Corrigir pedido</button>':'')
     +(scPodePat(s)?'<button class="d-btn d-ghost" onclick="dPatSol()">✎ Patrimônio</button>':'')
+    +(scPodeExec(s)?'<button class="d-btn d-ghost" onclick="dExecSol()">🔧 Serviço executado</button>':'')
     +(scGere() && s.status!=='autorizacao'?'<button class="d-btn d-ghost" onclick="dExcluirPed(\''+s.id+'\')">🗑 Excluir</button>':'')+scBotoes(s,'d-btn');
 }
 
 Object.assign(window,{ scNovoMudou:scNovoMudou, scImprimir:scImprimir, scCliBusca:scCliBusca, scCliEscolher:scCliEscolher, scCliFechar:scCliFechar, scFiltrar:scFiltrar, scToggle:scToggle, scNovoMob:scNovoMob, scEditarMob:scEditarMob, scSalvarMob:scSalvarMob,
   scEqMudou:scEqMudou, scMudar:scMudar, scSalvarPedido:scSalvarPedido, scRenderMob:scRenderMob,
   dRenderSol:dRenderSol, dNovaSol:dNovaSol, dRenderPed:dRenderPed, dExcluirPed:dExcluirPed, scCatMudou:scCatMudou, dAbrirSol:dAbrirSol, dEditarSol:dEditarSol, dFecharSol:dFecharSol,
-  scSalvarPat:scSalvarPat, dPatSol:dPatSol, dSalvarPatSol:dSalvarPatSol, scItemAdd:scItemAdd, scItemTirar:scItemTirar });
+  scSalvarPat:scSalvarPat, dPatSol:dPatSol, dSalvarPatSol:dSalvarPatSol, scSalvarExec:scSalvarExec, dExecSol:dExecSol, dSalvarExecSol:dSalvarExecSol, scItemAdd:scItemAdd, scItemTirar:scItemTirar });
 
 // ===== INIT =====
 setTimeout(()=>{
@@ -4223,6 +4374,7 @@ window.toggleServico=toggleServico;
 window.salvarServicos=salvarServicos;
 window.alterarStatus=alterarStatus;
 window.registrarSaida=registrarSaida;
+window.dBtnNovaClick=dBtnNovaClick; window.dAbrirEscSai=dAbrirEscSai; window.dFecharEscSai=dFecharEscSai; window.dRenderEscSai=dRenderEscSai; window.dEscolherSai=dEscolherSai;
 window.excluirEstoque=excluirEstoque;
 window.renderHistorico=renderHistorico;
 window.setFiltroTipo=setFiltroTipo;
@@ -4306,7 +4458,7 @@ onAuthStateChanged(auth, (user) => {
   // logout de verdade pro botão "Sair"
   window.sairApp = () => signOut(auth).then(()=>location.reload());
 </script>
-<script src="https://monte-castelo-ind.github.io/folha-solicitacao.js?v=3"></script>
+<script src="https://monte-castelo-ind.github.io/folha-solicitacao.js?v=4"></script>
 <script src="https://monte-castelo-ind.github.io/pedidos-equipamento.js?v=1"></script>
 <script src="https://monte-castelo-ind.github.io/voltar.js"></script>
 </body>
