@@ -3814,7 +3814,9 @@ function scDoFiltro(lista, f, q){
   });
 }
 function scMeu(s){ return s && s.solicitadoPor===sessaoEmail; }
-function scPodeEditarPedido(s){ return !!s && ((s.status==='aberta' && (scMeu(s) || podeEscrever())) || (scGere() && (s.status==='aberta'||s.status==='separacao'))); }
+/* corrigir o pedido: quem pediu, só enquanto está aberto; a manutenção
+   (operador/admin, ex.: Anderson) e quem gerencia, aberto ou em separação */
+function scPodeEditarPedido(s){ return !!s && ((s.status==='aberta' && scMeu(s)) || ((podeEscrever() || scGere()) && (s.status==='aberta'||s.status==='separacao'))); }
 /* chave "Gerencia pedidos de equipamento" (comodatoGerencia, ligada no Comercial →
    Usuários e níveis) e a diretoria: mudam a prioridade, corrigem e excluem */
 function scGere(){ return ehAdmin() || !!(currentDoc && currentDoc.comodatoGerencia===true); }
