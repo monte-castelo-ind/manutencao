@@ -3563,11 +3563,13 @@ function dRenderCasa(){
       '<div class="tn">'+ico+' '+esc(nome)+'</div><div class="tv num'+(p?'':' zero')+'">'+dN(p)+'</div>'+
       '<div class="ts">pronto'+(m?' · '+dN(m)+' em manut.':'')+'</div></button>';
   };
-  document.getElementById('dCasaTipos').innerHTML=card('','Todos','▤',emCasa)+
+  /* "Todos" sem esteiras e latas: são lotes grandes e engoliam o total dos equipamentos (cada uma tem o próprio cartão) */
+  var emCasaEq=emCasa.filter(function(e){ return TIPOS_SEM_PATRIMONIO.indexOf(e.tipo)<0; });
+  document.getElementById('dCasaTipos').innerHTML=card('','Todos','▤',emCasaEq)+
     D_TIPOS.map(function(t){ return card(t,t,D_EMO[t],emCasa.filter(function(e){return e.tipo===t;})); }).join('');
   var rows=dFiltroCasa();
   document.getElementById('dCasaTab').innerHTML=dTabela('casa',dCols(D_COLS_CASA),rows,dRodape(rows));
-  document.getElementById('dSub').textContent=dN(dSoma(emCasa))+' unidade(s) na oficina · '+dN(dSoma(emCasa.filter(function(e){return e.status==='concluido';})))+' pronta(s)';
+  document.getElementById('dSub').textContent=dN(dSoma(emCasaEq))+' equipamento(s) na oficina · '+dN(dSoma(emCasaEq.filter(function(e){return e.status==='concluido';})))+' pronto(s) · sem esteiras e latas';
 }
 function dCasaTipoCard(t){ var s=document.getElementById('dCasaTipo'); s.value=(s.value===t)?'':t; dRenderCasa(); }
 function dLimparCasa(){ ['dCasaQ','dCasaSt','dCasaTipo'].forEach(function(id){ document.getElementById(id).value=''; }); dRenderCasa(); }
